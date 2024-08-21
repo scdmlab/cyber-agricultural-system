@@ -2,21 +2,18 @@
 <template>
   <div id="app">
     <HeaderComponent />
-    <ToolbarComponent />
     <MapComponent />
   </div>
 </template>
 
 <script>
 import HeaderComponent from './components/HeaderComponent.vue'
-import ToolbarComponent from './components/ToolbarComponent.vue'
 import MapComponent from './components/MapComponent.vue'
 
 export default {
   name: 'App',
   components: {
     HeaderComponent,
-    ToolbarComponent,
     MapComponent
   }
 }

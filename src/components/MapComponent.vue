@@ -1,8 +1,22 @@
 <!-- MapComponent.vue -->
 <template>
   <div id="map-container">
+
+    <ToolbarComponent
+        @zoom-in="zoomIn"
+        @zoom-out="zoomOut"
+        @reset-view="resetViewToCONUS"
+        @toggle-sidebar="toggleSidebar"
+    />
+    <transition name="sidebar">
+      <div v-if="isSidebarOpen" class="sidebar" :style="{ width: sidebarWidth + 'px' }">
+        <div class="resize-handle" @mousedown="startResize"></div>
+        <SettingsPanel v-if="activeSidebar === 'settings'" @apply-settings="applySettings" />
+        <!-- Add other sidebar components as needed -->
+      </div>
+    </transition>
     <div id="map" ref="mapContainer"></div>
-    <div class="map-controls"></div>
+
   </div>
 </template>
 
@@ -12,18 +26,26 @@ import { useStore } from 'vuex'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {Icon} from '@iconify/vue'
+import SettingsPanel from "@/components/SettingsPanel.vue";
+import ToolbarComponent from "@/components/ToolbarComponent.vue";
 
 export default {
   name: 'MapComponent',
   components: {
+    ToolbarComponent,
+    SettingsPanel,
     Icon
   },
   setup() {
     const store = useStore()
     const mapContainer = ref(null)
     const map = ref(null)
+    const activeSidebar = ref(null)
     const scaleControl = ref(null)
     const currentUnit = ref('metric')
+    const isSidebarOpen = ref(false)
+    const sidebarWidth = ref(300)
+    const isResizing = ref(false)
 
     const mapData = computed(() => store.getters.getMapData)
     const currentProperty = computed(() => store.state.currentProperty)
@@ -269,6 +291,35 @@ export default {
       }
     }
 
+    function toggleSidebar(panel) {
+      if (activeSidebar.value === panel) {
+        activeSidebar.value = null
+        isSidebarOpen.value = false
+      } else {
+        activeSidebar.value = panel
+        isSidebarOpen.value = true
+      }
+    }
+
+    function startResize(event) {
+      isResizing.value = true
+      document.addEventListener('mousemove', resize)
+      document.addEventListener('mouseup', stopResize)
+    }
+
+    function resize(event) {
+      if (isResizing.value) {
+        const newWidth = event.clientX
+        sidebarWidth.value = Math.max(200, Math.min(newWidth, 600))
+      }
+    }
+
+    function stopResize() {
+      isResizing.value = false
+      document.removeEventListener('mousemove', resize)
+      document.removeEventListener('mouseup', stopResize)
+    }
+
     onBeforeUnmount(() => {
       if (map.value) {
         if (scaleControl.value) {
@@ -285,6 +336,8 @@ export default {
       zoomOut,
       resetViewToCONUS,
       currentUnit,
+      toggleSidebar,
+      activeSidebar,
     }
   }
 }
@@ -294,14 +347,51 @@ export default {
 @import 'maplibre-gl/dist/maplibre-gl.css';
 
 #map-container {
-  position: relative;
-  flex: 1;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  //width: 100%;
   height: 100%;
 }
 
-#map {
+.content-wrapper {
+  display: flex;
+  flex-grow: 1;
+  overflow: hidden;
+}
+.sidebar {
   position: absolute;
+  top: 50px; /* Adjust based on your toolbar height */
+  left: 0;
+  width: 300px;
+  height: calc(100% - 50px);
+  background-color: white;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.resize-handle {
+  width: 5px;
+  height: 100%;
+  background-color: #ccc;
+  position: absolute;
+  right: 0;
+  top: 0;
+  cursor: ew-resize;
+}
+
+.sidebar-enter-active,
+.sidebar-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.sidebar-enter-from,
+.sidebar-leave-to {
+  transform: translateX(-100%);
+}
+
+
+#map {
+  flex-grow: 1;
   top: 0;
   left: 0;
   right: 0;
@@ -410,5 +500,7 @@ export default {
   bottom: 40px;
   left: 10px;
 }
+
+
 
 </style>

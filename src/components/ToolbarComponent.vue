@@ -1,22 +1,40 @@
 <!-- ToolbarComponent.vue -->
 <template>
   <div class="toolbar">
-    <button @click="toggleBasemap" class="tooltip">
-      <Icon icon="mdi:map" />
-      <span class="tooltiptext">Toggle Basemap</span>
-    </button>
-    <button @click="zoomIn" class="tooltip">
-      <Icon icon="mdi:plus" />
-      <span class="tooltiptext">Zoom In</span>
-    </button>
-    <button @click="zoomOut" class="tooltip">
-      <Icon icon="mdi:minus" />
-      <span class="tooltiptext">Zoom Out</span>
-    </button>
-    <button @click="resetView" class="tooltip">
-      <Icon icon="mdi:refresh" />
-      <span class="tooltiptext">Reset View</span>
-    </button>
+    <div class="toolbar-content">
+      <div class="left-buttons">
+        <button @click="toggleSidebar('settings')">
+          <Icon icon="mdi:cog" />
+          <span class="tooltip">Settings</span>
+        </button>
+        <button @click="toggleSidebar('data')">
+          <Icon icon="mdi:database" />
+          <span class="tooltip">Data</span>
+        </button>
+        <button @click="toggleSidebar('analysis')">
+          <Icon icon="mdi:chart-bar" />
+          <span class="tooltip">Analysis</span>
+        </button>
+      </div>
+      <div class="right-buttons">
+        <button @click="$emit('zoom-in')">
+          <Icon icon="mdi:plus" />
+          <span class="tooltip">Zoom In</span>
+        </button>
+        <button @click="$emit('zoom-out')">
+          <Icon icon="mdi:minus" />
+          <span class="tooltip">Zoom Out</span>
+        </button>
+        <button @click="$emit('reset-view')">
+          <Icon icon="mdi:home" />
+          <span class="tooltip">Reset View</span>
+        </button>
+        <button @click="toggleBasemap">
+          <Icon icon="mdi:layers" />
+          <span class="tooltip">Toggle Basemap</span>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -28,22 +46,14 @@ export default {
   components: {
     Icon
   },
+  emits: ['zoom-in', 'zoom-out', 'reset-view', 'toggle-sidebar'],
   methods: {
+    toggleSidebar(panel) {
+      this.$emit('toggle-sidebar', panel)
+    },
     toggleBasemap() {
       // Implement basemap toggle functionality
       console.log('Toggle basemap')
-    },
-    zoomIn() {
-      // Implement zoom in functionality
-      console.log('Zoom in')
-    },
-    zoomOut() {
-      // Implement zoom out functionality
-      console.log('Zoom out')
-    },
-    resetView() {
-      // Implement reset view functionality
-      console.log('Reset view')
     }
   }
 }
@@ -52,39 +62,49 @@ export default {
 <style scoped>
 .toolbar {
   background-color: #f0f0f0;
-  padding: 5px;
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
+  border-bottom: 1px solid #ccc;
+  padding: 5px 0;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
+}
+
+.toolbar-content {
+  display: flex;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 10px;
+}
+
+.left-buttons, .right-buttons {
+  display: flex;
 }
 
 button {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 30px;
-  height: 30px;
-  margin-right: 5px;
-  padding: 5px;
+  margin-right: 10px;
+  padding: 5px 10px;
   background-color: #4CAF50;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 button:hover {
   background-color: #45a049;
 }
 
-.tooltip {
-  position: relative;
-  display: inline-block;
+button:hover .tooltip {
+  visibility: visible;
+  opacity: 1;
 }
 
-.tooltip .tooltiptext {
+.tooltip {
   visibility: hidden;
   width: 120px;
   background-color: #555;
@@ -101,7 +121,7 @@ button:hover {
   transition: opacity 0.3s;
 }
 
-.tooltip .tooltiptext::after {
+.tooltip::after {
   content: "";
   position: absolute;
   top: 100%;
@@ -112,13 +132,8 @@ button:hover {
   border-color: #555 transparent transparent transparent;
 }
 
-.tooltip:hover .tooltiptext {
-  visibility: visible;
-  opacity: 1;
-}
-
 /* Style for the icons */
-button :deep(svg) {
+button svg {
   width: 20px;
   height: 20px;
 }

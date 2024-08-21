@@ -2,33 +2,36 @@
 <template>
   <div class="settings-panel">
     <h2>Settings</h2>
-    <div>
-      <label for="crop">Crop:</label>
-      <select id="crop" v-model="crop" @change="updateSettings">
-        <option value="corn">Corn</option>
-        <option value="soybean">Soybean</option>
-      </select>
+    <div class="settings-content">
+      <div>
+        <label for="crop">Crop:</label>
+        <select id="crop" v-model="localCrop">
+          <option value="corn">Corn</option>
+          <option value="soybean">Soybean</option>
+        </select>
+      </div>
+      <div>
+        <label for="year">Year:</label>
+        <select id="year" v-model="localYear">
+          <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+        </select>
+      </div>
+      <div>
+        <label for="month">Month:</label>
+        <select id="month" v-model="localMonth">
+          <option v-for="m in months" :key="m" :value="m">{{ m }}</option>
+        </select>
+      </div>
+      <div>
+        <label for="property">Property:</label>
+        <select id="property" v-model="localProperty">
+          <option value="pred">Prediction</option>
+          <option value="yield">Yield</option>
+          <option value="error">Error</option>
+        </select>
+      </div>
     </div>
-    <div>
-      <label for="year">Year:</label>
-      <select id="year" v-model="year" @change="updateSettings">
-        <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-      </select>
-    </div>
-    <div>
-      <label for="month">Month:</label>
-      <select id="month" v-model="month" @change="updateSettings">
-        <option v-for="m in months" :key="m" :value="m">{{ m }}</option>
-      </select>
-    </div>
-    <div>
-      <label for="property">Property:</label>
-      <select id="property" v-model="property" @change="updateSettings">
-        <option value="pred">Prediction</option>
-        <option value="yield">Yield</option>
-        <option value="error">Error</option>
-      </select>
-    </div>
+    <button @click="applySettings" class="apply-button">Apply</button>
   </div>
 </template>
 
@@ -38,12 +41,13 @@ import { useStore } from 'vuex'
 
 export default {
   name: 'SettingsPanel',
+  emits: ['apply-settings'],
   setup() {
     const store = useStore()
-    const crop = ref(store.state.currentCrop)
-    const year = ref(store.state.currentYear)
-    const month = ref(store.state.currentMonth)
-    const property = ref(store.state.currentProperty)
+    const localCrop = ref(store.state.currentCrop)
+    const localYear = ref(store.state.currentYear)
+    const localMonth = ref(store.state.currentMonth)
+    const localProperty = ref(store.state.currentProperty)
 
     const years = computed(() => {
       return Array.from({ length: 12 }, (_, i) => (2010 + i).toString())
@@ -53,22 +57,22 @@ export default {
       return Array.from({ length: 10 }, (_, i) => i.toString())
     })
 
-    function updateSettings() {
-      store.commit('setCrop', crop.value)
-      store.commit('setYear', year.value)
-      store.commit('setMonth', month.value)
-      store.commit('setProperty', property.value)
+    function applySettings() {
+      store.commit('setCrop', localCrop.value)
+      store.commit('setYear', localYear.value)
+      store.commit('setMonth', localMonth.value)
+      store.commit('setProperty', localProperty.value)
       store.dispatch('fetchMapData')
     }
 
     return {
-      crop,
-      year,
-      month,
-      property,
+      localCrop,
+      localYear,
+      localMonth,
+      localProperty,
       years,
       months,
-      updateSettings,
+      applySettings,
     }
   },
 }
@@ -78,19 +82,45 @@ export default {
 .settings-panel {
   padding: 20px;
   background-color: #f0f0f0;
-  border-radius: 5px;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
-.settings-panel div {
-  margin-bottom: 10px;
+.settings-content {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.settings-content div {
+  margin-bottom: 15px;
 }
 
 label {
-  display: inline-block;
-  width: 80px;
+  display: block;
+  margin-bottom: 5px;
 }
 
 select {
-  width: 120px;
+  width: 100%;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.apply-button {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.apply-button:hover {
+  background-color: #45a049;
 }
 </style>
