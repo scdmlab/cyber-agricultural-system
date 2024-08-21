@@ -2,20 +2,7 @@
 <template>
   <div id="map-container">
     <div id="map" ref="mapContainer"></div>
-    <div class="map-controls">
-      <button @click="zoomIn" class="tooltip">
-        <Icon icon="mdi:plus" />
-        <span class="tooltiptext">Zoom In</span>
-      </button>
-      <button @click="zoomOut" class="tooltip">
-        <Icon icon="mdi:minus" />
-        <span class="tooltiptext">Zoom Out</span>
-      </button>
-      <button @click="resetViewToCONUS" class="tooltip">
-        <Icon icon="mdi:home" />
-        <span class="tooltiptext">Reset View</span>
-      </button>
-    </div>
+    <div class="map-controls"></div>
   </div>
 </template>
 
@@ -35,6 +22,8 @@ export default {
     const store = useStore()
     const mapContainer = ref(null)
     const map = ref(null)
+    const scaleControl = ref(null)
+    const currentUnit = ref('metric')
 
     const mapData = computed(() => store.getters.getMapData)
     const currentProperty = computed(() => store.state.currentProperty)
@@ -84,10 +73,86 @@ export default {
       })
 
       map.value.on('load', () => {
-        console.log('Map loaded successfully')
         resizeMap()
         store.dispatch('fetchMapData')
+
+        addCustomScaleControl()
+        addDraggableControl(maplibregl.NavigationControl, {showCompass:false}, 'top-right');
       })
+
+    }
+
+    // Add scale control
+    function addCustomScaleControl() {
+      const CustomScaleControl = class extends maplibregl.ScaleControl {
+        constructor(options) {
+          super(options)
+          this._unit = options.unit || 'metric'
+        }
+
+        onAdd(map) {
+          const container = super.onAdd(map)
+
+          container.addEventListener('click', () => {
+            this._unit = this._unit === 'metric' ? 'imperial' : 'metric'
+            this.setUnit(this._unit)
+            currentUnit.value = this._unit // Update the reactive ref
+          })
+
+          container.style.cursor = 'pointer'
+          return container
+        }
+      }
+
+      scaleControl.value = new CustomScaleControl({
+        maxWidth: 100,
+        unit: currentUnit.value
+      })
+
+      map.value.addControl(scaleControl.value, 'bottom-left')
+
+      makeDraggable(scaleControl.value)
+    }
+
+    function makeDraggable(control) {
+      const container = control._container;
+      if (!container) return;
+
+      container.style.cursor = 'move';
+      container.style.position = 'absolute';
+
+      let isDragging = false;
+      let startX, startY;
+
+      container.addEventListener('mousedown', startDragging);
+      document.addEventListener('mousemove', drag);
+      document.addEventListener('mouseup', stopDragging);
+
+      function startDragging(e) {
+        isDragging = true;
+        startX = e.clientX - container.offsetLeft;
+        startY = e.clientY - container.offsetTop;
+        e.preventDefault();
+      }
+
+      function drag(e) {
+        if (!isDragging) return;
+        const x = e.clientX - startX;
+        const y = e.clientY - startY;
+        container.style.left = `${x}px`;
+        container.style.top = `${y}px`;
+      }
+
+      function stopDragging() {
+        isDragging = false;
+      }
+    }
+
+    function addDraggableControl(Control, options = {}, position = 'top-right') {
+      const control = new Control(options);
+      map.value.addControl(control, position);
+      makeDraggable(control);
+      return control;
     }
 
     function updateChoropleth(data) {
@@ -206,6 +271,9 @@ export default {
 
     onBeforeUnmount(() => {
       if (map.value) {
+        if (scaleControl.value) {
+          map.value.removeControl(scaleControl.value)
+        }
         map.value.remove()
       }
       window.removeEventListener('resize', resizeMap)
@@ -215,7 +283,8 @@ export default {
       mapContainer,
       zoomIn,
       zoomOut,
-      resetViewToCONUS
+      resetViewToCONUS,
+      currentUnit,
     }
   }
 }
@@ -309,4 +378,37 @@ export default {
   width: 20px;
   height: 20px;
 }
+
+/* change custom styles for the scale control if needed */
+.maplibregl-ctrl-scale {
+  border: 2px solid #333;
+  border-top: none;
+  padding: 0 5px;
+  color: #333;
+  font-size: 10px;
+  line-height: 18px;
+  font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  background-color: rgba(255, 255, 255, 0.75);
+  transition: background-color 0.3s ease;
+}
+
+.maplibregl-ctrl-scale:hover {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+/* Add styles for draggable controls */
+.maplibregl-ctrl {
+  z-index: 1;
+}
+
+.maplibregl-ctrl-top-right {
+  top: 10px;
+  right: 40px;
+}
+
+.maplibregl-ctrl-bottom-left {
+  bottom: 40px;
+  left: 10px;
+}
+
 </style>
