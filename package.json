@@ -1,0 +1,22 @@
+{
+  "name": "NIFA_Dev_Vue",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@maplibre/maplibre-gl-style-spec": "^20.3.1",
+    "maplibre-gl": "^4.5.2",
+    "vue": "^3.4.29",
+    "vuex": "^4.0.2"
+  },
+  "devDependencies": {
+    "@iconify/vue": "^4.1.2",
+    "@vitejs/plugin-vue": "^5.0.5",
+    "vite": "^5.3.1"
+  }
+}
