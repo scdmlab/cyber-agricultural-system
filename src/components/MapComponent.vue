@@ -3,9 +3,18 @@
   <div id="map-container">
     <div id="map" ref="mapContainer"></div>
     <div class="map-controls">
-      <button @click="zoomIn">+</button>
-      <button @click="zoomOut">-</button>
-      <button @click="resetNorth">⇧</button>
+      <button @click="zoomIn" class="tooltip">
+        <Icon icon="mdi:plus" />
+        <span class="tooltiptext">Zoom In</span>
+      </button>
+      <button @click="zoomOut" class="tooltip">
+        <Icon icon="mdi:minus" />
+        <span class="tooltiptext">Zoom Out</span>
+      </button>
+      <button @click="resetViewToCONUS" class="tooltip">
+        <Icon icon="mdi:home" />
+        <span class="tooltiptext">Reset View</span>
+      </button>
     </div>
   </div>
 </template>
@@ -15,10 +24,13 @@ import { onMounted, ref, watch, computed, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-// import Icon from '@iconify/vue'
+import {Icon} from '@iconify/vue'
 
 export default {
   name: 'MapComponent',
+  components: {
+    Icon
+  },
   setup() {
     const store = useStore()
     const mapContainer = ref(null)
@@ -181,9 +193,14 @@ export default {
       }
     }
 
-    function resetNorth() {
+    function resetViewToCONUS() {
       if (map.value) {
-        map.value.reset()
+        map.value.flyTo({
+          center: [-98.5795, 39.8283], // Approximate center of CONUS
+          zoom: 3.5, // Zoom level to show all of CONUS
+          bearing: 0,
+          pitch: 0
+        });
       }
     }
 
@@ -198,7 +215,7 @@ export default {
       mapContainer,
       zoomIn,
       zoomOut,
-      resetNorth
+      resetViewToCONUS
     }
   }
 }
@@ -231,10 +248,52 @@ export default {
   z-index: 1;
 }
 
+.map-controls .tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.map-controls .tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.map-controls .tooltip .tooltiptext::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+.map-controls .tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
 .map-controls button {
-  display: block;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 30px;
   margin-bottom: 5px;
-  padding: 5px 10px;
+  padding: 5px;
   background-color: white;
   border: 1px solid #ccc;
   cursor: pointer;
@@ -243,5 +302,11 @@ export default {
 
 .map-controls button:hover {
   background-color: #f0f0f0;
+}
+
+/* Style for the icons */
+.map-controls button svg {
+  width: 20px;
+  height: 20px;
 }
 </style>
