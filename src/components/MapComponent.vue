@@ -13,6 +13,7 @@
         <div class="resize-handle" @mousedown.prevent="startResize"></div>
         <DataSelectionPanel v-if="activeSidebar === 'data'" />
         <DataAnalysisPanel v-if="activeSidebar === 'analysis'" />
+        <MappingPanel v-if="activeSidebar === 'mapping'" />
         <!-- Add other sidebar components as needed -->
       </div>
     </transition>
@@ -34,6 +35,7 @@ import { interpolateRgb } from 'd3-interpolate'
 import DataSelectionPanel from "@/components/DataSelectionPanel.vue";
 import ToolbarComponent from "@/components/ToolbarComponent.vue";
 import DataAnalysisPanel from "@/components/DataAnalysisPanel.vue";
+import MappingPanel from "@/components/MappingPanel.vue";
 import stateBoundaries from '@/../data/gz_2010_us_040_00_20m.json'
 import countyBoundaries from '@/../data/gz_2010_us_050_00_20m.json'
 
@@ -44,6 +46,7 @@ export default {
     DataSelectionPanel,
     Icon,
     DataAnalysisPanel,
+    MappingPanel
   },
   setup() {
     const store = useStore()
@@ -194,6 +197,8 @@ export default {
         zoom: 4
       })
 
+      
+
       map.value.on('load', () => {
         addCustomScaleControl()
         addDraggableControl(maplibregl.NavigationControl, {showCompass:false}, 'top-right')
@@ -307,6 +312,8 @@ export default {
         map.value.on('mouseleave', 'counties-layer', () => {
           map.value.getCanvas().style.cursor = ''
         })
+
+        store.commit('setMap', map.value)
 
         updateChoropleth()
 

@@ -5,6 +5,7 @@ import * as d3 from 'd3'
 
 export default createStore({
     state: {
+      map: null,
         currentCrop: 'corn',
         currentYear: '2021',
         currentMonth: '0',
@@ -15,8 +16,16 @@ export default createStore({
         hoveredCounty: null,
         hoveredCountyId: null,
         historicalData: [],
+        averagePredData: [],
+        mapTitle: 'Corn Prediction for US in 2021',
+        mapDescription: '',
+        mapFont: 'Arial',
+        mapBackgroundColor: '#FFFFFF'
     },
     mutations: {
+      setMap(state, data) {
+        state.map = data
+      },
         setCrop(state, crop) {
             state.currentCrop = crop
         },
@@ -44,6 +53,9 @@ export default createStore({
         },
         setHistoricalData(state, data) {
             state.historicalData = data
+        },
+        setAveragePredData(state, data) {
+            state.averagePredData = data
         },
     },
     actions: {
@@ -109,18 +121,37 @@ export default createStore({
           } catch (error) {
               console.error('Error fetching historical data:', error)
           }
-      },
-      async initializeData({ dispatch }) {
-          await dispatch('loadCsvData')
-          await dispatch('fetchHistoricalData')
-      }
+        },
+        async fetchAveragePred({ commit }) {
+            try {
+                const response = await fetch('/data/average_pred.csv')
+                const csvText = await response.text()
+                const parsedData = d3.csvParse(csvText, d => ({
+                    FIPS: d.FIPS,
+                    year: +d.YEAR,
+                    pred: +d.PRED,
+                    yield: +d.YIELD,
+                    crop: d.CROP === 'c'? 'corn' : 'soybean'
+                }))
+                commit('setAveragePredData', parsedData)
+            } catch (error) {
+                console.error('Error fetching historical data:', error)
+            }
+        },
+        async initializeData({ dispatch }) {
+            await dispatch('loadCsvData')
+            await dispatch('fetchHistoricalData')
+            await dispatch('fetchAveragePred')
+        }
     },
     getters: {
+        getMap: (state) => state.map,
         getMapData: (state) => state.mapData,
         hoveredCountyId: state => state.hoveredCountyId,
         hoveredCountyFIPS: state => state.hoveredCounty ? state.hoveredCounty.fips : null,
         hoveredCountyName: state => state.hoveredCounty ? state.hoveredCounty.name : null,
         hoveredCountyValue: state => state.hoveredCounty ? state.hoveredCounty.value : null,
         getHistoryData: state => state.historicalData ,
+        getAveragePredData: state => state.averagePredData ,
     },
 })

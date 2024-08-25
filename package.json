@@ -14,7 +14,6 @@
     "d3-scale": "^4.0.2",
     "maplibre-gl": "^4.5.2",
     "papaparse": "^5.4.1",
-    "tabulator": "^0.2.40",
     "tabulator-tables": "^6.2.5",
     "vue": "^3.4.29",
     "vuex": "^4.0.2"
@@ -22,6 +21,7 @@
   "devDependencies": {
     "@iconify/vue": "^4.1.2",
     "@vitejs/plugin-vue": "^5.0.5",
+    "@watergis/maplibre-gl-export": "^3.8.3",
     "vite": "^5.3.1",
     "vite-plugin-vue-devtools": "^7.3.8"
   }

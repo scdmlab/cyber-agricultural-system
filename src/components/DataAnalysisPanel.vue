@@ -208,13 +208,11 @@
           { title: "Pred", field: "pred", width: 70 },
           { title: "Error", field: "error", width: 70 },
         ],
-        layout: "fitDataFill",
+        layout: "fitColumns",
         height: 400,
         pagination: true,
         paginationSize: 15,
         autoResize: true,
-        autoColumns: true,
-
       })
     }
   
