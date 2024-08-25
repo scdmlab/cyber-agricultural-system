@@ -11,7 +11,7 @@
     <transition name="sidebar">
       <div v-if="isSidebarOpen" class="sidebar" :style="{ width: sidebarWidth + 'px' }">
         <div class="resize-handle" @mousedown.prevent="startResize"></div>
-        <SettingsPanel v-if="activeSidebar === 'settings'" @apply-settings="applySettings" />
+        <DataSelectionPanel v-if="activeSidebar === 'data'" />
         <!-- Add other sidebar components as needed -->
       </div>
     </transition>
@@ -26,7 +26,7 @@ import { useStore } from 'vuex'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {Icon} from '@iconify/vue'
-import SettingsPanel from "@/components/SettingsPanel.vue";
+import DataSelectionPanel from "@/components/DataSelectionPanel.vue";
 import ToolbarComponent from "@/components/ToolbarComponent.vue";
 import stateBoundaries from '@/../data/gz_2010_us_040_00_20m.json'
 import countyBoundaries from '@/../data/gz_2010_us_050_00_20m.json'
@@ -35,7 +35,7 @@ export default {
   name: 'MapComponent',
   components: {
     ToolbarComponent,
-    SettingsPanel,
+    DataSelectionPanel,
     Icon
   },
   setup() {
@@ -52,8 +52,8 @@ export default {
     onMounted(() => {
       initializeMap()
 
-      window.addEventListener('mousemove', resize)
-      window.addEventListener('mouseup', stopResize)
+      window.addEventListener('mousemove', resizeSidebar)
+      window.addEventListener('mouseup', stopResizeSidebar)
     })
 
 
@@ -196,48 +196,6 @@ export default {
       return control;
     }
 
-    function getColorScale(data) {
-      const values = data.features.map(f => f.properties[currentProperty.value])
-      const min = Math.min(...values)
-      const max = Math.max(...values)
-      return [
-        min, '#ffffcc',
-        min + (max - min) * 0.25, '#c2e699',
-        min + (max - min) * 0.5, '#78c679',
-        min + (max - min) * 0.75, '#31a354',
-        max, '#006837'
-      ]
-    }
-
-    function handleCountyClick(e) {
-      if (e.features.length > 0) {
-        store.commit('setSelectedLocation', e.features[0].properties)
-      }
-    }
-
-    function handleCountyHover(e) {
-      if (e.features.length > 0) {
-        map.value.getCanvas().style.cursor = 'pointer'
-        if (!map.value.getLayer('hover-layer')) {
-          map.value.addLayer({
-            id: 'hover-layer',
-            type: 'line',
-            source: 'counties',
-            paint: {
-              'line-color': '#000',
-              'line-width': 3
-            },
-            filter: ['==', 'FIPS', '']
-          })
-        }
-        map.value.setFilter('hover-layer', ['==', 'FIPS', e.features[0].properties.FIPS])
-      }
-    }
-
-    function handleCountyLeave() {
-      map.value.getCanvas().style.cursor = ''
-      map.value.setFilter('hover-layer', ['==', 'FIPS', ''])
-    }
 
     function zoomIn() {
       if (map.value) {
@@ -272,20 +230,20 @@ export default {
       }
     }
 
-    function startResize(event) {
+    function startResizeSidebar(event) {
       isResizing.value = true
-      document.addEventListener('mousemove', resize)
-      document.addEventListener('mouseup', stopResize)
+      document.addEventListener('mousemove', resizeSidebar)
+      document.addEventListener('mouseup', stopResizeSidebar)
     }
 
-    function resize(event) {
+    function resizeSidebar(event) {
       if (isResizing.value) {
         const newWidth = event.clientX
         sidebarWidth.value = Math.max(200, Math.min(newWidth, 600))
       }
     }
 
-    function stopResize() {
+    function stopResizeSidebar() {
       isResizing.value = false
     }
 
@@ -296,8 +254,8 @@ export default {
         }
         map.value.remove()
       }
-      window.removeEventListener('mousemove', resize)
-      window.removeEventListener('mouseup', stopResize)
+      window.removeEventListener('mousemove', resizeSidebar)
+      window.removeEventListener('mouseup', stopResizeSidebar)
     })
 
     return {
@@ -310,7 +268,7 @@ export default {
       activeSidebar,
       isSidebarOpen,
       sidebarWidth,
-      startResize,
+      startResize: startResizeSidebar,
     }
   }
 }

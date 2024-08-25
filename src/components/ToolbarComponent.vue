@@ -3,17 +3,21 @@
   <nav class="toolbar" aria-label="Map controls">
     <div class="toolbar-content">
       <div class="left-buttons">
-        <button @click="toggleSidebar('settings')" aria-label="Settings">
-          <Icon icon="mdi:cog" />
-          <span class="tooltip">Settings</span>
+        <button @click="toggleSidebar('run')" aria-label="Run Model">
+          <Icon icon="mdi:play" />
+          <span class="tooltip">Run  Model</span>
         </button>
         <button @click="toggleSidebar('data')" aria-label="Data">
           <Icon icon="mdi:database" />
-          <span class="tooltip">Data</span>
+          <span class="tooltip">Data Selection</span>
         </button>
         <button @click="toggleSidebar('analysis')" aria-label="Analysis">
           <Icon icon="mdi:chart-bar" />
           <span class="tooltip">Analysis</span>
+        </button>
+        <button @click="toggleSidebar('analysis')" aria-label="Mapping">
+          <Icon icon="mdi:map" />
+          <span class="tooltip">Mapping</span>
         </button>
       </div>
       <div class="right-buttons">
