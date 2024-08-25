@@ -63,24 +63,115 @@ body {
   color: var(--color-text);
   background: var(--color-background);
   transition:
-    color 0.5s,
-    background-color 0.5s;
+          color 0.5s,
+          background-color 0.5s;
   line-height: 1.6;
   font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          Oxygen,
+          Ubuntu,
+          Cantarell,
+          'Fira Sans',
+          'Droid Sans',
+          'Helvetica Neue',
+          sans-serif;
   font-size: 15px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Common styles for components */
+:root {
+  --space-large: 20px;
+  --space-medium: 15px;
+  --space-small: 10px;
+  --sidebar-width: 300px;
+  --toolbar-height: 50px;
+  --control-background: white;
+  --control-border: #ccc;
+  --control-hover: #f0f0f0;
+  --tooltip-background: #555;
+  --tooltip-text: #fff;
+  --color-background-mute: var(--vt-c-white-mute);
+  --color-text: var(--vt-c-text-light-1);
+  --border-radius: 4px;
+  --color-border: #ccc;
+  --color-background: #ffffff;
+  --color-primary: #578bc3;
+  --color-primary-dark: #0056b3;
+  --color-text-button: #ffffff;
+  --color-text-hover: #da1010;
+
+
+
+  --font-size-medium: 16px;
+  --color-background-soft: var(--vt-c-white-soft);
+  --max-width: 1200px;
+  --z-index-tooltip: 1000;
+  --z-index-maplibre-controls: 1000;
+  --color-tooltip-bg: #555;
+  --color-tooltip-text: #fff;
+  --icon-size: 24px;
+  --shadow-light: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --z-index-sidebar: 1000;
+
+  --color-button-hover: #550a3d;
+  --color-button-bg: #5380af;
+
+  --color-scale-border: #000000;
+  --color-scale-bg: #ffffff;
+  --color-scale-bg-hover: #dca5a5;
+  --color-scale-text: #000000;
+
+  --color-primary-light: hsla(160, 100%, 37%, 0.2);
+  --vt-c-white: #ffffff;
+  --vt-c-black: #181818;
+  --color-primary-dark: #0056b3;
+  --color-text-button: #ffffff;
+  --color-text-hover: #da1010;
+  --font-size-base: 16px;
+
+  /* Header-specific variables */
+  --header-background: var(--vt-c-black);
+  --header-text: var(--vt-c-white);
+  --header-padding: 10px 20px;
+  --header-link-margin: 20px;
+
+  --font-size-large: 20px;
+
+
+  --font-family:
+  Inter,
+  -apple-system,
+  BlinkMacSystemFont,
+  'Segoe UI',
+  Roboto,
+  Oxygen,
+  Ubuntu,
+  Cantarell,
+  'Fira Sans',
+  'Droid Sans',
+  'Helvetica Neue',
+  sans-serif;
+}
+
+.draggable-control {
+  position: absolute;
+  z-index: 1;
+  cursor: move;
+}
+
+.map-control {
+  background-color: var(--control-background);
+  border: 1px solid var(--control-border);
+  cursor: pointer;
+}
+
+.map-control:hover {
+  background-color: var(--control-hover);
 }

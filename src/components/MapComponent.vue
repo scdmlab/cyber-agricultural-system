@@ -10,7 +10,7 @@
     />
     <transition name="sidebar">
       <div v-if="isSidebarOpen" class="sidebar" :style="{ width: sidebarWidth + 'px' }">
-        <div class="resize-handle" @mousedown="startResize"></div>
+        <div class="resize-handle" @mousedown.prevent="startResize"></div>
         <SettingsPanel v-if="activeSidebar === 'settings'" @apply-settings="applySettings" />
         <!-- Add other sidebar components as needed -->
       </div>
@@ -28,6 +28,8 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import {Icon} from '@iconify/vue'
 import SettingsPanel from "@/components/SettingsPanel.vue";
 import ToolbarComponent from "@/components/ToolbarComponent.vue";
+import stateBoundaries from '@/../data/gz_2010_us_040_00_20m.json'
+import countyBoundaries from '@/../data/gz_2010_us_050_00_20m.json'
 
 export default {
   name: 'MapComponent',
@@ -47,25 +49,13 @@ export default {
     const sidebarWidth = ref(300)
     const isResizing = ref(false)
 
-    const mapData = computed(() => store.getters.getMapData)
-    const currentProperty = computed(() => store.state.currentProperty)
-
     onMounted(() => {
       initializeMap()
-      window.addEventListener('resize', resizeMap)
+
+      window.addEventListener('mousemove', resize)
+      window.addEventListener('mouseup', stopResize)
     })
 
-    watch(mapData, (newData) => {
-      if (newData && map.value) {
-        updateChoropleth(newData)
-      }
-    })
-
-    watch(currentProperty, () => {
-      if (mapData.value && map.value) {
-        updateChoropleth(mapData.value)
-      }
-    })
 
     function initializeMap() {
       map.value = new maplibregl.Map({
@@ -90,18 +80,47 @@ export default {
             }
           ]
         },
-        center: [-93, 43],
-        zoom: 5.5
+        center: [-98.5795, 39.8283], // Center of the US
+        zoom: 4
       })
 
       map.value.on('load', () => {
-        resizeMap()
-        store.dispatch('fetchMapData')
-
         addCustomScaleControl()
-        addDraggableControl(maplibregl.NavigationControl, {showCompass:false}, 'top-right');
-      })
+        addDraggableControl(maplibregl.NavigationControl, {showCompass:false}, 'top-right')
 
+        // Load county boundaries
+        map.value.addSource('counties', {
+          type: 'geojson',
+          data: countyBoundaries
+        })
+
+        map.value.addLayer({
+          id: 'counties-layer',
+          type: 'fill',
+          source: 'counties',
+          paint: {
+            'fill-color': '#627BC1',
+            'fill-opacity': 0.5,
+            'fill-outline-color': '#000000'
+          }
+        })
+
+        // Add state boundaries
+        map.value.addSource('states', {
+          type: 'geojson',
+          data: stateBoundaries
+        })
+
+        map.value.addLayer({
+          id: 'states-layer',
+          type: 'line',
+          source: 'states',
+          paint: {
+            'line-color': '#000',
+            'line-width': 2
+          }
+        })
+      })
     }
 
     // Add scale control
@@ -177,48 +196,6 @@ export default {
       return control;
     }
 
-    function updateChoropleth(data) {
-      if (!map.value.getSource('counties')) {
-        map.value.addSource('counties', {
-          type: 'geojson',
-          data: data
-        })
-      } else {
-        map.value.getSource('counties').setData(data)
-      }
-
-      const colorScale = getColorScale(data)
-
-      if (!map.value.getLayer('counties-layer')) {
-        map.value.addLayer({
-          id: 'counties-layer',
-          type: 'fill',
-          source: 'counties',
-          paint: {
-            'fill-color': [
-              'interpolate',
-              ['linear'],
-              ['get', currentProperty.value],
-              ...colorScale
-            ],
-            'fill-opacity': 0.7
-          }
-        })
-
-        // Add interaction handlers
-        map.value.on('click', 'counties-layer', handleCountyClick)
-        map.value.on('mousemove', 'counties-layer', handleCountyHover)
-        map.value.on('mouseleave', 'counties-layer', handleCountyLeave)
-      } else {
-        map.value.setPaintProperty('counties-layer', 'fill-color', [
-          'interpolate',
-          ['linear'],
-          ['get', currentProperty.value],
-          ...colorScale
-        ])
-      }
-    }
-
     function getColorScale(data) {
       const values = data.features.map(f => f.properties[currentProperty.value])
       const min = Math.min(...values)
@@ -260,12 +237,6 @@ export default {
     function handleCountyLeave() {
       map.value.getCanvas().style.cursor = ''
       map.value.setFilter('hover-layer', ['==', 'FIPS', ''])
-    }
-
-    function resizeMap() {
-      if (map.value) {
-        map.value.resize()
-      }
     }
 
     function zoomIn() {
@@ -316,8 +287,6 @@ export default {
 
     function stopResize() {
       isResizing.value = false
-      document.removeEventListener('mousemove', resize)
-      document.removeEventListener('mouseup', stopResize)
     }
 
     onBeforeUnmount(() => {
@@ -327,7 +296,8 @@ export default {
         }
         map.value.remove()
       }
-      window.removeEventListener('resize', resizeMap)
+      window.removeEventListener('mousemove', resize)
+      window.removeEventListener('mouseup', stopResize)
     })
 
     return {
@@ -338,6 +308,9 @@ export default {
       currentUnit,
       toggleSidebar,
       activeSidebar,
+      isSidebarOpen,
+      sidebarWidth,
+      startResize,
     }
   }
 }
@@ -349,7 +322,6 @@ export default {
 #map-container {
   display: flex;
   flex-direction: column;
-  //width: 100%;
   height: 100%;
 }
 
@@ -358,21 +330,21 @@ export default {
   flex-grow: 1;
   overflow: hidden;
 }
+
 .sidebar {
   position: absolute;
-  top: 50px; /* Adjust based on your toolbar height */
-  left: 0;
+  top: calc(var(--toolbar-height, 50px) + 75px);
   width: 300px;
-  height: calc(100% - 50px);
-  background-color: white;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  height: calc(100% - var(--toolbar-height, 50px) - 70px);
+  background-color: var(--color-background);
+  box-shadow: var(--shadow-light);
+  z-index: var(--z-index-sidebar);
 }
 
 .resize-handle {
   width: 5px;
   height: 100%;
-  background-color: #ccc;
+  background-color: var(--color-border);
   position: absolute;
   right: 0;
   top: 0;
@@ -389,13 +361,8 @@ export default {
   transform: translateX(-100%);
 }
 
-
 #map {
   flex-grow: 1;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   width: 100%;
   height: 100%;
 }
@@ -404,7 +371,7 @@ export default {
   position: absolute;
   top: 10px;
   right: 10px;
-  z-index: 1;
+  z-index: var(--z-index-controls);
 }
 
 .map-controls .tooltip {
@@ -415,13 +382,13 @@ export default {
 .map-controls .tooltip .tooltiptext {
   visibility: hidden;
   width: 120px;
-  background-color: #555;
-  color: #fff;
+  background-color: var(--color-tooltip-bg);
+  color: var(--color-tooltip-text);
   text-align: center;
-  border-radius: 6px;
+  border-radius: var(--border-radius);
   padding: 5px 0;
   position: absolute;
-  z-index: 1;
+  z-index: var(--z-index-tooltip);
   bottom: 125%;
   left: 50%;
   margin-left: -60px;
@@ -437,7 +404,7 @@ export default {
   margin-left: -5px;
   border-width: 5px;
   border-style: solid;
-  border-color: #555 transparent transparent transparent;
+  border-color: var(--color-tooltip-bg) transparent transparent transparent;
 }
 
 .map-controls .tooltip:hover .tooltiptext {
@@ -453,42 +420,39 @@ export default {
   height: 30px;
   margin-bottom: 5px;
   padding: 5px;
-  background-color: white;
-  border: 1px solid #ccc;
+  background-color: var(--color-button-bg);
+  border: 1px solid var(--color-border);
   cursor: pointer;
   font-size: 16px;
 }
 
 .map-controls button:hover {
-  background-color: #f0f0f0;
+  background-color: var(--color-button-hover);
 }
 
-/* Style for the icons */
 .map-controls button svg {
   width: 20px;
   height: 20px;
 }
 
-/* change custom styles for the scale control if needed */
 .maplibregl-ctrl-scale {
-  border: 2px solid #333;
+  border: 2px solid var(--color-scale-border);
   border-top: none;
   padding: 0 5px;
-  color: #333;
+  color: var(--color-scale-text);
   font-size: 10px;
   line-height: 18px;
-  font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif;
-  background-color: rgba(255, 255, 255, 0.75);
+  font-family: var(--font-family),sans-serif;
+  background-color: var(--color-scale-bg);
   transition: background-color 0.3s ease;
 }
 
 .maplibregl-ctrl-scale:hover {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: var(--color-scale-bg-hover);
 }
 
-/* Add styles for draggable controls */
 .maplibregl-ctrl {
-  z-index: 1;
+  z-index: var(--z-index-maplibre-controls);
 }
 
 .maplibregl-ctrl-top-right {
@@ -500,7 +464,4 @@ export default {
   bottom: 40px;
   left: 10px;
 }
-
-
-
 </style>

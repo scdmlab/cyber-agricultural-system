@@ -18,28 +18,29 @@ export default {
 
 <style scoped>
 header {
-  background-color: #333;
-  color: white;
-  padding: 10px 20px;
+  background-color: var(--color-background-soft);
+  color: var(--color-text);
+  padding: var(--space-medium) var(--space-large);
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
-box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 h1 {
   margin: 0;
-  font-size: 1.5em;
+  font-size: var(--font-size-large);
 }
 
 nav a {
-  color: white;
+  color: var(--color-text);
   text-decoration: none;
-  margin-left: 20px;
+  margin-left: var(--space-large);
 }
 
 nav a:hover {
   text-decoration: underline;
+  color: var(--color-text-hover);
 }
 </style>

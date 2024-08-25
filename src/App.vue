@@ -26,6 +26,10 @@ html, body {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  color: var(--color-text);
+  background-color: var(--color-background);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
 }
 
 #app {

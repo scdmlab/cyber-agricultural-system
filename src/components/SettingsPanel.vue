@@ -80,8 +80,8 @@ export default {
 
 <style scoped>
 .settings-panel {
-  padding: 20px;
-  background-color: #f0f0f0;
+  padding: var(--space-large);
+  background-color: var(--color-background-mute);
   height: 100%;
   box-sizing: border-box;
   display: flex;
@@ -94,33 +94,36 @@ export default {
 }
 
 .settings-content div {
-  margin-bottom: 15px;
+  margin-bottom: var(--space-medium);
 }
 
 label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: var(--space-small);
+  color: var(--color-text);
 }
 
 select {
   width: 100%;
-  padding: 5px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+  padding: var(--space-small);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-background);
+  color: var(--color-text);
 }
 
 .apply-button {
-  margin-top: 20px;
-  padding: 10px;
-  background-color: #4CAF50;
-  color: white;
+  margin-top: var(--space-large);
+  padding: var(--space-medium);
+  background-color: var(--color-primary);
+  color: var(--color-text-button);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--font-size-medium);
 }
 
 .apply-button:hover {
-  background-color: #45a049;
+  background-color: var(--color-primary-dark);
 }
 </style>

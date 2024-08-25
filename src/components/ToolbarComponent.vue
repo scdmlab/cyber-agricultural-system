@@ -1,41 +1,41 @@
 <!-- ToolbarComponent.vue -->
 <template>
-  <div class="toolbar">
+  <nav class="toolbar" aria-label="Map controls">
     <div class="toolbar-content">
       <div class="left-buttons">
-        <button @click="toggleSidebar('settings')">
+        <button @click="toggleSidebar('settings')" aria-label="Settings">
           <Icon icon="mdi:cog" />
           <span class="tooltip">Settings</span>
         </button>
-        <button @click="toggleSidebar('data')">
+        <button @click="toggleSidebar('data')" aria-label="Data">
           <Icon icon="mdi:database" />
           <span class="tooltip">Data</span>
         </button>
-        <button @click="toggleSidebar('analysis')">
+        <button @click="toggleSidebar('analysis')" aria-label="Analysis">
           <Icon icon="mdi:chart-bar" />
           <span class="tooltip">Analysis</span>
         </button>
       </div>
       <div class="right-buttons">
-        <button @click="$emit('zoom-in')">
+        <button @click="$emit('zoom-in')" aria-label="Zoom In">
           <Icon icon="mdi:plus" />
           <span class="tooltip">Zoom In</span>
         </button>
-        <button @click="$emit('zoom-out')">
+        <button @click="$emit('zoom-out')" aria-label="Zoom Out">
           <Icon icon="mdi:minus" />
           <span class="tooltip">Zoom Out</span>
         </button>
-        <button @click="$emit('reset-view')">
+        <button @click="$emit('reset-view')" aria-label="Reset View">
           <Icon icon="mdi:home" />
           <span class="tooltip">Reset View</span>
         </button>
-        <button @click="toggleBasemap">
+        <button @click="toggleBasemap" aria-label="Toggle Basemap">
           <Icon icon="mdi:layers" />
           <span class="tooltip">Toggle Basemap</span>
         </button>
       </div>
     </div>
-  </div>
+  </nav>
 </template>
 
 <script>
@@ -49,6 +49,7 @@ export default {
   emits: ['zoom-in', 'zoom-out', 'reset-view', 'toggle-sidebar'],
   methods: {
     toggleSidebar(panel) {
+      console.log('ToolbarComponent: Emitting toggle-sidebar', panel) // Add this line for debugging
       this.$emit('toggle-sidebar', panel)
     },
     toggleBasemap() {
@@ -61,9 +62,9 @@ export default {
 
 <style scoped>
 .toolbar {
-  background-color: #f0f0f0;
-  border-bottom: 1px solid #ccc;
-  padding: 5px 0;
+  background-color: var(--color-background-soft);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-small) 0;
   width: 100%;
   box-sizing: border-box;
   position: relative;
@@ -72,9 +73,9 @@ export default {
 .toolbar-content {
   display: flex;
   justify-content: space-between;
-  max-width: 1200px;
+  max-width: var(--max-width);
   margin: 0 auto;
-  padding: 0 10px;
+  padding: 0 var(--space-medium);
 }
 
 .left-buttons, .right-buttons {
@@ -82,12 +83,12 @@ export default {
 }
 
 button {
-  margin-right: 10px;
-  padding: 5px 10px;
-  background-color: #4CAF50;
-  color: white;
+  margin-right: var(--space-medium);
+  padding: var(--space-small) var(--space-medium);
+  background-color: var(--color-primary);
+  color: var(--color-text-button);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   cursor: pointer;
   position: relative;
   display: flex;
@@ -96,7 +97,7 @@ button {
 }
 
 button:hover {
-  background-color: #45a049;
+  background-color: var(--color-primary-dark);
 }
 
 button:hover .tooltip {
@@ -107,13 +108,13 @@ button:hover .tooltip {
 .tooltip {
   visibility: hidden;
   width: 120px;
-  background-color: #555;
-  color: #fff;
+  background-color: var(--color-tooltip-bg);
+  color: var(--color-tooltip-text);
   text-align: center;
-  border-radius: 6px;
-  padding: 5px 0;
+  border-radius: var(--border-radius);
+  padding: var(--space-small) 0;
   position: absolute;
-  z-index: 1;
+  z-index: var(--z-index-tooltip);
   bottom: 125%;
   left: 50%;
   margin-left: -60px;
@@ -129,12 +130,11 @@ button:hover .tooltip {
   margin-left: -5px;
   border-width: 5px;
   border-style: solid;
-  border-color: #555 transparent transparent transparent;
+  border-color: var(--color-tooltip-bg) transparent transparent transparent;
 }
 
-/* Style for the icons */
 button svg {
-  width: 20px;
-  height: 20px;
+  width: var(--icon-size);
+  height: var(--icon-size);
 }
 </style>
