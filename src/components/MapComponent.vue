@@ -16,7 +16,7 @@
       </div>
     </transition>
     <div id="map" ref="mapContainer"></div>
-
+    
   </div>
 </template>
 
@@ -26,6 +26,10 @@ import { useStore } from 'vuex'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {Icon} from '@iconify/vue'
+import { scaleLinear } from 'd3-scale'
+import { interpolateRgb } from 'd3-interpolate'
+
+
 import DataSelectionPanel from "@/components/DataSelectionPanel.vue";
 import ToolbarComponent from "@/components/ToolbarComponent.vue";
 import stateBoundaries from '@/../data/gz_2010_us_040_00_20m.json'
@@ -36,7 +40,7 @@ export default {
   components: {
     ToolbarComponent,
     DataSelectionPanel,
-    Icon
+    Icon,
   },
   setup() {
     const store = useStore()
@@ -48,6 +52,109 @@ export default {
     const isSidebarOpen = ref(false)
     const sidebarWidth = ref(300)
     const isResizing = ref(false)
+    const colorScale = ref(null)
+    const hoveredCountyId = ref(null)
+
+    const countiesWithFIPS = computed(() => {
+      return {
+        ...countyBoundaries,
+        features: countyBoundaries.features.map(feature => ({
+          ...feature,
+          properties: {
+            ...feature.properties,
+            FIPS: `${feature.properties.STATE}${feature.properties.COUNTY.padStart(3, '0')}`
+          }
+        }))
+      }
+    })
+
+    const updateChoropleth = () => {
+      const csvData = store.state.csvData
+      const currentProperty = store.state.currentProperty
+
+      if (!csvData || !map.value || !map.value.getSource('counties')) {
+        return
+      }
+
+      const dataById = {}
+      csvData.forEach(row => {
+        if (row[currentProperty] !== null && row[currentProperty] !== undefined) {
+          dataById[row.FIPS] = parseFloat(row[currentProperty])
+        }
+      })
+
+      const updatedFeatures = countiesWithFIPS.value.features.map(feature => ({
+        ...feature,
+        properties: {
+          ...feature.properties,
+          value: dataById[feature.properties.FIPS] !== undefined ? dataById[feature.properties.FIPS] : null
+        }
+      }))
+
+      map.value.getSource('counties').setData({
+        type: 'FeatureCollection',
+        features: updatedFeatures
+      })
+
+      // Get min and max values for color scaling
+      const values = Object.values(dataById).filter(v => !isNaN(v))
+      const minValue = Math.min(...values)
+      const maxValue = Math.max(...values)
+
+      // Create color scale
+      colorScale.value = scaleLinear()
+        .domain([minValue, (minValue + maxValue) / 2, maxValue])
+        .range(['#FFEDA0', '#FEB24C', '#F03B20'])
+        .interpolate(interpolateRgb)
+
+      // Update the fill color based on the new values
+      map.value.setPaintProperty('counties-layer', 'fill-color', [
+        'case',
+        ['boolean', ['feature-state', 'hover'], false],
+        '#666666', // Hover color
+        ['get', 'color'] // Use the pre-calculated color
+      ])
+
+      map.value.setPaintProperty('counties-layer', 'fill-opacity', [
+        'case',
+        ['boolean', ['feature-state', 'hover'], false],
+        0.8,
+        0.7
+      ])
+
+      // Update colors for all features
+      updatedFeatures.forEach(feature => {
+        feature.properties.color = getColor(feature.properties.value)
+      })
+
+      map.value.getSource('counties').setData({
+        type: 'FeatureCollection',
+        features: updatedFeatures
+      })
+
+      console.log("Updated choropleth with data range:", minValue, "-", maxValue);
+    }
+
+    const getColor = (value) => {
+      if (value === null || value === undefined || isNaN(value)) {
+        return 'rgba(0, 0, 0, 0)' // Transparent for no data
+      }
+      return colorScale.value(value)
+    }
+    // Watch for changes in the store that should trigger an update
+    watch(
+      () => [
+        store.state.currentCrop,
+        store.state.currentYear,
+        store.state.currentMonth,
+        store.state.currentProperty,
+        store.state.csvData
+      ],
+      () => {
+        updateChoropleth()
+      },
+      { deep: true }
+    )
 
     onMounted(() => {
       initializeMap()
@@ -91,7 +198,8 @@ export default {
         // Load county boundaries
         map.value.addSource('counties', {
           type: 'geojson',
-          data: countyBoundaries
+          data: countiesWithFIPS.value,
+          generateId: true // This generates a unique id for each feature
         })
 
         map.value.addLayer({
@@ -99,8 +207,20 @@ export default {
           type: 'fill',
           source: 'counties',
           paint: {
-            'fill-color': '#627BC1',
-            'fill-opacity': 0.5,
+            'fill-color': [
+              'case',
+              ['!=', ['get', 'value'], null],
+              [
+                'interpolate',
+                ['linear'],
+                ['get', 'value'],
+                0, '#FFEDA0',
+                100, '#FEB24C',
+                200, '#F03B20'
+              ],
+              'rgba(0, 0, 0, 0)' // Transparent for counties with no data
+            ],
+            'fill-opacity': 0.7,
             'fill-outline-color': '#000000'
           }
         })
@@ -120,6 +240,73 @@ export default {
             'line-width': 2
           }
         })
+
+        // Update mousemove event
+        map.value.on('mousemove', 'counties-layer', (e) => {
+          
+          if (e.features.length > 0) {
+            const feature = e.features[0];
+            // Only apply hover effect if the county has data
+            if (feature.properties.value !== null && feature.properties.value !== undefined) {
+              if (hoveredCountyId.value !== feature.id) {
+                if (hoveredCountyId.value !== null) {
+                  map.value.setFeatureState(
+                    { source: 'counties', id: hoveredCountyId.value },
+                    { hover: false }
+                  );
+                }
+                hoveredCountyId.value = feature.id;
+                map.value.setFeatureState(
+                  { source: 'counties', id: hoveredCountyId.value },
+                  { hover: true }
+                );
+                
+                // Update Vuex store
+                store.commit('setHoveredCounty', {
+                  fips: feature.properties.FIPS,
+                  name: `${feature.properties.NAME} County, ${feature.properties.STATE_NAME}`,
+                  value: feature.properties.value
+                });
+              }
+            } else {
+              // If the county has no data, clear any existing hover state
+              if (hoveredCountyId.value !== null) {
+                map.value.setFeatureState(
+                  { source: 'counties', id: hoveredCountyId.value },
+                  { hover: false }
+                );
+                hoveredCountyId.value = null;
+                store.commit('setHoveredCounty', null);
+              }
+            }
+          }
+        });
+
+        // Update mouseleave event
+        map.value.on('mouseleave', 'counties-layer', () => {
+          if (hoveredCountyId.value !== null) {
+            map.value.setFeatureState(
+              { source: 'counties', id: hoveredCountyId.value },
+              { hover: false }
+            );
+            hoveredCountyId.value = null;
+            
+            // Clear hovered county in Vuex store
+            store.commit('setHoveredCounty', null);
+          }
+        });
+
+        // Add cursor style changes
+        map.value.on('mouseenter', 'counties-layer', () => {
+          map.value.getCanvas().style.cursor = 'default'
+        })
+
+        map.value.on('mouseleave', 'counties-layer', () => {
+          map.value.getCanvas().style.cursor = ''
+        })
+
+        updateChoropleth()
+
       })
     }
 
@@ -178,8 +365,9 @@ export default {
 
       function drag(e) {
         if (!isDragging) return;
-        const x = e.clientX - startX;
-        const y = e.clientY - startY;
+        let x = e.clientX - startX;
+        let y = e.clientY - startY;
+
         container.style.left = `${x}px`;
         container.style.top = `${y}px`;
       }
@@ -212,7 +400,7 @@ export default {
     function resetViewToCONUS() {
       if (map.value) {
         map.value.flyTo({
-          center: [-98.5795, 39.8283], // Approximate center of CONUS
+          center: [-98, 39], // Approximate center of CONUS
           zoom: 3.5, // Zoom level to show all of CONUS
           bearing: 0,
           pitch: 0
@@ -269,6 +457,8 @@ export default {
       isSidebarOpen,
       sidebarWidth,
       startResize: startResizeSidebar,
+      getColor,
+      hoveredCountyId,
     }
   }
 }
@@ -322,7 +512,6 @@ export default {
 #map {
   flex-grow: 1;
   width: 100%;
-  height: 100%;
 }
 
 .map-controls {

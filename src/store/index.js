@@ -11,6 +11,8 @@ export default createStore({
         mapData: null,
         selectedLocation: null,
         csvData: null,
+        hoveredCounty: null,
+        hoveredCountyId: null,
     },
     mutations: {
         setCrop(state, crop) {
@@ -34,6 +36,10 @@ export default createStore({
         setCsvData(state, data) {
             state.csvData = data
           },
+          setHoveredCounty(state, county) {
+            state.hoveredCounty = county
+            state.hoveredCountyId = county ? county.id : null
+        },
     },
     actions: {
         async fetchMapData({ commit, state }) {
@@ -51,7 +57,7 @@ export default createStore({
         },
         async loadCsvData({ state, commit }) {
             const { currentCrop, currentYear, currentMonth } = state
-            const csvPath = `../csv/${currentCrop}/${currentYear}/${currentMonth}.csv`
+            const csvPath = `csv/${currentCrop}/${currentYear}/${currentMonth}.csv`
 
             try {
             const response = await fetch(csvPath)
@@ -76,5 +82,9 @@ export default createStore({
     },
     getters: {
         getMapData: (state) => state.mapData,
+        hoveredCountyId: state => state.hoveredCountyId,
+        hoveredCountyFIPS: state => state.hoveredCounty ? state.hoveredCounty.fips : null,
+        hoveredCountyName: state => state.hoveredCounty ? state.hoveredCounty.name : null,
+        hoveredCountyValue: state => state.hoveredCounty ? state.hoveredCounty.value : null,
     },
 })
