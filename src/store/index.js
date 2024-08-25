@@ -58,27 +58,36 @@ export default createStore({
         async loadCsvData({ state, commit }) {
             const { currentCrop, currentYear, currentMonth } = state
             const csvPath = `csv/${currentCrop}/${currentYear}/${currentMonth}.csv`
-
+        
             try {
-            const response = await fetch(csvPath)
-            if (!response.ok) {
+              const response = await fetch(csvPath)
+              if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
-            }
-            const csvText = await response.text()
-            
-            Papa.parse(csvText, {
+              }
+              const csvText = await response.text()
+              
+              Papa.parse(csvText, {
                 header: true,
                 complete: (results) => {
-                commit('setCsvData', results.data)
+                  // Filter out empty rows and convert numeric fields to 2 decimal places
+                  const cleanedData = results.data
+                    .filter(row => Object.values(row).some(value => value.trim() !== ''))
+                    .map(row => ({
+                      ...row,
+                      yield: parseFloat(row.yield).toFixed(2),
+                      pred: parseFloat(row.pred).toFixed(2),
+                      error: parseFloat(row.error).toFixed(2)
+                    }))
+                  commit('setCsvData', cleanedData)
                 },
                 error: (error) => {
-                console.error('Error parsing CSV:', error)
+                  console.error('Error parsing CSV:', error)
                 }
-            })
+              })
             } catch (error) {
-            console.error('Error loading CSV data:', error)
+              console.error('Error loading CSV data:', error)
             }
-        }
+          }
     },
     getters: {
         getMapData: (state) => state.mapData,

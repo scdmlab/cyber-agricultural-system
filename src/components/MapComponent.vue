@@ -12,6 +12,7 @@
       <div v-if="isSidebarOpen" class="sidebar" :style="{ width: sidebarWidth + 'px' }">
         <div class="resize-handle" @mousedown.prevent="startResize"></div>
         <DataSelectionPanel v-if="activeSidebar === 'data'" />
+        <DataAnalysisPanel v-if="activeSidebar === 'analysis'" />
         <!-- Add other sidebar components as needed -->
       </div>
     </transition>
@@ -32,6 +33,7 @@ import { interpolateRgb } from 'd3-interpolate'
 
 import DataSelectionPanel from "@/components/DataSelectionPanel.vue";
 import ToolbarComponent from "@/components/ToolbarComponent.vue";
+import DataAnalysisPanel from "@/components/DataAnalysisPanel.vue";
 import stateBoundaries from '@/../data/gz_2010_us_040_00_20m.json'
 import countyBoundaries from '@/../data/gz_2010_us_050_00_20m.json'
 
@@ -41,6 +43,7 @@ export default {
     ToolbarComponent,
     DataSelectionPanel,
     Icon,
+    DataAnalysisPanel,
   },
   setup() {
     const store = useStore()
