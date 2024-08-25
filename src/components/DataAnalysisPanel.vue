@@ -2,7 +2,10 @@
     <div class="data-analyse-panel">
       <h2>Data Analysis</h2>
       
-      <div class="county-selector">
+      <div class="scrollable-content">
+      <details open class="county-data-container">
+        <summary>County Data</summary>
+        <div class="county-selector">
         <label for="county-input">Select County:</label>
         <input
           id="county-input"
@@ -21,13 +24,20 @@
           </li>
         </ul>
       </div>
-  
-      <button @click="showHistoryData" :disabled="!selectedCounty">
-        Show History Data
-      </button>
-  
-      <div class="csv-table" v-if="csvData.length">
-        <div ref="tableRef"></div>
+
+        <button @click="showHistoryData" :disabled="!selectedCounty">
+          Show History Data
+        </button>
+
+        <div ref="chartRef" class="chart-container"></div>
+      </details>
+
+      <details class="table-container">
+        <summary>Data Table</summary>
+        <div class="csv-table" v-if="csvData.length">
+          <div ref="tableRef"></div>
+        </div>
+      </details>
       </div>
     </div>
   </template>
@@ -36,7 +46,9 @@
   import { ref, computed, onMounted, watch } from 'vue'
   import { useStore } from 'vuex'
   import { TabulatorFull as Tabulator } from 'tabulator-tables';
-import { filter } from 'd3';
+  import * as d3 from 'd3'
+
+
 
   const stateCodeMap = {
   '01': 'Alabama', '02': 'Alaska', '04': 'Arizona', '05': 'Arkansas',
@@ -66,6 +78,9 @@ import { filter } from 'd3';
       const csvHeaders = computed(() => csvData.value.length ? Object.keys(csvData.value[0]) : [])
       const tableRef = ref(null)
       let table = null
+
+      const historicalData = computed(() => store.state.historicalData || [])
+      const chartRef = ref(null)
   
       const countySuggestions = computed(() => {
         const uniqueCounties = new Map()
@@ -104,10 +119,68 @@ import { filter } from 'd3';
   
       function showHistoryData() {
         if (selectedCounty.value) {
-          console.log(`Showing history data for FIPS: ${selectedCounty.value.fips}`)
-          // TODO: Implement history data retrieval
-        }
+        const fips = selectedCounty.value.fips
+        const countyData = historicalData.value.filter(d => d.FIPS === fips)
+        renderScatterPlot(countyData)
       }
+      }
+
+      function renderScatterPlot(data) {
+      if (!chartRef.value) return
+
+      // Clear previous chart
+      d3.select(chartRef.value).selectAll("*").remove()
+
+      const margin = { top: 20, right: 20, bottom: 30, left: 40 }
+      const width = 400 - margin.left - margin.right
+      const height = 300 - margin.top - margin.bottom
+
+      const svg = d3.select(chartRef.value)
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`)
+
+      const x = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.year))
+        .range([0, width])
+
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d.yield)])
+        .range([height, 0])
+
+      svg.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+
+      svg.append("g")
+        .call(d3.axisLeft(y))
+
+      svg.selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", d => x(d.year))
+        .attr("cy", d => y(d.yield))
+        .attr("r", 3)
+        .attr("fill", "steelblue")
+
+      svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", height + margin.bottom)
+        .style("text-anchor", "middle")
+        .text("Year")
+
+      svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 0 - margin.left)
+        .attr("x", 0 - (height / 2))
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .text("Yield (BU/ACRE)")
+    }
+
 
       onMounted(() => {
       if (csvData.value.length) {
@@ -129,7 +202,7 @@ import { filter } from 'd3';
       table = new Tabulator(tableRef.value, {
         data: csvData.value,
         columns: [          
-          { title: "NAME", field: "NAMELSAD", width: 150 },
+          { title: "NAME", field: "NAME", width: 150 },
           { title: "FIPS", field: "FIPS", width: 70 },
           { title: "Yield", field: "yield", width: 70 },
           { title: "Pred", field: "pred", width: 70 },
@@ -139,6 +212,9 @@ import { filter } from 'd3';
         height: 400,
         pagination: true,
         paginationSize: 15,
+        autoResize: true,
+        autoColumns: true,
+
       })
     }
   
@@ -154,6 +230,7 @@ import { filter } from 'd3';
         selectCounty,
         showHistoryData,
         tableRef,
+        chartRef,
       }
     }
   }
@@ -217,6 +294,24 @@ import { filter } from 'd3';
     cursor: not-allowed;
   }
   
+
+  .table-container {
+  margin-top: var(--space-medium);
+  /* border: 1px solid var(--color-border); */
+  border-radius: var(--border-radius);
+}
+
+summary {
+  padding: var(--space-small);
+  background-color: var(--color-background-soft);
+  cursor: pointer;
+  font-weight: bold;
+}
+
+summary:hover {
+  background-color: var(--color-background-mute);
+}
+
   .csv-table {
   margin-top: var(--space-medium);
   border: 1px solid var(--color-border);
@@ -228,25 +323,65 @@ import { filter } from 'd3';
   font-family: inherit;
   border: none;
   background-color: var(--color-background);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .tabulator .tabulator-header {
   background-color: var(--color-background-mute);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 2px solid var(--color-border);
+  font-weight: bold;
 }
 
 .tabulator .tabulator-header .tabulator-col {
   background-color: transparent;
   border-right: 1px solid var(--color-border);
+  padding: 10px;
 }
 
 .tabulator .tabulator-table .tabulator-row {
   border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.3s;
+}
+
+.tabulator .tabulator-table .tabulator-row:nth-child(even) {
+  background-color: var(--color-background-soft);
+}
+
+.tabulator .tabulator-table .tabulator-row:hover {
+  background-color: var(--color-background-mute);
 }
 
 .tabulator .tabulator-footer {
   background-color: var(--color-background-mute);
-  border-top: 1px solid var(--color-border);
+  border-top: 2px solid var(--color-border);
+  font-weight: bold;
+}
+
+.tabulator .tabulator-footer .tabulator-paginator {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+}
+
+.tabulator .tabulator-footer .tabulator-page {
+  margin: 0 5px;
+  padding: 5px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.tabulator .tabulator-footer .tabulator-page:hover {
+  background-color: var(--color-background-soft);
+}
+
+.tabulator .tabulator-footer .tabulator-page[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .tabulator .tabulator-tableholder {
@@ -255,5 +390,77 @@ import { filter } from 'd3';
 
 .tabulator .tabulator-row .tabulator-cell {
   border-right: 1px solid var(--color-border);
+  padding: 10px;
+}
+
+.tabulator-row.tabulator-row-even {
+  background-color: var(--color-background-soft);
+}
+
+.tabulator-row.tabulator-row-odd {
+  background-color: var(--color-background);
+}
+
+.tabulator-col-title {
+  font-weight: bold;
+  color: var(--color-heading);
+}
+
+.tabulator-header-filter input {
+  width: 100%;
+  padding: 5px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: 14px;
+}
+
+.county-data-container {
+  margin-bottom: var(--space-medium);
+}
+
+.chart-container {
+  margin-top: var(--space-medium);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+/* Add this to ensure the SVG respects the container width */
+.chart-container svg {
+  max-width: 100%;
+}
+
+.data-analyse-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.scrollable-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-medium);
+}
+
+.county-data-container,
+.table-container {
+  margin-bottom: var(--space-medium);
+}
+
+.chart-container {
+  margin-top: var(--space-medium);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.chart-container svg {
+  max-width: 100%;
+}
+
+/* Ensure the Tabulator table doesn't overflow */
+.tabulator {
+  max-width: 100%;
 }
   </style>

@@ -15,7 +15,7 @@
           <Icon icon="mdi:chart-bar" />
           <span class="tooltip">Analysis</span>
         </button>
-        <button @click="toggleSidebar('analysis')" aria-label="Mapping">
+        <button @click="toggleSidebar('mapping')" aria-label="Mapping">
           <Icon icon="mdi:map" />
           <span class="tooltip">Mapping</span>
         </button>

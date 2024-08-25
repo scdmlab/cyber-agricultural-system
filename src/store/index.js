@@ -1,6 +1,7 @@
 // src/store/index.js
 import { createStore } from 'vuex'
 import Papa from 'papaparse'
+import * as d3 from 'd3'
 
 export default createStore({
     state: {
@@ -13,6 +14,7 @@ export default createStore({
         csvData: null,
         hoveredCounty: null,
         hoveredCountyId: null,
+        historicalData: [],
     },
     mutations: {
         setCrop(state, crop) {
@@ -39,6 +41,9 @@ export default createStore({
           setHoveredCounty(state, county) {
             state.hoveredCounty = county
             state.hoveredCountyId = county ? county.id : null
+        },
+        setHistoricalData(state, data) {
+            state.historicalData = data
         },
     },
     actions: {
@@ -87,7 +92,28 @@ export default createStore({
             } catch (error) {
               console.error('Error loading CSV data:', error)
             }
+        },
+        async fetchHistoricalData({ commit }) {
+          try {
+              const response = await fetch('/data/corn_yield_US.csv')
+              if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`)
+              }
+              const csvText = await response.text()
+              const parsedData = d3.csvParse(csvText, d => ({
+                  FIPS: d.FIPS,
+                  year: +d.year,
+                  yield: +d.yield
+              }))
+              commit('setHistoricalData', parsedData)
+          } catch (error) {
+              console.error('Error fetching historical data:', error)
           }
+      },
+      async initializeData({ dispatch }) {
+          await dispatch('loadCsvData')
+          await dispatch('fetchHistoricalData')
+      }
     },
     getters: {
         getMapData: (state) => state.mapData,
@@ -95,5 +121,6 @@ export default createStore({
         hoveredCountyFIPS: state => state.hoveredCounty ? state.hoveredCounty.fips : null,
         hoveredCountyName: state => state.hoveredCounty ? state.hoveredCounty.name : null,
         hoveredCountyValue: state => state.hoveredCounty ? state.hoveredCounty.value : null,
+        getHistoryData: state => state.historicalData ,
     },
 })
