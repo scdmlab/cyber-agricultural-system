@@ -5,7 +5,7 @@
       <div class="left-buttons">
         <button @click="toggleSidebar('run')" aria-label="Run Model">
           <Icon icon="mdi:play" />
-          <span class="tooltip">Run  Model</span>
+          <span class="tooltip">Models</span>
         </button>
         <button @click="toggleSidebar('data')" aria-label="Data">
           <Icon icon="mdi:database" />
@@ -21,21 +21,26 @@
         </button>
       </div>
       <div class="right-buttons">
+        <button @click="toggleBasemap" aria-label="Toggle Basemap">
+          <Icon icon="mdi:layers" />
+          <span class="tooltip">Basemap</span>
+        </button>
+        <button @click="toggleBasemap" aria-label="Map Settings">
+          <Icon icon="mdi:cog" />
+          <span class="tooltip">Map Settings</span>
+        </button>
+        <div class="separator"></div>
         <button @click="$emit('zoom-in')" aria-label="Zoom In">
           <Icon icon="mdi:plus" />
           <span class="tooltip">Zoom In</span>
-        </button>
-        <button @click="$emit('zoom-out')" aria-label="Zoom Out">
-          <Icon icon="mdi:minus" />
-          <span class="tooltip">Zoom Out</span>
         </button>
         <button @click="$emit('reset-view')" aria-label="Reset View">
           <Icon icon="mdi:home" />
           <span class="tooltip">Reset View</span>
         </button>
-        <button @click="toggleBasemap" aria-label="Toggle Basemap">
-          <Icon icon="mdi:layers" />
-          <span class="tooltip">Toggle Basemap</span>
+        <button @click="$emit('zoom-out')" aria-label="Zoom Out">
+          <Icon icon="mdi:minus" />
+          <span class="tooltip">Zoom Out</span>
         </button>
       </div>
     </div>
@@ -66,18 +71,21 @@ export default {
 
 <style scoped>
 .toolbar {
-  background-color: var(--color-background-soft);
+  background-color: var(--color-background-mute);
   border-bottom: 1px solid var(--color-border);
-  padding: var(--space-small) 0;
+  border-top: 1px solid var(--color-border);
+  padding: 6px 2px;
   width: 100%;
   box-sizing: border-box;
   position: relative;
+  height: 40px;
 }
 
 .toolbar-content {
   display: flex;
   justify-content: space-between;
-  max-width: var(--max-width);
+  /* max-width: var(--max-width); */
+  margin-top: 2px;
   margin: 0 auto;
   padding: 0 var(--space-medium);
 }
@@ -86,22 +94,31 @@ export default {
   display: flex;
 }
 
+.separator {
+  width: 2px;
+  height: 24px;
+  background-color: var(--color-border);
+  margin: 0 0;
+}
+
 button {
-  margin-right: var(--space-medium);
-  padding: var(--space-small) var(--space-medium);
-  background-color: var(--color-primary);
-  color: var(--color-text-button);
+  margin-left: var(--space-small);
+  margin-right: var(--space-small);
+  padding: var(--space-xsmall) var(--space-xsmall);
+  background-color: transparent;
+  color: var(--color-primary);
   border: none;
   border-radius: var(--border-radius);
   cursor: pointer;
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
 button:hover {
-  background-color: var(--color-primary-dark);
+  background-color: transparent;
+  color: var(--color-primary-dark);
 }
 
 button:hover .tooltip {
@@ -111,7 +128,7 @@ button:hover .tooltip {
 
 .tooltip {
   visibility: hidden;
-  width: 120px;
+  width: 100px;
   background-color: var(--color-tooltip-bg);
   color: var(--color-tooltip-text);
   text-align: center;
@@ -121,7 +138,7 @@ button:hover .tooltip {
   z-index: var(--z-index-tooltip);
   bottom: 125%;
   left: 50%;
-  margin-left: -60px;
+  margin-left: -50px;
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -138,7 +155,9 @@ button:hover .tooltip {
 }
 
 button svg {
-  width: var(--icon-size);
-  height: var(--icon-size);
+  /* width: var(--icon-size);
+  height: var(--icon-size); */
+  width: 26px;
+  height: 26px;
 }
 </style>

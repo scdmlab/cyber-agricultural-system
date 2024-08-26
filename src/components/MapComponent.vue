@@ -14,6 +14,7 @@
         <DataSelectionPanel v-if="activeSidebar === 'data'" />
         <DataAnalysisPanel v-if="activeSidebar === 'analysis'" />
         <MappingPanel v-if="activeSidebar === 'mapping'" />
+        <ModelPanel v-if="activeSidebar === 'run'" />
         <!-- Add other sidebar components as needed -->
       </div>
     </transition>
@@ -36,6 +37,7 @@ import DataSelectionPanel from "@/components/DataSelectionPanel.vue";
 import ToolbarComponent from "@/components/ToolbarComponent.vue";
 import DataAnalysisPanel from "@/components/DataAnalysisPanel.vue";
 import MappingPanel from "@/components/MappingPanel.vue";
+import ModelPanel from "@/components/ModelPanel.vue";
 import stateBoundaries from '@/../data/gz_2010_us_040_00_20m.json'
 import countyBoundaries from '@/../data/gz_2010_us_050_00_20m.json'
 
@@ -46,7 +48,8 @@ export default {
     DataSelectionPanel,
     Icon,
     DataAnalysisPanel,
-    MappingPanel
+    MappingPanel,
+    ModelPanel
   },
   setup() {
     const store = useStore()
@@ -60,6 +63,8 @@ export default {
     const isResizing = ref(false)
     const colorScale = ref(null)
     const hoveredCountyId = ref(null)
+    const baseMapVisible = ref(true)
+    const choroplethVisible = ref(true)
 
     const countiesWithFIPS = computed(() => {
       return {
@@ -193,15 +198,15 @@ export default {
             }
           ]
         },
-        center: [-98.5795, 39.8283], // Center of the US
-        zoom: 4
+        center: [-92, 43], 
+        zoom: 4.8
       })
 
       
 
       map.value.on('load', () => {
         addCustomScaleControl()
-        addDraggableControl(maplibregl.NavigationControl, {showCompass:false}, 'top-right')
+        // addDraggableControl(maplibregl.NavigationControl, {showCompass:false}, 'top-right')
 
         // Load county boundaries
         map.value.addSource('counties', {
@@ -411,7 +416,7 @@ export default {
       if (map.value) {
         map.value.flyTo({
           center: [-98, 39], // Approximate center of CONUS
-          zoom: 3.5, // Zoom level to show all of CONUS
+          zoom: 3.7, // Zoom level to show all of CONUS
           bearing: 0,
           pitch: 0
         });
@@ -419,12 +424,91 @@ export default {
     }
 
     function toggleSidebar(panel) {
-      if (activeSidebar.value === panel) {
-        activeSidebar.value = null
-        isSidebarOpen.value = false
-      } else {
-        activeSidebar.value = panel
-        isSidebarOpen.value = true
+  if (activeSidebar.value === panel) {
+    // Closing the current sidebar
+    activeSidebar.value = null
+    isSidebarOpen.value = false
+    if (panel === 'run') {
+      restoreMapLayers()
+    }
+  } else {
+    // Switching to a new sidebar or opening a sidebar
+    if (activeSidebar.value === 'run') {
+      // We're switching from 'run' to another panel
+      restoreMapLayers()
+    }
+    
+    if (panel === 'run') {
+      // We're switching to 'run' from another panel or from closed state
+      removeMapLayers()
+    }
+    
+    activeSidebar.value = panel
+    isSidebarOpen.value = true
+  }
+}
+
+    function removeMapLayers() {
+      if (map.value) {
+        // Remove basemap
+        if (map.value.getLayer('osm-layer')) {
+          map.value.removeLayer('osm-layer')
+          baseMapVisible.value = false
+        }
+        
+        // Remove choropleth layer
+        if (map.value.getLayer('counties-layer')) {
+          map.value.removeLayer('counties-layer')
+          choroplethVisible.value = false
+        }
+      }
+    }
+
+    function restoreMapLayers() {
+      if (map.value) {
+        // Restore basemap
+        if (!baseMapVisible.value && !map.value.getLayer('osm-layer')) {
+          map.value.addLayer({
+            id: 'osm-layer',
+            type: 'raster',
+            source: 'osm',
+            minzoom: 0,
+            maxzoom: 19
+          }, 'states-layer') // Insert below the states layer
+          baseMapVisible.value = true
+        }
+        
+        // Restore choropleth layer
+        if (!choroplethVisible.value && !map.value.getLayer('counties-layer')) {
+          map.value.addLayer({
+            id: 'counties-layer',
+            type: 'fill',
+            source: 'counties',
+            paint: {
+              'fill-color': [
+                'case',
+                ['!=', ['get', 'value'], null],
+                [
+                  'interpolate',
+                  ['linear'],
+                  ['get', 'value'],
+                  0, '#FFEDA0',
+                  100, '#FEB24C',
+                  200, '#F03B20'
+                ],
+                'rgba(0, 0, 0, 0)' // Transparent for counties with no data
+              ],
+              'fill-opacity': 0.7,
+              'fill-outline-color': '#000000'
+            }
+          }, 'states-layer') // Insert below the states layer
+          choroplethVisible.value = true
+        }
+        
+        // Update choropleth if necessary
+        if (choroplethVisible.value) {
+          updateChoropleth()
+        }
       }
     }
 
@@ -491,9 +575,9 @@ export default {
 
 .sidebar {
   position: absolute;
-  top: calc(var(--toolbar-height, 50px) + 75px);
+  top: 86px;
   width: 300px;
-  height: calc(100% - var(--toolbar-height, 50px) - 70px);
+  height: calc(100% - 86px);
   background-color: var(--color-background);
   box-shadow: var(--shadow-light);
   z-index: var(--z-index-sidebar);
@@ -575,6 +659,19 @@ export default {
   align-items: center;
   width: 30px;
   height: 30px;
+}
+
+.map-controls button svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* .map-controls button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 30px;
   margin-bottom: 5px;
   padding: 5px;
   background-color: var(--color-button-bg);
@@ -587,10 +684,33 @@ export default {
   background-color: var(--color-button-hover);
 }
 
-.map-controls button svg {
-  width: 20px;
-  height: 20px;
-}
+
+
+/* Add these styles for the zoom control */
+/* .maplibregl-ctrl-group {
+  border-radius: 4px;
+  overflow: hidden;
+} */
+
+/* .maplibregl-ctrl-group > button {
+  width: 30px;
+  height: 30px;
+  display: block;
+  padding: 0;
+  outline: none;
+  border: 0;
+  box-sizing: border-box;
+  cursor: pointer;
+} */
+
+
+/* .maplibregl-ctrl-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+} */
 
 .maplibregl-ctrl-scale {
   border: 2px solid var(--color-scale-border);
