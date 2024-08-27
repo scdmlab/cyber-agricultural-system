@@ -7,6 +7,7 @@
         @zoom-out="zoomOut"
         @reset-view="resetViewToCONUS"
         @toggle-sidebar="toggleSidebar"
+        @update-settings="updateSettings"
     />
     <transition name="sidebar">
       <div v-if="isSidebarOpen" class="sidebar" :style="{ width: sidebarWidth + 'px' }">
@@ -32,14 +33,15 @@ import {Icon} from '@iconify/vue'
 import { scaleLinear } from 'd3-scale'
 import { interpolateRgb } from 'd3-interpolate'
 
+import stateBoundaries from '@/../data/gz_2010_us_040_00_20m.json'
+import countyBoundaries from '@/../data/gz_2010_us_050_00_20m.json'
 
 import DataSelectionPanel from "@/components/DataSelectionPanel.vue";
 import ToolbarComponent from "@/components/ToolbarComponent.vue";
 import DataAnalysisPanel from "@/components/DataAnalysisPanel.vue";
 import MappingPanel from "@/components/MappingPanel.vue";
 import ModelPanel from "@/components/ModelPanel.vue";
-import stateBoundaries from '@/../data/gz_2010_us_040_00_20m.json'
-import countyBoundaries from '@/../data/gz_2010_us_050_00_20m.json'
+
 
 export default {
   name: 'MapComponent',
@@ -79,72 +81,149 @@ export default {
       }
     })
 
-    const updateChoropleth = () => {
-      const csvData = store.state.csvData
-      const currentProperty = store.state.currentProperty
+    // const updateChoropleth = () => {
+    //   const csvData = store.state.csvData
+    //   const currentProperty = store.state.currentProperty
 
-      if (!csvData || !map.value || !map.value.getSource('counties')) {
-        return
-      }
+    //   if (!csvData || !map.value || !map.value.getSource('counties')) {
+    //     return
+    //   }
 
-      const dataById = {}
-      csvData.forEach(row => {
-        if (row[currentProperty] !== null && row[currentProperty] !== undefined) {
-          dataById[row.FIPS] = parseFloat(row[currentProperty])
-        }
-      })
+    //   const dataById = {}
+    //   csvData.forEach(row => {
+    //     if (row[currentProperty] !== null && row[currentProperty] !== undefined) {
+    //       dataById[row.FIPS] = parseFloat(row[currentProperty])
+    //     }
+    //   })
 
-      const updatedFeatures = countiesWithFIPS.value.features.map(feature => ({
-        ...feature,
-        properties: {
-          ...feature.properties,
-          value: dataById[feature.properties.FIPS] !== undefined ? dataById[feature.properties.FIPS] : null
-        }
-      }))
+    //   const updatedFeatures = countiesWithFIPS.value.features.map(feature => ({
+    //     ...feature,
+    //     properties: {
+    //       ...feature.properties,
+    //       value: dataById[feature.properties.FIPS] !== undefined ? dataById[feature.properties.FIPS] : null
+    //     }
+    //   }))
 
-      map.value.getSource('counties').setData({
-        type: 'FeatureCollection',
-        features: updatedFeatures
-      })
+    //   map.value.getSource('counties').setData({
+    //     type: 'FeatureCollection',
+    //     features: updatedFeatures
+    //   })
 
-      // Get min and max values for color scaling
-      const values = Object.values(dataById).filter(v => !isNaN(v))
-      const minValue = Math.min(...values)
-      const maxValue = Math.max(...values)
+    //   // Get min and max values for color scaling
+    //   const values = Object.values(dataById).filter(v => !isNaN(v))
+    //   const minValue = Math.min(...values)
+    //   const maxValue = Math.max(...values)
 
-      // Create color scale
+    //   // Create color scale
+    //   colorScale.value = scaleLinear()
+    //     .domain([minValue, (minValue + maxValue) / 2, maxValue])
+    //     .range(['#FFEDA0', '#FEB24C', '#F03B20'])
+    //     .interpolate(interpolateRgb)
+
+    //   // Update the fill color based on the new values
+    //   map.value.setPaintProperty('counties-layer', 'fill-color', [
+    //     'case',
+    //     ['boolean', ['feature-state', 'hover'], false],
+    //     '#666666', // Hover color
+    //     ['get', 'color'] // Use the pre-calculated color
+    //   ])
+
+    //   map.value.setPaintProperty('counties-layer', 'fill-opacity', [
+    //     'case',
+    //     ['boolean', ['feature-state', 'hover'], false],
+    //     0.8,
+    //     0.7
+    //   ])
+
+    //   // Update colors for all features
+    //   updatedFeatures.forEach(feature => {
+    //     feature.properties.color = getColor(feature.properties.value)
+    //   })
+
+    //   map.value.getSource('counties').setData({
+    //     type: 'FeatureCollection',
+    //     features: updatedFeatures
+    //   })
+
+    //   console.log("Updated choropleth with data range:", minValue, "-", maxValue);
+    // }
+
+    const updateChoropleth = (newSettings = null) => {
+  const csvData = store.state.csvData
+  const currentProperty = store.state.currentProperty
+
+  if (!csvData || !map.value || !map.value.getSource('counties')) {
+    return
+  }
+
+  const dataById = {}
+  csvData.forEach(row => {
+    if (row[currentProperty] !== null && row[currentProperty] !== undefined) {
+      dataById[row.FIPS] = parseFloat(row[currentProperty])
+    }
+  })
+
+  const updatedFeatures = countiesWithFIPS.value.features.map(feature => ({
+    ...feature,
+    properties: {
+      ...feature.properties,
+      value: dataById[feature.properties.FIPS] !== undefined ? dataById[feature.properties.FIPS] : null
+    }
+  }))
+
+  // Get min and max values for color scaling
+  const values = Object.values(dataById).filter(v => !isNaN(v))
+  let minValue = Math.min(...values)
+  let maxValue = Math.max(...values)
+
+  // Use new settings if provided
+  if (newSettings) {
+    minValue = newSettings.minValue !== undefined ? newSettings.minValue : minValue
+    maxValue = newSettings.maxValue !== undefined ? newSettings.maxValue : maxValue
+    
+    if (newSettings.colorScheme) {
       colorScale.value = scaleLinear()
         .domain([minValue, (minValue + maxValue) / 2, maxValue])
-        .range(['#FFEDA0', '#FEB24C', '#F03B20'])
+        .range(newSettings.colorScheme)
         .interpolate(interpolateRgb)
-
-      // Update the fill color based on the new values
-      map.value.setPaintProperty('counties-layer', 'fill-color', [
-        'case',
-        ['boolean', ['feature-state', 'hover'], false],
-        '#666666', // Hover color
-        ['get', 'color'] // Use the pre-calculated color
-      ])
-
+    }
+    
+    if (newSettings.choroplethOpacity !== undefined) {
       map.value.setPaintProperty('counties-layer', 'fill-opacity', [
         'case',
         ['boolean', ['feature-state', 'hover'], false],
         0.8,
-        0.7
+        newSettings.choroplethOpacity
       ])
-
-      // Update colors for all features
-      updatedFeatures.forEach(feature => {
-        feature.properties.color = getColor(feature.properties.value)
-      })
-
-      map.value.getSource('counties').setData({
-        type: 'FeatureCollection',
-        features: updatedFeatures
-      })
-
-      console.log("Updated choropleth with data range:", minValue, "-", maxValue);
     }
+  } else {
+    // Use existing color scale if no new settings
+    colorScale.value = scaleLinear()
+      .domain([minValue, (minValue + maxValue) / 2, maxValue])
+      .range(['#FFEDA0', '#FEB24C', '#F03B20'])
+      .interpolate(interpolateRgb)
+  }
+
+  // Update colors for all features
+  updatedFeatures.forEach(feature => {
+    feature.properties.color = getColor(feature.properties.value)
+  })
+
+  map.value.getSource('counties').setData({
+    type: 'FeatureCollection',
+    features: updatedFeatures
+  })
+
+  // Update the fill color based on the new values
+  map.value.setPaintProperty('counties-layer', 'fill-color', [
+    'case',
+    ['boolean', ['feature-state', 'hover'], false],
+    '#666666', // Hover color
+    ['get', 'color'] // Use the pre-calculated color
+  ])
+
+  console.log("Updated choropleth with data range:", minValue, "-", maxValue);
+}
 
     const getColor = (value) => {
       if (value === null || value === undefined || isNaN(value)) {
@@ -529,6 +608,25 @@ export default {
       isResizing.value = false
     }
 
+    const updateSettings = (newSettings) => {
+    updateChoropleth(newSettings);
+    if (newSettings.basemapOpacity !== undefined) {
+      updateBasemapOpacity(newSettings.basemapOpacity);
+    }
+}
+
+    function updateBasemapOpacity(newOpacity) {
+      if (map.value && map.value.getLayer('osm-layer')) {
+        try {
+          map.value.setPaintProperty('osm-layer', 'raster-opacity', newOpacity);
+        } catch (error) {
+          console.error('Error updating basemap opacity:', error);
+        }
+      } else {
+        console.warn('osm-layer not found or map not initialized');
+        }
+    }
+
     onBeforeUnmount(() => {
       if (map.value) {
         if (scaleControl.value) {
@@ -553,6 +651,7 @@ export default {
       startResize: startResizeSidebar,
       getColor,
       hoveredCountyId,
+      updateSettings
     }
   }
 }

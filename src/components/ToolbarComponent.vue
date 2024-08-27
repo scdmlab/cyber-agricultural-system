@@ -25,7 +25,7 @@
           <Icon icon="mdi:layers" />
           <span class="tooltip">Basemap</span>
         </button>
-        <button @click="toggleBasemap" aria-label="Map Settings">
+        <button @click="openSettings" aria-label="Map Settings">
           <Icon icon="mdi:cog" />
           <span class="tooltip">Map Settings</span>
         </button>
@@ -44,26 +44,74 @@
         </button>
       </div>
     </div>
+
+    <MapSettingsPopup
+      v-if="showSettings"
+      :minValue="minValue"
+      :maxValue="maxValue"
+      :colorScheme="colorScheme"
+      :choroplethOpacity="choroplethOpacity"
+      :basemapOpacity="basemapOpacity"
+      @close="closeSettings"
+      @apply="applySettings"
+    />
   </nav>
 </template>
 
 <script>
 import { Icon } from '@iconify/vue'
+import { ref, computed } from 'vue'
+import { useStore } from 'vuex'
+import MapSettingsPopup from '@/components/MapSettingsPopup.vue'
 
 export default {
   name: 'ToolbarComponent',
   components: {
-    Icon
+    Icon,
+    MapSettingsPopup
   },
-  emits: ['zoom-in', 'zoom-out', 'reset-view', 'toggle-sidebar'],
-  methods: {
-    toggleSidebar(panel) {
-      console.log('ToolbarComponent: Emitting toggle-sidebar', panel) // Add this line for debugging
-      this.$emit('toggle-sidebar', panel)
-    },
-    toggleBasemap() {
-      // Implement basemap toggle functionality
-      console.log('Toggle basemap')
+  emits: ['zoom-in', 'zoom-out', 'reset-view', 'toggle-sidebar', 'update-settings'],
+  setup(props, { emit }) {
+    const store = useStore() // Use Vuex store if needed
+    const showSettings = ref(false)
+
+    // Compute these values from your store or pass them as props from MapComponent
+    const minValue = computed(() => store.state.minValue || 0)
+    const maxValue = computed(() => store.state.maxValue || 100)
+    const colorScheme = computed(() => store.state.colorScheme || ['#FFEDA0', '#FEB24C', '#F03B20'])
+    const choroplethOpacity = computed(() => store.state.choroplethOpacity || 0.7)
+    const basemapOpacity = computed(() => store.state.basemapOpacity || 1)
+
+    function toggleSidebar(panel) {
+      emit('toggle-sidebar', panel)
+    }
+
+    function openSettings() {
+      showSettings.value = true
+      console.log('Opening settings') // Add this line for debugging
+    }
+
+    function closeSettings() {
+      showSettings.value = false
+      console.log('Closing settings') // Add this line for debugging
+    }
+
+    function applySettings(newSettings) {
+      emit('update-settings', newSettings)
+      closeSettings()
+    }
+
+    return {
+      showSettings,
+      minValue,
+      maxValue,
+      colorScheme,
+      choroplethOpacity,
+      basemapOpacity,
+      toggleSidebar,
+      openSettings,
+      closeSettings,
+      applySettings
     }
   }
 }
