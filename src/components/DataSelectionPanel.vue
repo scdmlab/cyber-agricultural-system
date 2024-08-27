@@ -58,13 +58,29 @@ export default {
     })
 
     function applyDataSelection() {
-      store.commit('setCrop', localCrop.value)
-      store.commit('setYear', localYear.value)
-      store.commit('setMonth', localMonth.value)
-      store.commit('setProperty', localProperty.value)
-      store.dispatch('loadCsvData')
-      emit('apply-data-selection')
-    }
+  store.commit('setCrop', localCrop.value)
+  store.commit('setYear', localYear.value)
+  store.commit('setMonth', localMonth.value)
+  store.commit('setProperty', localProperty.value)
+  store.dispatch('loadCsvData').then(() => {
+    // Recalculate min and max values
+    const csvData = store.state.csvData
+    const currentProperty = store.state.currentProperty
+    const values = csvData.map(row => parseFloat(row[currentProperty])).filter(v => !isNaN(v))
+    const minValue = Math.min(...values)
+    const maxValue = Math.max(...values)
+
+    // Update settings in the store
+    store.commit('setChoroplethSettings', {
+      ...store.state.choroplethSettings,
+      minValue,
+      maxValue
+    })
+
+    // Emit event after data selection is applied
+    emit('apply-data-selection')
+  })
+}
 
     return {
       localCrop,

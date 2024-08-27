@@ -23,6 +23,13 @@ export default createStore({
         mapBackgroundColor: '#FFFFFF',
         countyData: {},
         availableStates: [],
+        choroplethSettings: {
+          minValue: 0,
+          maxValue: 100,
+          colorScheme: ['#FFEDA0', '#FEB24C', '#F03B20'],
+          choroplethOpacity: 0.7,
+          basemapOpacity: 1.0,
+      },
     },
     mutations: {
       setMap(state, data) {
@@ -62,6 +69,9 @@ export default createStore({
         setCountyData(state, data) {
             state.countyData = data
             state.availableStates = Object.keys(data)
+        },
+        setChoroplethSettings(state, settings) {
+          state.choroplethSettings = settings
         },
     },
     actions: {

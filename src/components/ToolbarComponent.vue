@@ -21,15 +21,24 @@
         </button>
       </div>
       <div class="right-buttons">
-        <button @click="toggleBasemap" aria-label="Toggle Basemap">
-          <Icon icon="mdi:layers" />
-          <span class="tooltip">Basemap</span>
+        <button @click="toggleDataPopup">
+          <Icon icon="mdi:table-filter" />
+          <span class="tooltip">Data Table</span>
         </button>
-        <button @click="openSettings" aria-label="Map Settings">
+        <div class="separator"></div>
+        <button @click="toggleBasemap" aria-label="Change Basemap">
+          <Icon icon="tdesign:map-double"/>
+          <span class="tooltip">Change Basemap</span>
+        </button>
+        <button @click="toggleSettings" aria-label="Map Settings">
           <Icon icon="mdi:cog" />
           <span class="tooltip">Map Settings</span>
         </button>
         <div class="separator"></div>
+        <button @click="$emit('toggle-legend')" aria-label="Toggle Legend">
+          <Icon icon="material-symbols:legend-toggle-rounded"/>
+          <span class="tooltip">Toggle Legend</span>
+        </button>
         <button @click="$emit('zoom-in')" aria-label="Zoom In">
           <Icon icon="mdi:plus" />
           <span class="tooltip">Zoom In</span>
@@ -55,6 +64,14 @@
       @close="closeSettings"
       @apply="applySettings"
     />
+
+    <DataTablePopup
+      v-if="showDataPopup"
+      :title="'Current Data'"
+      :data="csvData"
+      :headers="dataHeaders"
+      @close="toggleDataPopup"
+    />
   </nav>
 </template>
 
@@ -63,17 +80,20 @@ import { Icon } from '@iconify/vue'
 import { ref, computed } from 'vue'
 import { useStore } from 'vuex'
 import MapSettingsPopup from '@/components/MapSettingsPopup.vue'
+import DataTablePopup from '@/components/DataTablePopup.vue'
 
 export default {
   name: 'ToolbarComponent',
   components: {
     Icon,
-    MapSettingsPopup
+    MapSettingsPopup,
+    DataTablePopup
   },
-  emits: ['zoom-in', 'zoom-out', 'reset-view', 'toggle-sidebar', 'update-settings'],
+  emits: ['zoom-in', 'zoom-out', 'reset-view', 'toggle-sidebar', 'update-settings', 'toggle-legend'],
   setup(props, { emit }) {
     const store = useStore() // Use Vuex store if needed
     const showSettings = ref(false)
+    const showDataPopup = ref(false)
 
     // Compute these values from your store or pass them as props from MapComponent
     const minValue = computed(() => store.state.minValue || 0)
@@ -82,13 +102,24 @@ export default {
     const choroplethOpacity = computed(() => store.state.choroplethOpacity || 0.7)
     const basemapOpacity = computed(() => store.state.basemapOpacity || 1)
 
+    const csvData = computed(() => store.state.csvData || [])
+    const dataHeaders = computed(() => {
+      if (csvData.value.length > 0) {
+        return Object.keys(csvData.value[0])
+      }
+      return []
+    })
+
+    function toggleDataPopup() {
+      showDataPopup.value = !showDataPopup.value
+    }
+
     function toggleSidebar(panel) {
       emit('toggle-sidebar', panel)
     }
 
-    function openSettings() {
-      showSettings.value = true
-      console.log('Opening settings') // Add this line for debugging
+    function toggleSettings() {
+      showSettings.value = !showSettings.value;
     }
 
     function closeSettings() {
@@ -109,9 +140,13 @@ export default {
       choroplethOpacity,
       basemapOpacity,
       toggleSidebar,
-      openSettings,
+      toggleSettings,
       closeSettings,
-      applySettings
+      applySettings,
+      toggleDataPopup,
+      showDataPopup,
+      csvData,
+      dataHeaders
     }
   }
 }
