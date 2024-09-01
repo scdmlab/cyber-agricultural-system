@@ -40,8 +40,8 @@ import {Icon} from '@iconify/vue'
 import { scaleLinear } from 'd3-scale'
 import { interpolateRgb } from 'd3-interpolate'
 
-import stateBoundaries from '@/../data/gz_2010_us_040_00_20m.json'
-import countyBoundaries from '@/../data/gz_2010_us_050_00_20m.json'
+import stateBoundaries from '@/assets/gz_2010_us_040_00_20m.json'
+import countyBoundaries from '@/assets/gz_2010_us_050_00_20m.json'
 
 import DataSelectionPanel from "@/components/DataSelectionPanel.vue";
 import ToolbarComponent from "@/components/ToolbarComponent.vue";

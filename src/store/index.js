@@ -84,7 +84,7 @@ export default createStore({
         async fetchMapData({ commit, state }) {
             const { currentCrop, currentYear, currentMonth } = state
             try {
-                const response = await fetch(`/data/${currentCrop}/${currentYear}/${currentMonth}.json`)
+                const response = await fetch(`data/${currentCrop}/${currentYear}/${currentMonth}.json`)
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`)
                 }
@@ -129,7 +129,7 @@ export default createStore({
         },
         async fetchHistoricalData({ commit }) {
           try {
-              const response = await fetch('/data/corn_yield_US.csv')
+              const response = await fetch('data/corn_yield_US.csv')
               if (!response.ok) {
                   throw new Error(`HTTP error! status: ${response.status}`)
               }
@@ -146,7 +146,7 @@ export default createStore({
         },
         async fetchAveragePred({ commit }) {
             try {
-                const response = await fetch('/data/average_pred.csv')
+                const response = await fetch('data/average_pred.csv')
                 const csvText = await response.text()
                 const parsedData = d3.csvParse(csvText, d => ({
                     FIPS: d.FIPS,
@@ -163,7 +163,7 @@ export default createStore({
         
         async loadCountyData({ commit }) {
             try {
-              const response = await fetch('/data/county.csv');
+              const response = await fetch('data/county.csv');
               if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
               }
