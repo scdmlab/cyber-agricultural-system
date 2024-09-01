@@ -19,6 +19,7 @@
     "chartjs-plugin-zoom": "^2.0.1",
     "d3": "^7.9.0",
     "d3-scale": "^4.0.2",
+    "fabric": "^6.4.1",
     "maplibre-gl": "^4.5.2",
     "papaparse": "^5.4.1",
     "primeicons": "^7.0.0",

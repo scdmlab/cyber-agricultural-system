@@ -3,34 +3,42 @@
       <h2>Data Analysis</h2>
       
       <div class="scrollable-content">
-      <details open class="county-data-container">
+        <details open class="county-data-container">
         <summary>County Data</summary>
-        <div class="county-selector">
-        <label for="county-input">Select County:</label>
-        <input
-          id="county-input"
-          v-model="countyInput"
-          @input="updateSuggestions"
-          @keydown.enter="selectCounty"
-          placeholder="Type a county name"
-        />
-        <ul v-if="showSuggestions" class="suggestions">
-          <li
-            v-for="suggestion in filteredSuggestions"
-            :key="suggestion.fips"
-            @click="selectSuggestion(suggestion)"
-          >
-            {{ suggestion.name }}
-          </li>
-        </ul>
-        <ScatterPlot :data="countyData" :width="340" :height="240" :countyName="selectedCounty ? selectedCounty.name : ''"/>
-      </div>
+        <label for="county-input-0">Select Counties:</label>
+        <div v-for="(county, index) in selectedCounties" :key="index" class="county-selector">
+          <!-- <label :for="`county-input-${index}`">Select County:</label> -->
+          <div class="input-group">
+            <input
+              :id="`county-input-${index}`"
+              v-model="county.input"
+              @input="updateSuggestions(index)"
+              @keydown.enter="selectCounty(index)"
+              placeholder="Type a county name"
+            />
+            <button @click="removeCounty(index)" v-if="selectedCounties.length > 1" class="remove-btn">-</button>
+          </div>
+          <ul v-if="county.showSuggestions" class="suggestions">
+            <li
+              v-for="suggestion in county.filteredSuggestions"
+              :key="suggestion.fips"
+              @click="selectSuggestion(suggestion, index)"
+            >
+              {{ suggestion.name }}
+            </li>
+          </ul>
+          
+        </div>
+        <button @click="addCounty" class="add-btn">+</button>
 
-        <button @click="showHistoryData" :disabled="!selectedCounty">
-          Show History Data
-        </button>
-
-        <div ref="chartRef" class="chart-container"></div>
+      <!-- <button @click="showHistoryData" :disabled="!hasSelectedCounties">
+        Show History Data
+      </button> -->
+      <!-- <ScatterPlot :datasets="scatterPlotDatasets" :width="340" :height="240" /> -->
+      <div class="scatter-plot-wrapper">
+        <ScatterPlot :datasets="scatterPlotDatasets" />
+      </div>  
+      <div ref="chartRef" class="chart-container"></div>
       </details>
 
       <details class="table-container">
@@ -57,10 +65,7 @@
     },
     setup() {
       const store = useStore()
-      const countyInput = ref('')
-      const showSuggestions = ref(false)
-      const selectedCounty = ref(null)
-      const countyData = ref([])
+      const selectedCounties = ref([{ input: '', showSuggestions: false, selected: null, data: [], filteredSuggestions: [] }])
       const csvData = computed(() => store.state.csvData || [])
       const csvHeaders = computed(() => csvData.value.length ? Object.keys(csvData.value[0]) : [])
       const tableRef = ref(null)
@@ -69,6 +74,15 @@
       const historicalData = computed(() => store.state.historicalData || [])
       const chartRef = ref(null)
   
+      const scatterPlotDatasets = computed(() => {
+  return selectedCounties.value
+    .filter(county => county.selected && county.data.length > 0)
+    .map(county => ({
+      countyName: county.selected.name,
+      data: county.data.map(d => ({ x: d.year, y: d.yield }))
+    }))
+})
+
       const countySuggestions = computed(() => {
         const uniqueCounties = new Map()
         csvData.value.forEach(row => {
@@ -88,85 +102,64 @@
             ).slice(0, 5) // Limit to 5 suggestions
             })
   
-      function updateSuggestions() {
-        showSuggestions.value = countyInput.value.length > 0
+            function updateSuggestions(index) {
+        const county = selectedCounties.value[index]
+        county.showSuggestions = county.input.length > 0
+        county.filteredSuggestions = county.input ? 
+          countySuggestions.value.filter(c => 
+            c.name.toLowerCase().includes(county.input.toLowerCase())
+          ).slice(0, 5) : []
       }
   
-      function selectSuggestion(suggestion) {
-      selectedCounty.value = suggestion
-      countyInput.value = suggestion.name
-      showSuggestions.value = false
+      function selectSuggestion(suggestion, index) {
+      const county = selectedCounties.value[index]
+      county.selected = suggestion
+      county.input = suggestion.name
+      county.showSuggestions = false
+      updateCountyData(index)
     }
   
-      function selectCounty() {
-        if (filteredSuggestions.value.length) {
-          selectSuggestion(filteredSuggestions.value[0])
+// Add a new function to update county data
+function updateCountyData(index) {
+      const county = selectedCounties.value[index]
+      if (county.selected) {
+        const fips = county.selected.fips
+        county.data = historicalData.value.filter(d => d.FIPS === fips)
         }
       }
-  
-      function showHistoryData() {
-      if (selectedCounty.value) {
-        const fips = selectedCounty.value.fips
-        countyData.value = historicalData.value.filter(d => d.FIPS === fips)
-        console.log('Selected County:', selectedCounty.name)
+
+    function selectCounty(index) {
+      const county = selectedCounties.value[index]
+      if (county.filteredSuggestions.length) {
+        selectSuggestion(county.filteredSuggestions[0], index)
       }
     }
 
-      function renderScatterPlot(data) {
-      if (!chartRef.value) return
-
-      // Clear previous chart
-      d3.select(chartRef.value).selectAll("*").remove()
-
-      const margin = { top: 20, right: 20, bottom: 30, left: 40 }
-      const width = 400 - margin.left - margin.right
-      const height = 300 - margin.top - margin.bottom
-
-      const svg = d3.select(chartRef.value)
-        .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`)
-
-      const x = d3.scaleLinear()
-        .domain(d3.extent(data, d => d.year))
-        .range([0, width])
-
-      const y = d3.scaleLinear()
-        .domain([0, d3.max(data, d => d.yield)])
-        .range([height, 0])
-
-      svg.append("g")
-        .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(x).tickFormat(d3.format("d")))
-
-      svg.append("g")
-        .call(d3.axisLeft(y))
-
-      svg.selectAll("circle")
-        .data(data)
-        .enter()
-        .append("circle")
-        .attr("cx", d => x(d.year))
-        .attr("cy", d => y(d.yield))
-        .attr("r", 3)
-        .attr("fill", "steelblue")
-
-      svg.append("text")
-        .attr("x", width / 2)
-        .attr("y", height + margin.bottom)
-        .style("text-anchor", "middle")
-        .text("Year")
-
-      svg.append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("y", 0 - margin.left)
-        .attr("x", 0 - (height / 2))
-        .attr("dy", "1em")
-        .style("text-anchor", "middle")
-        .text("Yield (BU/ACRE)")
+    function addCounty() {
+      selectedCounties.value.push({ input: '', showSuggestions: false, selected: null, data: [], filteredSuggestions: [] })
     }
+
+    function removeCounty(index) {
+      selectedCounties.value.splice(index, 1)
+    }
+  
+    const hasSelectedCounties = computed(() => {
+      return selectedCounties.value.some(county => county.selected)
+    })
+
+    const showHistoryData = () => {
+  selectedCounties.value = selectedCounties.value.map(county => {
+    if (county.selected) {
+      const fips = county.selected.fips
+      return {
+        ...county,
+        data: historicalData.value.filter(d => d.FIPS === fips)
+      }
+    }
+    return county
+  })
+}
+
 
 
       onMounted(() => {
@@ -204,19 +197,21 @@
     }
   
       return {
-        countyInput,
-        showSuggestions,
-        selectedCounty,
-        csvData,
-        csvHeaders,
-        filteredSuggestions,
-        updateSuggestions,
-        selectSuggestion,
-        selectCounty,
-        showHistoryData,
-        tableRef,
-        chartRef,
-        countyData,
+        selectedCounties,
+      csvData,
+      csvHeaders,
+      updateSuggestions,
+      selectSuggestion,
+      selectCounty,
+      showHistoryData,
+      tableRef,
+      chartRef,
+      addCounty,
+      removeCounty,
+      hasSelectedCounties,
+      selectedCounties,
+      scatterPlotDatasets,
+
       }
     }
   }
@@ -231,7 +226,7 @@
   
   .county-selector {
     position: relative;
-    margin-bottom: var(--space-medium);
+    /* margin-bottom: var(--space-medium); */
   }
   
   input {
@@ -448,5 +443,44 @@ summary:hover {
 /* Ensure the Tabulator table doesn't overflow */
 .tabulator {
   max-width: 100%;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0; /* Add this line */
+}
+
+.input-group input {
+  flex-grow: 1;
+  margin-right: 5px;
+  margin-bottom: 0; /* Add this line */
+}
+
+.remove-btn, .add-btn {
+  padding: 5px 10px;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 16px;
+  margin-left: 5px;
+  height: 100%; /* Add this line */
+}
+
+.remove-btn:hover, .add-btn:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.add-btn {
+  margin-top: 10px;
+  width: auto;
+  padding: 5px 15px;
+}
+.scatter-plot-wrapper {
+  width: 100%;
+  height: 300px; /* Adjust this value as needed */
+  margin-top: var(--space-medium);
 }
   </style>

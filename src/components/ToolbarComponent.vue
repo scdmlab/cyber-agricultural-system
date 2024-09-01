@@ -26,7 +26,7 @@
           <span class="tooltip">Data Table</span>
         </button>
         <div class="separator"></div>
-        <button @click="toggleBasemap" aria-label="Change Basemap">
+        <button @click="toggleBasemapPopup" aria-label="Change Basemap">
           <Icon icon="tdesign:map-double"/>
           <span class="tooltip">Change Basemap</span>
         </button>
@@ -72,6 +72,8 @@
       :headers="dataHeaders"
       @close="toggleDataPopup"
     />
+
+    <BasemapPopup v-if="showBasemapPopup" @close="toggleBasemapPopup" />
   </nav>
 </template>
 
@@ -81,20 +83,26 @@ import { ref, computed } from 'vue'
 import { useStore } from 'vuex'
 import MapSettingsPopup from '@/components/MapSettingsPopup.vue'
 import DataTablePopup from '@/components/DataTablePopup.vue'
+import BasemapPopup from '@/components/BasemapPopup.vue'
 
 export default {
   name: 'ToolbarComponent',
   components: {
     Icon,
     MapSettingsPopup,
-    DataTablePopup
+    DataTablePopup,
+    BasemapPopup
   },
   emits: ['zoom-in', 'zoom-out', 'reset-view', 'toggle-sidebar', 'update-settings', 'toggle-legend'],
   setup(props, { emit }) {
     const store = useStore() // Use Vuex store if needed
     const showSettings = ref(false)
     const showDataPopup = ref(false)
+    const showBasemapPopup = ref(false)
 
+    const toggleBasemapPopup = () => {
+      showBasemapPopup.value = !showBasemapPopup.value
+    }
     // Compute these values from your store or pass them as props from MapComponent
     const minValue = computed(() => store.state.minValue || 0)
     const maxValue = computed(() => store.state.maxValue || 100)
@@ -146,7 +154,9 @@ export default {
       toggleDataPopup,
       showDataPopup,
       csvData,
-      dataHeaders
+      dataHeaders,
+      toggleBasemapPopup,
+      showBasemapPopup
     }
   }
 }

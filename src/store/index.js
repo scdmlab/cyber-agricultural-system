@@ -2,6 +2,7 @@
 import { createStore } from 'vuex'
 import Papa from 'papaparse'
 import * as d3 from 'd3'
+import { getBasemapUrl } from '@/utils/basemaps'
 
 export default createStore({
     state: {
@@ -29,6 +30,7 @@ export default createStore({
           colorScheme: ['#FFEDA0', '#FEB24C', '#F03B20'],
           choroplethOpacity: 0.7,
           basemapOpacity: 1.0,
+          selectedBasemap: 'osm',
       },
     },
     mutations: {
@@ -72,6 +74,10 @@ export default createStore({
         },
         setChoroplethSettings(state, settings) {
           state.choroplethSettings = settings
+        },
+        setSelectedBasemap(state, basemapId) {
+          // console.log('Mutation: setSelectedBasemap', basemapId)
+          state.selectedBasemap = basemapId
         },
     },
     actions: {
@@ -205,5 +211,9 @@ export default createStore({
         hoveredCountyValue: state => state.hoveredCounty ? state.hoveredCounty.value : null,
         getHistoryData: state => state.historicalData ,
         getAveragePredData: state => state.averagePredData ,
-    },
+        // currentBasemap: (state)=> getBasemapUrl(state.selectedBasemap),
+        currentBasemapUrl: (state) => {
+          return getBasemapUrl(state.selectedBasemap)
+        },
+      },
 })

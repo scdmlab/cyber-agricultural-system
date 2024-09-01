@@ -2,19 +2,33 @@
 <template>
   <header>
     <div class="title-container">
-      <h1>GIS Data Visualization</h1>
+      <h1>Crop Yield Prediction</h1>
     </div>
     <nav>
-      <a href="#">Home</a>
-      <a href="#">About</a>
-      <a href="#">Contact</a>
+      <a href="#">
+        <span class="iconify" data-icon="mdi:paper"></span>
+        References
+      </a>
+      <a href="#">
+        <span class="iconify" data-icon="mdi:account-group"></span>
+        Research Group
+      </a>
+      <a href="#">
+        <span class="iconify" data-icon="mdi:github"></span>
+        Github
+      </a>
     </nav>
   </header>
 </template>
 
 <script>
+import  {Icon}  from '@iconify/vue'
+
 export default {
-  name: 'HeaderComponent'
+  name: 'HeaderComponent',
+  components: {
+    Icon
+  }
 }
 </script>
 

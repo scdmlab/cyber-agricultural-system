@@ -67,11 +67,10 @@ export default {
     const mapContainer = ref(null)
     const map = ref(null)
     const activeSidebar = ref(null)
-    
     const scaleControl = ref(null)
     const currentUnit = ref('metric')
     const isSidebarOpen = ref(false)
-    const sidebarWidth = ref(400)
+    const sidebarWidth = ref(300)
     const isResizing = ref(false)
     const colorScale = ref(null)
     const hoveredCountyId = ref(null)
@@ -80,6 +79,7 @@ export default {
     const tooltip = ref(null)
     const showLegend = ref(true)
     const choroplethSettings = computed(() => store.state.choroplethSettings)
+    const currentBasemapUrl = computed(() => store.getters.currentBasemapUrl)
 
     const toggleLegend = () => {
       showLegend.value = !showLegend.value
@@ -196,6 +196,13 @@ export default {
       },
       { deep: true }
     )
+
+    watch(currentBasemapUrl, (newUrl) => {
+      if (map.value) {
+        console.log("Updating basemap to:", newUrl)
+        map.value.getSource('osm').setTiles([newUrl])
+      }
+    })
 
     onMounted(() => {
       initializeMap()
