@@ -7,6 +7,7 @@
   <script>
   import { TabulatorFull as Tabulator } from 'tabulator-tables';
   import 'tabulator-tables/dist/css/tabulator.min.css';
+
   
   export default {
     name: 'DataTable',

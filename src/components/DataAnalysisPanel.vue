@@ -23,6 +23,7 @@
             {{ suggestion.name }}
           </li>
         </ul>
+        <ScatterPlot :data="countyData" :width="340" :height="240" :countyName="selectedCounty ? selectedCounty.name : ''"/>
       </div>
 
         <button @click="showHistoryData" :disabled="!selectedCounty">
@@ -46,17 +47,20 @@
   import { ref, computed, onMounted, watch } from 'vue'
   import { useStore } from 'vuex'
   import { TabulatorFull as Tabulator } from 'tabulator-tables';
-  import * as d3 from 'd3'
   import { stateCodeMap } from '@/utils/stateCodeMap'
-  
+  import ScatterPlot from '@/components/ScatterPlot.vue'
+
   export default {
     name: 'DataAnalysePanel',
+    components: {
+      ScatterPlot
+    },
     setup() {
       const store = useStore()
       const countyInput = ref('')
       const showSuggestions = ref(false)
       const selectedCounty = ref(null)
-  
+      const countyData = ref([])
       const csvData = computed(() => store.state.csvData || [])
       const csvHeaders = computed(() => csvData.value.length ? Object.keys(csvData.value[0]) : [])
       const tableRef = ref(null)
@@ -101,12 +105,12 @@
       }
   
       function showHistoryData() {
-        if (selectedCounty.value) {
+      if (selectedCounty.value) {
         const fips = selectedCounty.value.fips
-        const countyData = historicalData.value.filter(d => d.FIPS === fips)
-        renderScatterPlot(countyData)
+        countyData.value = historicalData.value.filter(d => d.FIPS === fips)
+        console.log('Selected County:', selectedCounty.name)
       }
-      }
+    }
 
       function renderScatterPlot(data) {
       if (!chartRef.value) return
@@ -212,6 +216,7 @@
         showHistoryData,
         tableRef,
         chartRef,
+        countyData,
       }
     }
   }

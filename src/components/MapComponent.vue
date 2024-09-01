@@ -67,10 +67,11 @@ export default {
     const mapContainer = ref(null)
     const map = ref(null)
     const activeSidebar = ref(null)
+    
     const scaleControl = ref(null)
     const currentUnit = ref('metric')
     const isSidebarOpen = ref(false)
-    const sidebarWidth = ref(300)
+    const sidebarWidth = ref(400)
     const isResizing = ref(false)
     const colorScale = ref(null)
     const hoveredCountyId = ref(null)
