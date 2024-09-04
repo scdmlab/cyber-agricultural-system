@@ -26,17 +26,33 @@
       <div class="form-group">
         <button @click="exportMap" class="export-button">Export Map</button>
       </div>
+      <div class="form-group">
+      <button @click="openMapEditor" class="export-button">Edit Map</button>
+    </div>
+    <MapEditComponent
+      v-if="showMapEditor"
+      :title="title"
+      :description="description"
+      @close="closeMapEditor"
+      @save="handleMapSave"
+    />
     </div>
   </template>
   
   <script>
   import { useStore } from 'vuex';  
-  import { computed } from 'vue';
+  import { computed, ref } from 'vue';
   import { MaplibreExportControl, Size, PageOrientation, Format, DPI  } from '@watergis/maplibre-gl-export';
+  import MapEditComponent from './MapEditComponent.vue';
+  
   export default {
     name: 'MappingPanel',
+    components: {
+      MapEditComponent
+    },
     setup() {
         const store = useStore()
+        const showMapEditor = ref(false)
 
         const title = computed({
         get: () => store.state.mapTitle,
@@ -78,12 +94,31 @@
     //   exportControl.trigger();
     }
 
+    const openMapEditor = () => {
+      showMapEditor.value = true;
+    };
+
+    const closeMapEditor = () => {
+      showMapEditor.value = false;
+    };
+
+    const handleMapSave = (dataURL) => {
+      // Implement logic to handle the saved map image
+      console.log('Saved map:', dataURL);
+      // You can add code here to download the image or send it to a server
+      closeMapEditor();
+    };
+
         return {
         title,
         description,
         font,
         backgroundColor,
-        exportMap
+        exportMap,
+        showMapEditor,
+      openMapEditor,
+      closeMapEditor,
+      handleMapSave
         }
     }
   }

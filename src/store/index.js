@@ -215,5 +215,11 @@ export default createStore({
         currentBasemapUrl: (state) => {
           return getBasemapUrl(state.selectedBasemap)
         },
+        getMapImage: (state) => {
+          if (state.map) {
+            return state.map.getCanvas().toDataURL()
+          }
+          return null
+        },
       },
 })
