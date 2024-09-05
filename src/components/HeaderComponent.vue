@@ -22,7 +22,7 @@
 </template>
 
 <script>
-import  {Icon}  from '@iconify/vue'
+import { Icon } from '@iconify/vue'
 
 export default {
   name: 'HeaderComponent',
@@ -34,7 +34,7 @@ export default {
 
 <style scoped>
 header {
-  background-color: var(--color-background-soft);
+  background-color: #67dcaa; /* Changed to green */
   color: #000;
   font-family: 'Arial', sans-serif;
   padding: var(--space-medium) var(--space-large);
@@ -48,8 +48,9 @@ header {
 }
 
 .title-container {
-  background-color: var(--color-background-soft); /* New background color for the title container */
-  padding: var(--space-small) var(--space-medium);; /* Slightly right to the text */
+  background-color: rgb(85, 85, 85); /* Changed to gray */
+  color: white; /* Text color changed to white */
+  padding: var(--space-small) var(--space-medium);
   display: flex;
   align-items: center;
 }
@@ -57,6 +58,7 @@ header {
 h1 {
   margin: 0;
   font-size: 24px;
+  font-weight: bold; /* Made the title bolder */
 }
 
 nav a {

@@ -25,9 +25,9 @@ export default createStore({
         countyData: {},
         availableStates: [],
         choroplethSettings: {
-          minValue: 0,
-          maxValue: 100,
-          colorScheme: ['#FFEDA0', '#FEB24C', '#F03B20'],
+          minValue: 55,
+          maxValue: 215,
+          colorScheme: ['#ebf8b3', '#074359'],
           choroplethOpacity: 0.7,
           basemapOpacity: 1.0,
           selectedBasemap: 'osm',
@@ -76,7 +76,6 @@ export default createStore({
           state.choroplethSettings = settings
         },
         setSelectedBasemap(state, basemapId) {
-          // console.log('Mutation: setSelectedBasemap', basemapId)
           state.selectedBasemap = basemapId
         },
     },
@@ -108,7 +107,6 @@ export default createStore({
               Papa.parse(csvText, {
                 header: true,
                 complete: (results) => {
-                  // Filter out empty rows and convert numeric fields to 2 decimal places
                   const cleanedData = results.data
                     .filter(row => Object.values(row).some(value => value.trim() !== ''))
                     .map(row => ({
@@ -211,7 +209,6 @@ export default createStore({
         hoveredCountyValue: state => state.hoveredCounty ? state.hoveredCounty.value : null,
         getHistoryData: state => state.historicalData ,
         getAveragePredData: state => state.averagePredData ,
-        // currentBasemap: (state)=> getBasemapUrl(state.selectedBasemap),
         currentBasemapUrl: (state) => {
           return getBasemapUrl(state.selectedBasemap)
         },

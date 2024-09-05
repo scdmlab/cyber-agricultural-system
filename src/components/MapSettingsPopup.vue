@@ -15,7 +15,6 @@
           <div class="color-pickers">
             <input type="color" v-model="localColorScheme[0]" />
             <input type="color" v-model="localColorScheme[1]" />
-            <input type="color" v-model="localColorScheme[2]" />
           </div>
         </div>
       </div>

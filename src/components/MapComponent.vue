@@ -122,19 +122,17 @@ export default {
         }
       }))
 
-      // Get min and max values for color scaling
       const values = Object.values(dataById).filter(v => !isNaN(v))
       let minValue = Math.min(...values)
       let maxValue = Math.max(...values)
 
-      // Use new settings if provided
       if (newSettings) {
         minValue = newSettings.minValue !== undefined ? newSettings.minValue : minValue
         maxValue = newSettings.maxValue !== undefined ? newSettings.maxValue : maxValue
         
         if (newSettings.colorScheme) {
           colorScale.value = scaleLinear()
-            .domain([minValue, (minValue + maxValue) / 2, maxValue])
+            .domain([minValue, maxValue])
             .range(newSettings.colorScheme)
             .interpolate(interpolateRgb)
         }
@@ -148,14 +146,12 @@ export default {
           ])
         }
       } else {
-        // Use existing color scale if no new settings
         colorScale.value = scaleLinear()
-          .domain([minValue, (minValue + maxValue) / 2, maxValue])
+          .domain([minValue, maxValue])
           .range(store.state.choroplethSettings.colorScheme)
           .interpolate(interpolateRgb)
       }
 
-      // Update colors for all features
       updatedFeatures.forEach(feature => {
         feature.properties.color = getColor(feature.properties.value)
       })
@@ -165,12 +161,11 @@ export default {
         features: updatedFeatures
       })
 
-      // Update the fill color based on the new values
       map.value.setPaintProperty('counties-layer', 'fill-color', [
         'case',
         ['boolean', ['feature-state', 'hover'], false],
-        '#666666', // Hover color
-        ['get', 'color'] // Use the pre-calculated color
+        '#666666',
+        ['get', 'color']
       ])
 
       console.log("Updated choropleth with data range:", minValue, "-", maxValue);
@@ -178,11 +173,11 @@ export default {
 
     const getColor = (value) => {
       if (value === null || value === undefined || isNaN(value)) {
-        return 'rgba(0, 0, 0, 0)' // Transparent for no data
+        return 'rgba(0, 0, 0, 0)'
       }
       return colorScale.value(value)
     }
-    // Watch for changes in the store that should trigger an update
+   
     watch(
       () => [
         store.state.currentCrop,
@@ -207,7 +202,6 @@ export default {
     onMounted(() => {
       initializeMap()
 
-      // Create tooltip element
       tooltip.value = document.createElement('div')
       tooltip.value.id = 'map-tooltip'
       tooltip.value.className = 'maplibregl-popup maplibregl-popup-anchor-bottom'
@@ -250,13 +244,11 @@ export default {
 
       map.value.on('load', () => {
         addCustomScaleControl()
-        // addDraggableControl(maplibregl.NavigationControl, {showCompass:false}, 'top-right')
 
-        // Load county boundaries
         map.value.addSource('counties', {
           type: 'geojson',
           data: countiesWithFIPS.value,
-          generateId: true // This generates a unique id for each feature
+          generateId: true
         })
 
         map.value.addLayer({
@@ -272,17 +264,15 @@ export default {
                 ['linear'],
                 ['get', 'value'],
                 0, '#FFEDA0',
-                100, '#FEB24C',
-                200, '#F03B20'
+                100, '#F03B20'
               ],
-              'rgba(0, 0, 0, 0)' // Transparent for counties with no data
+              'rgba(0, 0, 0, 0)'
             ],
             'fill-opacity': 0.7,
             'fill-outline-color': '#000000'
           }
         })
 
-        // Add state boundaries
         map.value.addSource('states', {
           type: 'geojson',
           data: stateBoundaries
@@ -298,11 +288,9 @@ export default {
           }
         })
 
-        // Update mousemove event
         map.value.on('mousemove', 'counties-layer', (e) => {
           if (e.features.length > 0) {
             const feature = e.features[0];
-            // Only apply hover effect if the county has data
             if (feature.properties.value !== null && feature.properties.value !== undefined) {
               if (hoveredCountyId.value !== feature.id) {
                 if (hoveredCountyId.value !== null) {
@@ -317,18 +305,15 @@ export default {
                   { hover: true }
                 );
                 
-                // Update Vuex store
                 store.commit('setHoveredCounty', {
                   fips: feature.properties.FIPS,
                   name: `${feature.properties.NAME} County, ${feature.properties.STATE_NAME}`,
                   value: feature.properties.value
                 });
 
-                // Show tooltip
                 showTooltip(e.lngLat, `${feature.properties.NAME}: ${feature.properties.value.toFixed(2)}`);
               }
             } else {
-              // If the county has no data, clear any existing hover state
               if (hoveredCountyId.value !== null) {
                 map.value.setFeatureState(
                   { source: 'counties', id: hoveredCountyId.value },
@@ -342,7 +327,6 @@ export default {
           }
         });
 
-        // Update mouseleave event
         map.value.on('mouseleave', 'counties-layer', () => {
           if (hoveredCountyId.value !== null) {
             map.value.setFeatureState(
@@ -351,13 +335,11 @@ export default {
             );
             hoveredCountyId.value = null;
             
-            // Clear hovered county in Vuex store
             store.commit('setHoveredCounty', null);
             hideTooltip();
           }
         });
 
-        // Add cursor style changes
         map.value.on('mouseenter', 'counties-layer', () => {
           map.value.getCanvas().style.cursor = 'default'
         })
@@ -393,7 +375,6 @@ export default {
       }
     }
 
-    // Add scale control
     function addCustomScaleControl() {
       const CustomScaleControl = class extends maplibregl.ScaleControl {
         constructor(options) {
@@ -407,7 +388,7 @@ export default {
           container.addEventListener('click', () => {
             this._unit = this._unit === 'metric' ? 'imperial' : 'metric'
             this.setUnit(this._unit)
-            currentUnit.value = this._unit // Update the reactive ref
+            currentUnit.value = this._unit
           })
 
           container.style.cursor = 'pointer'
@@ -483,8 +464,8 @@ export default {
     function resetViewToCONUS() {
       if (map.value) {
         map.value.flyTo({
-          center: [-98, 39], // Approximate center of CONUS
-          zoom: 3.7, // Zoom level to show all of CONUS
+          center: [-98, 39],
+          zoom: 3.7,
           bearing: 0,
           pitch: 0
         });
@@ -493,21 +474,17 @@ export default {
 
     function toggleSidebar(panel) {
   if (activeSidebar.value === panel) {
-    // Closing the current sidebar
     activeSidebar.value = null
     isSidebarOpen.value = false
     if (panel === 'run') {
       restoreMapLayers()
     }
   } else {
-    // Switching to a new sidebar or opening a sidebar
     if (activeSidebar.value === 'run') {
-      // We're switching from 'run' to another panel
       restoreMapLayers()
     }
     
     if (panel === 'run') {
-      // We're switching to 'run' from another panel or from closed state
       removeMapLayers()
     }
     
@@ -518,13 +495,11 @@ export default {
 
     function removeMapLayers() {
       if (map.value) {
-        // Remove basemap
         if (map.value.getLayer('osm-layer')) {
           map.value.removeLayer('osm-layer')
           baseMapVisible.value = false
         }
         
-        // Remove choropleth layer
         if (map.value.getLayer('counties-layer')) {
           map.value.removeLayer('counties-layer')
           choroplethVisible.value = false
@@ -534,7 +509,6 @@ export default {
 
     function restoreMapLayers() {
       if (map.value) {
-        // Restore basemap
         if (!baseMapVisible.value && !map.value.getLayer('osm-layer')) {
           map.value.addLayer({
             id: 'osm-layer',
@@ -542,11 +516,10 @@ export default {
             source: 'osm',
             minzoom: 0,
             maxzoom: 19
-          }, 'states-layer') // Insert below the states layer
+          }, 'states-layer')
           baseMapVisible.value = true
         }
         
-        // Restore choropleth layer
         if (!choroplethVisible.value && !map.value.getLayer('counties-layer')) {
           map.value.addLayer({
             id: 'counties-layer',
@@ -561,19 +534,17 @@ export default {
                   ['linear'],
                   ['get', 'value'],
                   0, '#FFEDA0',
-                  100, '#FEB24C',
-                  200, '#F03B20'
+                  100, '#F03B20'
                 ],
-                'rgba(0, 0, 0, 0)' // Transparent for counties with no data
+                'rgba(0, 0, 0, 0)'
               ],
               'fill-opacity': 0.7,
               'fill-outline-color': '#000000'
             }
-          }, 'states-layer') // Insert below the states layer
+          }, 'states-layer')
           choroplethVisible.value = true
         }
         
-        // Update choropleth if necessary
         if (choroplethVisible.value) {
           updateChoropleth()
         }
@@ -763,51 +734,6 @@ export default {
   height: 20px;
 }
 
-/* .map-controls button {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 30px;
-  height: 30px;
-  margin-bottom: 5px;
-  padding: 5px;
-  background-color: var(--color-button-bg);
-  border: 1px solid var(--color-border);
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.map-controls button:hover {
-  background-color: var(--color-button-hover);
-}
-
-
-
-/* Add these styles for the zoom control */
-/* .maplibregl-ctrl-group {
-  border-radius: 4px;
-  overflow: hidden;
-} */
-
-/* .maplibregl-ctrl-group > button {
-  width: 30px;
-  height: 30px;
-  display: block;
-  padding: 0;
-  outline: none;
-  border: 0;
-  box-sizing: border-box;
-  cursor: pointer;
-} */
-
-
-/* .maplibregl-ctrl-icon {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background-repeat: no-repeat;
-  background-position: center;
-} */
 
 .maplibregl-ctrl-scale {
   border: 2px solid var(--color-scale-border);
