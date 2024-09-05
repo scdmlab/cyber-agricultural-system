@@ -86,6 +86,7 @@ import { mapState, mapActions } from 'vuex';
 import { Notifications, useNotification } from '@kyvg/vue3-notification';
 import ProgressBar from 'primevue/progressbar';
 import {stateCodeMap} from '@/utils/stateCodeMap';
+import axios from 'axios';
 
 export default {
   name: 'ModelPanel',
@@ -137,54 +138,82 @@ export default {
     return Object.keys(stateCodeMap).find(key => stateCodeMap[key] === stateName) || '';
   },
 
-    async runModel() {
-    const stateFips = this.getStateFp(this.selectedState);
-    const countyFips = this.selectedCounty.countyFp;
-    
-    if (stateFips && countyFips) {
-      const fullFips = stateFips + countyFips.padStart(3, '0');
-      const notification = useNotification();
+  async runModel() {
+      const stateFips = this.getStateFp(this.selectedState);
+      const countyFips = this.selectedCounty.countyFp;
       
-      // Add job to the queue
-      const jobId = Date.now(); // Simple unique ID
-      this.modelQueue.push({
-        id: jobId,
-        county: this.selectedCounty.name,
-        state: this.selectedState,
-        prediction: null,
-        status: 'pending'
-      });
+      if (stateFips && countyFips) {
+        const fullFips = stateFips + countyFips.padStart(3, '0');
+        const notification = useNotification();
+        
+        // Add job to the queue
+        const jobId = Date.now();
+        this.modelQueue.push({
+          id: jobId,
+          county: this.selectedCounty.name,
+          state: this.selectedState,
+          prediction: null,
+          status: 'pending'
+        });
 
-      notification.notify({
-        title: "Model Added to Queue",
-        text: `${this.selectedModel} model for ${this.selectedCounty.name}, ${this.selectedState} added to queue`,
-        type: "info",
-      });
+        notification.notify({
+          title: "Model Added to Queue",
+          text: `${this.selectedModel} model for ${this.selectedCounty.name}, ${this.selectedState} added to queue`,
+          type: "info",
+        });
 
-      // Simulate API call and async processing
-      setTimeout(() => {
-        const jobIndex = this.modelQueue.findIndex(job => job.id === jobId);
-        if (jobIndex !== -1) {
-          this.modelQueue[jobIndex].prediction = 'Sample Prediction';
-          this.modelQueue[jobIndex].status = 'complete';
+        try {
+          // Make API request
+          const response = await axios.get(`https://us-central1-nifa-webgis.cloudfunctions.net/nifa-pred-get?FIPS=${fullFips}&year=2023`);
+          
+          // Simulate delay (1-3 seconds)
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
+
+          const predictionData = response.data[0];
+          const prediction = predictionData.pred.toFixed(2);
+
+          // Update job in the queue
+          this.updateJobStatus(jobId, 'complete', prediction);
           
           notification.notify({
             title: "Model Completed",
             text: `${this.selectedModel} model run completed for ${this.selectedCounty.name}, ${this.selectedState}`,
             type: "success",
           });
-        }
-      }, 5000); // Simulate 5 second processing time
+        } catch (error) {
+          console.error('Error fetching prediction:', error);
+          
+          // Update job status to failed
+          this.updateJobStatus(jobId, 'failed');
 
-    } else {
-      const notification = useNotification();
-      notification.notify({
-        title: "Error",
-        text: "Invalid state or county selection",
-        type: "error",
-      });
-    }
-  },
+          notification.notify({
+            title: "Error",
+            text: "Failed to fetch prediction data",
+            type: "error",
+          });
+        }
+      } else {
+        const notification = useNotification();
+        notification.notify({
+          title: "Error",
+          text: "Invalid state or county selection",
+          type: "error",
+        });
+      }
+    },
+
+    updateJobStatus(jobId, status, prediction = null) {
+      const jobIndex = this.modelQueue.findIndex(job => job.id === jobId);
+      if (jobIndex !== -1) {
+        this.modelQueue[jobIndex].status = status;
+        if (prediction !== null) {
+          this.modelQueue[jobIndex].prediction = prediction;
+        }
+      }
+    },
+
+
+
   mounted() {
     this.loadCountyData();
   }
