@@ -3,7 +3,7 @@
       <h2>Data Analysis</h2>
       
       <div class="scrollable-content">
-        <details open class="county-data-container">
+        <details class="county-data-container">
         <summary>County Data</summary>
         <label for="county-input-0">Select Counties:</label>
         <div v-for="(county, index) in selectedCounties" :key="index" class="county-selector">

@@ -671,9 +671,9 @@ export default {
 
 .sidebar {
   position: absolute;
-  top: 86px;
+  top: 90px;
   width: 300px;
-  height: calc(100% - 86px);
+  height: calc(100% - 90px);
   background-color: var(--color-background);
   box-shadow: var(--shadow-light);
   z-index: var(--z-index-sidebar);
