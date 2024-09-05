@@ -34,7 +34,7 @@ export default {
 
 <style scoped>
 header {
-  background-color: #67dcaa; /* Changed to green */
+  background-color: #04AA6D; /* Changed to green */
   color: #000;
   font-family: 'Arial', sans-serif;
   padding: var(--space-medium) var(--space-large);

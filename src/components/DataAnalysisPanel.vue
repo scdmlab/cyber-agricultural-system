@@ -39,6 +39,19 @@
         <ScatterPlot :datasets="scatterPlotDatasets" />
       </div>  
       <div ref="chartRef" class="chart-container"></div>
+        </details>
+
+      <details class="histogram-container">
+        <summary>Current Year Histogram</summary>
+        <div class="histogram-controls">
+          <label for="histogram-metric">Select Metric:</label>
+          <select v-model="selectedMetric" @change="updateHistogram">
+            <option value="yield">Yield</option>
+            <option value="pred">Pred</option>
+            <option value="error">Error</option>
+          </select>
+        </div>
+        <canvas ref="histogramRef"></canvas>
       </details>
 
       <details class="table-container">
@@ -47,6 +60,8 @@
           <div ref="tableRef"></div>
         </div>
       </details>
+
+
       </div>
     </div>
   </template>
@@ -57,6 +72,9 @@
   import { TabulatorFull as Tabulator } from 'tabulator-tables';
   import { stateCodeMap } from '@/utils/stateCodeMap'
   import ScatterPlot from '@/components/ScatterPlot.vue'
+  import { Chart, registerables } from 'chart.js';
+
+  Chart.register(...registerables);
 
   export default {
     name: 'DataAnalysePanel',
@@ -73,6 +91,9 @@
 
       const historicalData = computed(() => store.state.historicalData || [])
       const chartRef = ref(null)
+      const histogramRef = ref(null)
+      const selectedMetric = ref('yield')
+      let histogramChart = null
   
       const scatterPlotDatasets = computed(() => {
   return selectedCounties.value
@@ -160,17 +181,74 @@ function updateCountyData(index) {
   })
 }
 
+    const curCrop = computed(() => store.state.currentCrop)
+    const curYear = computed(() => store.state.currentYear || 'Unknown Year')
 
+    function updateHistogram() {
+      if (histogramChart) {
+        histogramChart.destroy();
+      }
+
+      const data = csvData.value.map(row => row[selectedMetric.value]);
+
+      // Create bins
+      const binCount = 10; // Number of bins
+      const min = Math.min(...data);
+      const max = Math.max(...data);
+      const binWidth = (max - min) / binCount;
+      const bins = Array(binCount).fill(0);
+
+      data.forEach(value => {
+        const binIndex = Math.min(Math.floor((value - min) / binWidth), binCount - 1);
+        bins[binIndex]++;
+      });
+
+      const labels = bins.map((_, i) => `${Math.round(min + i * binWidth)} - ${Math.round(min + (i + 1) * binWidth)}`);
+
+      histogramChart = new Chart(histogramRef.value, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: "Counts",
+            data: bins,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          },
+          responsive: true,
+          maintainAspectRatio: true, // Ensure the aspect ratio is maintained
+          plugins: {
+            title: {
+              display: true,
+              text: `${selectedMetric.value} of ${curCrop.value} in Year ${curYear.value}`
+            },
+            legend: {
+              display: false // Hide the legend if not needed
+            }
+          }
+        }
+      });
+    }
 
       onMounted(() => {
       if (csvData.value.length) {
         initTable()
+        updateHistogram()
       }
     })
 
     watch(csvData, (newData) => {
       if (newData.length) {
         initTable()
+        updateHistogram()
       }
     })
 
@@ -211,7 +289,9 @@ function updateCountyData(index) {
       hasSelectedCounties,
       selectedCounties,
       scatterPlotDatasets,
-
+      selectedMetric,
+      histogramRef,
+      updateHistogram
       }
     }
   }
@@ -482,5 +562,24 @@ summary:hover {
   width: 100%;
   height: 300px; /* Adjust this value as needed */
   margin-top: var(--space-medium);
+}
+
+.histogram-container {
+  margin-top: var(--space-medium);
+}
+
+.histogram-controls {
+  margin-bottom: var(--space-small);
+}
+
+.histogram-controls select {
+  padding: var(--space-small);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+}
+
+.histogram-container canvas {
+  width: 100%;
+  height: 400px; /* Adjust as needed */
 }
   </style>

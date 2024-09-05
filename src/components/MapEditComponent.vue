@@ -29,13 +29,14 @@
     },
     props: {
       title: String,
-      description: String
+      description: String,
+      mapImageBase64: String
     },
     setup(props, { emit }) {
       const store = useStore();
       const canvas = ref(null);
       const canvasRef = ref(null);
-      const mapImage = computed(() => store.getters.getMapImage)
+      const mapImage = computed(() => props.mapImageBase64 || store.getters.getMapImage);
   
       onMounted(() => {
         initCanvas();
@@ -46,27 +47,29 @@
 
       canvas.value = new fabric.Canvas('map-edit-canvas', {
         width: window.innerWidth * 0.8,
-        height: window.innerHeight * 0.8
+        height: window.innerHeight * 0.8,
       });
+
+      
 
       if (mapImage.value) {
         loadMapImage();
       }
 
-      watch(mapImage, (newValue) => {
-      if (newValue && canvas.value) {
-        loadMapImage();
-        }
-      });
+      // watch(mapImage, (newValue) => {
+      //   if (newValue && canvas.value) {
+      //     loadMapImage();
+      //   }
+      // });
 
       // Add title and description
-      const title = new fabric.Text(props.title, {
+      const title = new fabric.FabricText(props.title, {
         left: 20,
         top: 20,
         fontSize: 24,
         fontFamily: 'Arial'
       });
-      const description = new fabric.Text(props.description, {
+      const description = new fabric.FabricText(props.description, {
         left: 20,
         top: 50,
         fontSize: 16,
@@ -76,10 +79,8 @@
     };
 
     const loadMapImage = () => {
-      fabric.Image.fromURL(mapImage.value, (img) => {
-        img.scaleToWidth(canvas.value.width);
-        canvas.value.setBackgroundImage(img, canvas.value.renderAll.bind(canvas.value));
-      });
+      console.log("called");
+
     };
   
       function addRectangle() {

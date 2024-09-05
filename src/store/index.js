@@ -214,7 +214,8 @@ export default createStore({
         },
         getMapImage: (state) => {
           if (state.map) {
-            return state.map.getCanvas().toDataURL()
+            const mapImage = state.map.getCanvas().toDataURL()
+            return mapImage
           }
           return null
         },
