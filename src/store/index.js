@@ -31,7 +31,11 @@ export default createStore({
           choroplethOpacity: 0.7,
           basemapOpacity: 1.0,
           selectedBasemap: 'osm',
+
       },
+      markers: [],
+      countyInfo: {},
+      modelQueue: [],
     },
     mutations: {
       setMap(state, data) {
@@ -78,6 +82,35 @@ export default createStore({
         setSelectedBasemap(state, basemapId) {
           state.selectedBasemap = basemapId
         },
+        addMarker(state, marker) {
+          state.markers.push(marker)
+        },
+        removeMarkers(state) {
+          state.markers = [];
+        },
+        setCountyInfo(state, data) {
+          state.countyInfo = data;
+        },
+        setModelQueue(state, queue) {
+          state.modelQueue = queue;
+          localStorage.setItem('modelQueue', JSON.stringify(queue)); // Save to localStorage
+        },
+        addModelQueueJob(state, job) {
+          state.modelQueue.push(job);
+          localStorage.setItem('modelQueue', JSON.stringify(state.modelQueue)); // Save to localStorage
+        },
+        updateModelQueueJob(state, updatedJob) {
+          const index = state.modelQueue.findIndex(job => job.id === updatedJob.id);
+          if (index !== -1) {
+            state.modelQueue.splice(index, 1, updatedJob);
+            localStorage.setItem('modelQueue', JSON.stringify(state.modelQueue)); // Save to localStorage
+          }
+        },
+        clearModelQueue(state) {
+          state.modelQueue = [];
+          state.markers = [];
+          localStorage.removeItem('modelQueue'); // Clear from localStorage
+        }
     },
     actions: {
         async fetchMapData({ commit, state }) {
@@ -193,11 +226,53 @@ export default createStore({
               console.error('Error loading county data:', error);
             }
         },
+
+        async loadCountyInfo({ commit }) {
+          try {
+            const response = await fetch('data/county_info.csv');
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const csvText = await response.text();
+            const parsedData = Papa.parse(csvText, {
+              header: true,
+              dynamicTyping: true,
+              complete: (results) => {
+                const countyInfo = {};
+                results.data.forEach(row => {
+                  const fips = row.FIPS.toString().padStart(5, '0');
+                  countyInfo[fips] = { lat: row.lat, lon: row.lon };
+                });
+                commit('setCountyInfo', countyInfo);
+              },
+              error: (error) => {
+                console.error('Error parsing CSV:', error);
+              }
+            });
+          } catch (error) {
+            console.error('Error loading county info:', error);
+          }
+        },
+        loadModelQueue({ commit }) {
+          const savedQueue = localStorage.getItem('modelQueue');
+          if (savedQueue) {
+            commit('setModelQueue', JSON.parse(savedQueue));
+          }
+        },
+        saveModelQueue({ state }) {
+          localStorage.setItem('modelQueue', JSON.stringify(state.modelQueue));
+        },
+        clearModelQueue({ commit }) {
+          commit('clearModelQueue');
+          localStorage.removeItem('modelQueue');
+        },
+
         async initializeData({ dispatch }) {
       await dispatch('loadCsvData');
       await dispatch('fetchHistoricalData');
       await dispatch('fetchAveragePred');
       await dispatch('loadCountyData');
+      await dispatch('loadCountyInfo');
     }
     },
     getters: {

@@ -74,6 +74,7 @@
         </tbody>
       </table>
     </div>
+    <button @click="clearQueue" class="clear-queue-button">Clear Queue</button>
     </div>
     </details>
 
@@ -107,7 +108,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(['countyData']),
+    ...mapState(['countyData', 'countyInfo', 'markers']),
     availableStates() {
       const states = new Set();
       Object.values(this.countyData).forEach(counties => {
@@ -126,7 +127,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions(['loadCountyData']),
+    ...mapActions(['loadCountyData', 'loadCountyInfo']),
     updateCounties() {
       this.selectedCounty = null;
     },
@@ -167,7 +168,7 @@ export default {
           const response = await axios.get(`https://us-central1-nifa-webgis.cloudfunctions.net/nifa-pred-get?FIPS=${fullFips}&year=2023`);
           
           // Simulate delay (1-3 seconds)
-          await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 4000 + 1000));
 
           const predictionData = response.data[0];
           const prediction = predictionData.pred.toFixed(2);
@@ -180,6 +181,18 @@ export default {
             text: `${this.selectedModel} model run completed for ${this.selectedCounty.name}, ${this.selectedState}`,
             type: "success",
           });
+
+          // Add marker to the map
+          const countyInfo = this.countyInfo[fullFips];
+          if (countyInfo) {
+            const marker = {
+              lat: countyInfo.lat,
+              lon: countyInfo.lon,
+              name: this.selectedCounty.name,
+              value: prediction,
+            };
+            this.$store.commit('addMarker', marker);
+          }
         } catch (error) {
           console.error('Error fetching prediction:', error);
           
@@ -201,23 +214,32 @@ export default {
         });
       }
     },
-
     updateJobStatus(jobId, status, prediction = null) {
       const jobIndex = this.modelQueue.findIndex(job => job.id === jobId);
       if (jobIndex !== -1) {
-        this.modelQueue[jobIndex].status = status;
-        if (prediction !== null) {
-          this.modelQueue[jobIndex].prediction = prediction;
-        }
+        const updatedJob = {
+          ...this.modelQueue[jobIndex],
+          status: status,
+          prediction: prediction !== null ? prediction : this.modelQueue[jobIndex].prediction
+        };
+        this.$store.commit('updateModelQueueJob', updatedJob);
       }
     },
-
-
-
-  mounted() {
-    this.loadCountyData();
+    clearQueue() {
+      this.modelQueue = [];
+      this.$store.commit('removeMarkers');
+      const notification = useNotification();
+      notification.notify({
+        title: "Queue Cleared",
+        text: "The model queue has been cleared",
+        type: "info",
+      });
+    },
+  },
+  created() {
+    // Load the model queue from Vuex when the component is created
+    this.modelQueue = this.$store.state.modelQueue;
   }
-}
 }
 </script>
 
@@ -331,5 +353,18 @@ summary {
   margin-bottom: 10px;
 }
 
+.clear-queue-button {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;
+}
 
+.clear-queue-button:hover {
+  background-color: #d32f2f;
+}
 </style>

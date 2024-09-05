@@ -66,6 +66,7 @@ export default {
     const store = useStore()
     const mapContainer = ref(null)
     const map = ref(null)
+
     const activeSidebar = ref(null)
     const scaleControl = ref(null)
     const currentUnit = ref('metric')
@@ -78,6 +79,7 @@ export default {
     const choroplethVisible = ref(true)
     const tooltip = ref(null)
     const showLegend = ref(true)
+    const markers = ref([])
     const choroplethSettings = computed(() => store.state.choroplethSettings)
     const currentBasemapUrl = computed(() => store.getters.currentBasemapUrl)
 
@@ -97,6 +99,43 @@ export default {
         }))
       }
     })
+
+    const addMarker = (marker) => {
+    const el = document.createElement('div');
+    el.className = 'marker';
+    el.style.width = '30px';
+    el.style.height = '30px';
+    el.style.backgroundSize = '100%';
+    el.style.backgroundImage = 'url(marker-icon.png)'; // Use your marker icon
+
+    const popup = new maplibregl.Popup({ offset: 25 }).setText(`${marker.name}: ${marker.value}`);
+
+    const markerInstance = new maplibregl.Marker(el)
+      .setLngLat([marker.lon, marker.lat])
+      .setPopup(popup)
+      .addTo(map.value);
+
+    // Automatically show the popup
+    markerInstance.togglePopup();
+
+    markers.value.push(markerInstance);
+  };
+
+    const removeMarkers = () => {
+      if (markers.value) {
+        markers.value.forEach(marker => marker.remove());
+        markers.value = [];
+      }
+    };
+
+    watch(
+      () => store.state.markers,
+      (newMarkers) => {
+        removeMarkers();
+        newMarkers.forEach(addMarker);
+      },
+      { deep: true }
+    );
 
 
     const updateChoropleth = (newSettings = null) => {
@@ -671,9 +710,9 @@ export default {
 
 .sidebar {
   position: absolute;
-  top: 90px;
+  top: 86px;
   width: 300px;
-  height: calc(100% - 90px);
+  height: calc(100% - 86px);
   background-color: var(--color-background);
   box-shadow: var(--shadow-light);
   z-index: var(--z-index-sidebar);
