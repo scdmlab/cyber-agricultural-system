@@ -113,7 +113,12 @@ export default {
     availableStates() {
       const states = new Set();
       Object.values(this.countyData).forEach(counties => {
-        counties.forEach(county => states.add(this.getStateName(county.stateFp)));
+        counties.forEach(county => {
+          const stateName = this.getStateName(county.stateFp);
+          if (stateName !== 'Unknown State') {
+            states.add(stateName);
+          }
+        });
       });
       return Array.from(states).sort();
     },
@@ -124,7 +129,8 @@ export default {
         .flatMap(([name, counties]) => 
           counties.filter(county => county.stateFp === stateFp)
             .map(county => ({ ...county, name }))
-        );
+        )
+        .sort((a, b) => a.name.localeCompare(b.name)); // Sort counties alphabetically
     }
   },
   methods: {

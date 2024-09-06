@@ -3,6 +3,7 @@
   <nav class="toolbar" aria-label="Map controls">
     <div class="toolbar-content">
       <div class="left-buttons">
+ 
         <button @click="toggleSidebar('run')" aria-label="Run Model">
           <Icon icon="mdi:play" />
           <span class="tooltip">Models</span>
@@ -35,10 +36,21 @@
           <span class="tooltip">Map Settings</span>
         </button>
         <div class="separator"></div>
+        <button @click="$emit('start-draw-line')" title="Draw Line">
+      <Icon icon="mdi:draw-pen" />
+    </button>
+    <button @click="$emit('start-draw-polygon')" title="Draw Polygon">
+      <Icon icon="mdi:shape-polygon-plus" />
+    </button>
+    <button @click="$emit('delete-drawing')" title="Delete Drawing">
+      <Icon icon="mdi:delete" />
+    </button>
+        <div class="separator"></div>
         <button @click="$emit('toggle-legend')" aria-label="Toggle Legend">
           <Icon icon="material-symbols:legend-toggle-rounded"/>
           <span class="tooltip">Toggle Legend</span>
         </button>
+        <div class="separator"></div>
         <button @click="$emit('zoom-in')" aria-label="Zoom In">
           <Icon icon="mdi:plus" />
           <span class="tooltip">Zoom In</span>

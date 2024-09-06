@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@kyvg/vue3-notification": "^3.3.0",
+    "@mapbox/mapbox-gl-draw": "^1.4.3",
     "@maplibre/maplibre-gl-style-spec": "^20.3.1",
     "@primevue/themes": "^4.0.5",
+    "@turf/turf": "^7.1.0",
     "axios": "^1.7.7",
     "chart.js": "^4.4.4",
     "chartjs-plugin-zoom": "^2.0.1",
