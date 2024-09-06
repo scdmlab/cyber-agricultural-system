@@ -17,9 +17,9 @@
         </select>
       </div>
       <div>
-        <label for="month">Month:</label>
+        <label for="month">Prediction Date:</label>
         <select id="month" v-model="localMonth">
-          <option v-for="m in months" :key="m" :value="m">{{ m }}</option>
+          <option v-for="(date, index) in monthOptions" :key="index" :value="index">{{ date }}</option>
         </select>
       </div>
       <div>
@@ -48,6 +48,19 @@ export default {
     const localYear = ref(store.state.currentYear)
     const localMonth = ref(store.state.currentMonth)
     const localProperty = ref(store.state.currentProperty)
+
+    const monthOptions = {
+      "0": "05/13",
+      "1": "05/29",
+      "2": "06/14",
+      "3": "06/30",
+      "4": "07/16",
+      "5": "08/01",
+      "6": "08/17",
+      "7": "09/02",
+      "8": "09/18",
+      "9": "10/04"
+    }
 
     const years = computed(() => {
       return Array.from({ length: 12 }, (_, i) => (2010 + i).toString())
@@ -90,6 +103,7 @@ export default {
       years,
       months,
       applyDataSelection,
+      monthOptions
     }
   },
 }

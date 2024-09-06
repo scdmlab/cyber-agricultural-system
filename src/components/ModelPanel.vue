@@ -68,6 +68,7 @@
             <td>{{ job.prediction || 'Pending' }}</td>
             <td>
               <span v-if="job.status === 'complete'" class="status-icon complete">✓</span>
+              <span v-else-if="job.status === 'failed'" class="status-icon failed">✗</span>
               <span v-else class="status-icon pending">●</span>
             </td>
           </tr>
@@ -227,7 +228,6 @@ export default {
     },
     clearQueue() {
       this.modelQueue = [];
-      this.$store.commit('removeMarkers');
       const notification = useNotification();
       notification.notify({
         title: "Queue Cleared",
@@ -337,10 +337,18 @@ cursor: not-allowed;
 
 .status-icon.complete {
   color: green;
+  font-weight: bold;
+  font-size: 1.4em;
 }
 
 .status-icon.pending {
   color: red;
+}
+
+.status-icon.failed {
+  color: red;
+  font-weight: bold;
+  font-size: 1.4em;
 }
 
 details {
@@ -353,18 +361,5 @@ summary {
   margin-bottom: 10px;
 }
 
-.clear-queue-button {
-  background-color: #f44336;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  font-size: 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-top: 10px;
-}
 
-.clear-queue-button:hover {
-  background-color: #d32f2f;
-}
 </style>
