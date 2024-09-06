@@ -228,6 +228,8 @@ export default {
     },
     clearQueue() {
       this.modelQueue = [];
+      this.$store.commit('clearModelQueue');
+      this.$store.commit('removeMarkers');
       const notification = useNotification();
       notification.notify({
         title: "Queue Cleared",
