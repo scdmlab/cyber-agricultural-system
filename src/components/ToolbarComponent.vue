@@ -3,7 +3,6 @@
   <nav class="toolbar" aria-label="Map controls">
     <div class="toolbar-content">
       <div class="left-buttons">
- 
         <button @click="toggleSidebar('run')" aria-label="Run Model">
           <Icon icon="mdi:play" />
           <span class="tooltip">Models</span>
@@ -35,16 +34,6 @@
           <Icon icon="mdi:cog" />
           <span class="tooltip">Map Settings</span>
         </button>
-        <div class="separator"></div>
-        <button @click="$emit('start-draw-line')" title="Draw Line">
-      <Icon icon="mdi:draw-pen" />
-    </button>
-    <button @click="$emit('start-draw-polygon')" title="Draw Polygon">
-      <Icon icon="mdi:shape-polygon-plus" />
-    </button>
-    <button @click="$emit('delete-drawing')" title="Delete Drawing">
-      <Icon icon="mdi:delete" />
-    </button>
         <div class="separator"></div>
         <button @click="$emit('toggle-legend')" aria-label="Toggle Legend">
           <Icon icon="material-symbols:legend-toggle-rounded"/>
@@ -105,7 +94,14 @@ export default {
     DataTablePopup,
     BasemapPopup
   },
-  emits: ['zoom-in', 'zoom-out', 'reset-view', 'toggle-sidebar', 'update-settings', 'toggle-legend'],
+  emits: [
+    'zoom-in',
+    'zoom-out',
+    'reset-view',
+    'toggle-sidebar',
+    'update-settings',
+    'toggle-legend'
+  ],
   setup(props, { emit }) {
     const store = useStore() // Use Vuex store if needed
     const showSettings = ref(false)

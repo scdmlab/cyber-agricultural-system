@@ -9,6 +9,9 @@
         @toggle-sidebar="toggleSidebar"
         @update-settings="updateSettings"
         @toggle-legend="toggleLegend"
+        @start-draw-line="startDrawLine"
+        @start-draw-polygon="startDrawPolygon"
+        @delete-drawing="deleteDrawing"
     />
     <transition name="sidebar">
       <div v-if="isSidebarOpen" class="sidebar" :style="{ width: sidebarWidth + 'px' }">
@@ -17,7 +20,6 @@
         <DataAnalysisPanel v-if="activeSidebar === 'analysis'" />
         <MappingPanel v-if="activeSidebar === 'mapping'" />
         <ModelPanel v-if="activeSidebar === 'run'" />
-        <!-- Add other sidebar components as needed -->
       </div>
     </transition>
     <div id="map" ref="mapContainer"></div>
@@ -39,7 +41,9 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import {Icon} from '@iconify/vue'
 import { scaleLinear } from 'd3-scale'
 import { interpolateRgb } from 'd3-interpolate'
-
+import MapboxDraw from "@mapbox/mapbox-gl-draw";
+import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
+import * as turf from '@turf/turf'
 import stateBoundaries from '@/assets/gz_2010_us_040_00_20m.json'
 import countyBoundaries from '@/assets/gz_2010_us_050_00_20m.json'
 
@@ -66,6 +70,8 @@ export default {
     const store = useStore()
     const mapContainer = ref(null)
     const map = ref(null)
+    const draw = ref(null)
+    const drawnPolygons = ref([])
 
     const activeSidebar = ref(null)
     const scaleControl = ref(null)
@@ -99,6 +105,41 @@ export default {
         }))
       }
     })
+
+    function initializeDrawControl() {
+      draw.value = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          line_string: true,
+          polygon: true,
+          trash: true
+        },
+      });
+      console.log("Draw control initialized:", draw.value);
+      map.value.addControl(draw.value);
+
+      map.value.on('draw.create', (e) => {
+        drawnPolygons.value = draw.value.getAll().features;
+        store.dispatch('saveDrawnPolygons', drawnPolygons.value);
+      });
+
+      map.value.on('draw.delete', (e) => {
+        drawnPolygons.value = draw.value.getAll().features;
+        store.dispatch('saveDrawnPolygons', drawnPolygons.value);
+      });
+
+      // Add this new event listener
+      map.value.on('draw.update', (e) => {
+        drawnPolygons.value = draw.value.getAll().features;
+        store.dispatch('saveDrawnPolygons', drawnPolygons.value);
+      });
+
+
+
+
+
+    }
+
 
     const addMarker = (marker) => {
     const el = document.createElement('div');
@@ -290,7 +331,7 @@ export default {
       map.value.on('load', () => {
         addCustomScaleControl()
         // addDraggableControl(maplibregl.NavigationControl, {showCompass:false}, 'top-right')
-
+        
         // Load county boundaries
         map.value.addSource('counties', {
           type: 'geojson',
@@ -319,6 +360,7 @@ export default {
             'fill-opacity': 0.7,
             'fill-outline-color': '#000000'
           }
+
         })
 
         // Add state boundaries
@@ -408,8 +450,25 @@ export default {
         store.commit('setMap', map.value)
 
         updateChoropleth()
-
+        initializeDrawControl()
       })
+
+    }
+
+    function startDrawLine() {
+      draw.value.changeMode('draw_line_string');
+    }
+
+    function startDrawPolygon() {
+      draw.value.changeMode('draw_polygon');
+    }
+
+    function deleteDrawing() {
+      draw.value.trash();
+    }
+
+    function stopDrawing() {
+    draw.value.changeMode('simple_select');
     }
 
     function showTooltip(lngLat, content) {
@@ -655,6 +714,12 @@ export default {
         }
     }
 
+    function stopDrawing() {
+      if (draw.value) {
+        draw.value.changeMode('simple_select')
+      }
+    }
+
     onBeforeUnmount(() => {
       if (map.value) {
         if (scaleControl.value) {
@@ -672,8 +737,10 @@ export default {
 
     return {
       mapContainer,
+      draw,
       zoomIn,
       zoomOut,
+
       resetViewToCONUS,
       currentUnit,
       toggleSidebar,
@@ -687,7 +754,11 @@ export default {
       tooltip,
       showLegend,
       toggleLegend,
-      choroplethSettings
+      choroplethSettings,
+      startDrawLine,
+      startDrawPolygon,
+      deleteDrawing,
+      stopDrawing,
     }
   }
 }
@@ -893,5 +964,14 @@ export default {
   font-size: 14px;
   line-height: 1.4;
 }
+
+.mapboxgl-ctrl-top-left {
+  z-index: 1000;
+}
+
+.mapboxgl-ctrl-group {
+  pointer-events: auto;
+}
+
 
 </style>

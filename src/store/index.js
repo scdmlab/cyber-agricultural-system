@@ -36,6 +36,7 @@ export default createStore({
       markers: [],
       countyInfo: {},
       modelQueue: [],
+      drawnPolygons: [], // Add this line to store drawn polygons
     },
     mutations: {
       setMap(state, data) {
@@ -110,7 +111,13 @@ export default createStore({
           state.modelQueue = [];
           state.markers = [];
           localStorage.removeItem('modelQueue'); // Clear from localStorage
-        }
+        },
+        setDrawnPolygons(state, polygons) {
+          state.drawnPolygons = polygons; // Mutation to set drawn polygons
+        },
+        clearDrawnPolygons(state) {
+          state.drawnPolygons = []; // Mutation to clear drawn polygons
+        },
     },
     actions: {
         async fetchMapData({ commit, state }) {
@@ -266,6 +273,12 @@ export default createStore({
           commit('clearModelQueue');
           localStorage.removeItem('modelQueue');
         },
+        saveDrawnPolygons({ commit }, polygons) {
+          commit('setDrawnPolygons', polygons); // Action to save drawn polygons
+        },
+        clearDrawnPolygons({ commit }) {
+          commit('clearDrawnPolygons'); // Action to clear drawn polygons
+        },
 
         async initializeData({ dispatch }) {
       await dispatch('loadCsvData');
@@ -294,5 +307,6 @@ export default createStore({
           }
           return null
         },
-      },
+        getDrawnPolygons: (state) => state.drawnPolygons, // Getter to retrieve drawn polygons
+    },
 })
