@@ -369,7 +369,12 @@ export default {
         type: "info",
       });
 
-      console.log(JSON.stringify(featureCollection))
+      notification.notify({
+          title: "Running Model",
+          text: `Running model on the latest data`,
+          type: "info",
+        });
+      
       try {
         const response = await axios.post(
           'https://3a6b477c-5f32-40dd-b06d-69be04ada480-00-3boaaj7j16t6o.riker.replit.dev/api/predict', 
@@ -395,6 +400,8 @@ export default {
           text: `${polygonName} processed successfully`,
           type: "success",
         });
+
+        
 
       } catch (error) {
         console.error('Error processing selected area:', error);
