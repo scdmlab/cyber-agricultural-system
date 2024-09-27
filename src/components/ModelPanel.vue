@@ -69,31 +69,38 @@
 
       <!-- Model Queue section -->
       <details open class="mb-4">
-  <summary class="cursor-pointer font-bold mb-2">Model Queue</summary>
-  <div class="overflow-y-auto max-h-64 relative">
-    <table class="w-full border-collapse">
-      <thead class="sticky top-0 bg-white z-10">
-        <tr class="bg-gray-100">
-          <th class="p-2 text-left">Name</th>
-          <th class="p-2 text-left">Prediction</th>
-          <th class="p-2 text-left">Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="job in modelQueue" :key="job.id" class="border-b">
-          <td class="p-2">{{ job.name || job.county + ', ' + job.state }}</td>
-          <td class="p-2">{{ job.status === 'failed' ? 'Failed' : (job.prediction || 'Pending') }}</td>
-          <td class="p-2">
-            <span v-if="job.status === 'complete'" class="text-green-600">✓</span>
-            <span v-else-if="job.status === 'failed'" class="text-red-600">✗</span>
-            <span v-else class="text-yellow-600">●</span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <button @click="clearQueue" class="mt-4 bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition duration-300">Clear Queue</button>
-</details>
+        <summary class="cursor-pointer font-bold mb-2">Model Queue</summary>
+        <div class="overflow-y-auto max-h-64 relative">
+          <table class="w-full border-collapse">
+            <thead class="sticky top-0 bg-white z-10">
+              <tr class="bg-gray-100">
+                <th class="p-2 text-left">Name</th>
+                <th class="p-2 text-left">Prediction</th>
+                <th class="p-2 text-left">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="job in modelQueue" :key="job.id" class="border-b">
+                <td class="p-2">{{ job.name || job.county + ', ' + job.state }}</td>
+                <td class="p-2">
+                  <template v-if="job.status === 'pending'">
+                    <div class="loading-spinner"></div>
+                  </template>
+                  <template v-else>
+                    {{ job.status === 'failed' ? 'Failed' : (job.prediction || 'Pending') }}
+                  </template>
+                </td>
+                <td class="p-2">
+                  <span v-if="job.status === 'complete'" class="text-green-600">✓</span>
+                  <span v-else-if="job.status === 'failed'" class="text-red-600">✗</span>
+                  <span v-else class="text-yellow-600">●</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <button @click="clearQueue" class="mt-4 bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition duration-300">Clear Queue</button>
+      </details>
     </div>
 
     <ProgressBar v-if="isRunning" :value="progress" :text="`${estimatedTime}s remaining`" class="mt-4" />
@@ -168,80 +175,98 @@ export default {
   },
 
   async runModel() {
-      const stateFips = this.getStateFp(this.selectedState);
-      const countyFips = this.selectedCounty.countyFp;
+    const stateFips = this.getStateFp(this.selectedState);
+    const countyFips = this.selectedCounty.countyFp;
+    
+    if (stateFips && countyFips) {
+      const fullFips = stateFips + countyFips.padStart(3, '0');
+      const notification = useNotification();
       
-      if (stateFips && countyFips) {
-        const fullFips = stateFips + countyFips.padStart(3, '0');
-        const notification = useNotification();
+      // Add job to the queue
+      const jobId = Date.now();
+      this.modelQueue.push({
+        id: jobId,
+        county: this.selectedCounty.name,
+        state: this.selectedState,
+        prediction: null,
+        status: 'pending'
+      });
+
+      notification.notify({
+        title: "Model Added to Queue",
+        text: `${this.selectedModel} model for ${this.selectedCounty.name}, ${this.selectedState} added to queue`,
+        type: "info",
+      });
+
+      // Display the longer-lasting toast notification
+      const dataRequestToast = notification.notify({
+        title: "Requesting Data",
+        text: "Requesting latest prediction data...",
+        type: "info",
+        duration: 10000, // 10 seconds
+      });
+
+      try {
+        // Make API request
+        const response = await axios.get(`https://us-central1-nifa-webgis.cloudfunctions.net/nifa-pred-get?FIPS=${fullFips}&year=2023`);
         
-        // Add job to the queue
-        const jobId = Date.now();
-        this.modelQueue.push({
-          id: jobId,
-          county: this.selectedCounty.name,
-          state: this.selectedState,
-          prediction: null,
-          status: 'pending'
-        });
-
-        notification.notify({
-          title: "Model Added to Queue",
-          text: `${this.selectedModel} model for ${this.selectedCounty.name}, ${this.selectedState} added to queue`,
-          type: "info",
-        });
-
-        try {
-          // Make API request
-          const response = await axios.get(`https://us-central1-nifa-webgis.cloudfunctions.net/nifa-pred-get?FIPS=${fullFips}&year=2023`);
-          
-          // Simulate delay (1-3 seconds)
-          await new Promise(resolve => setTimeout(resolve, Math.random() * 4000 + 1000));
-
-          const predictionData = response.data[0];
-          const prediction = predictionData.pred.toFixed(2);
-
-          // Update job in the queue
-          this.updateJobStatus(jobId, 'complete', prediction);
-          
-          notification.notify({
-            title: "Model Completed",
-            text: `${this.selectedModel} model run completed for ${this.selectedCounty.name}, ${this.selectedState}`,
-            type: "success",
-          });
-
-          // Add marker to the map
-          const countyInfo = this.countyInfo[fullFips];
-          if (countyInfo) {
-            const marker = {
-              lat: countyInfo.lat,
-              lon: countyInfo.lon,
-              name: this.selectedCounty.name,
-              value: prediction,
-            };
-            this.$store.commit('addMarker', marker);
-          }
-        } catch (error) {
-          console.error('Error fetching prediction:', error);
-          
-          // Update job status to failed
-          this.updateJobStatus(jobId, 'failed');
-
-          notification.notify({
-            title: "Error",
-            text: "Failed to fetch prediction data",
-            type: "error",
-          });
+        // Close the data request toast
+        if (dataRequestToast && dataRequestToast.close) {
+          dataRequestToast.close();
         }
-      } else {
-        const notification = useNotification();
+
+        // Simulate delay (1-3 seconds)
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 4000 + 1000));
+
+        const predictionData = response.data[0];
+        const prediction = predictionData.pred.toFixed(2);
+
+        // Update job in the queue
+        this.updateJobStatus(jobId, 'complete', prediction);
+        
+        notification.notify({
+          title: "Model Completed",
+          text: `${this.selectedModel} model run completed for ${this.selectedCounty.name}, ${this.selectedState}`,
+          type: "success",
+        });
+
+        // Add marker to the map
+        const countyInfo = this.countyInfo[fullFips];
+        if (countyInfo) {
+          const marker = {
+            lat: countyInfo.lat,
+            lon: countyInfo.lon,
+            name: this.selectedCounty.name,
+            value: prediction,
+          };
+          this.$store.commit('addMarker', marker);
+        }
+      } catch (error) {
+        console.error('Error fetching prediction:', error);
+        
+        // Close the data request toast if it's still open
+        if (dataRequestToast && dataRequestToast.close) {
+          dataRequestToast.close();
+        }
+
+        // Update job status to failed
+        this.updateJobStatus(jobId, 'failed');
+
         notification.notify({
           title: "Error",
-          text: "Invalid state or county selection",
+          text: "Failed to fetch prediction data",
           type: "error",
         });
       }
-    },
+    } else {
+      const notification = useNotification();
+      notification.notify({
+        title: "Error",
+        text: "Invalid state or county selection",
+        type: "error",
+      });
+    }
+  },
     updateJobStatus(jobId, status, prediction = null) {
       const jobIndex = this.modelQueue.findIndex(job => job.id === jobId);
       if (jobIndex !== -1) {
@@ -424,3 +449,20 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
