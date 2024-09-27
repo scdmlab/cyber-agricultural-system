@@ -1,37 +1,41 @@
-<!-- src/components/SettingsPanel.vue -->
 <template>
-  <div class="data-selection-panel">
-    <h2>Settings</h2>
-    <div class="data-selection-content">
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold text-green-600 mb-4">Data Selection</h2>
+    
+    <div class="space-y-4">
       <div>
-        <label for="crop">Crop:</label>
-        <select id="crop" v-model="localCrop">
+        <label for="crop" class="block text-sm font-medium text-gray-700">Crop:</label>
+        <select id="crop" v-model="localCrop" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
           <option value="corn">Corn</option>
           <option value="soybean">Soybean</option>
         </select>
       </div>
+      
       <div>
-        <label for="year">Year:</label>
-        <select id="year" v-model="localYear">
+        <label for="year" class="block text-sm font-medium text-gray-700">Year:</label>
+        <select id="year" v-model="localYear" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
           <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
         </select>
       </div>
+      
       <div>
-        <label for="month">Prediction Date:</label>
-        <select id="month" v-model="localMonth">
+        <label for="month" class="block text-sm font-medium text-gray-700">Prediction Date:</label>
+        <select id="month" v-model="localMonth" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
           <option v-for="(date, index) in monthOptions" :key="index" :value="index">{{ date }}</option>
         </select>
       </div>
+      
       <div>
-        <label for="property">Property:</label>
-        <select id="property" v-model="localProperty">
+        <label for="property" class="block text-sm font-medium text-gray-700">Property:</label>
+        <select id="property" v-model="localProperty" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
           <option value="pred">Prediction</option>
           <option value="yield">Yield</option>
           <option value="error">Error</option>
         </select>
       </div>
     </div>
-    <button @click="applyDataSelection" class="apply-button">Apply</button>
+    
+    <button @click="applyDataSelection" class="mt-6 w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300">Apply</button>
   </div>
 </template>
 
@@ -108,53 +112,3 @@ export default {
   },
 }
 </script>
-
-<style scoped>
-.data-selection-panel {
-  padding: var(--space-large);
-  background-color: var(--color-background-mute);
-  height: 100%;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-}
-
-.data-selection-content {
-  flex-grow: 1;
-  overflow-y: auto;
-}
-
-.data-selection-content div {
-  margin-bottom: var(--space-medium);
-}
-
-label {
-  display: block;
-  margin-bottom: var(--space-small);
-  color: var(--color-text);
-}
-
-select {
-  width: 100%;
-  padding: var(--space-small);
-  border-radius: var(--border-radius);
-  border: 1px solid var(--color-border);
-  background-color: var(--color-background);
-  color: var(--color-text);
-}
-
-.apply-button {
-  margin-top: var(--space-large);
-  padding: var(--space-medium);
-  background-color: var(--color-primary);
-  color: var(--color-text-button);
-  border: none;
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  font-size: var(--font-size-medium);
-}
-
-.apply-button:hover {
-  background-color: var(--color-primary-dark);
-}
-</style>

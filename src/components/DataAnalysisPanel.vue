@@ -287,7 +287,6 @@ function updateCountyData(index) {
       addCounty,
       removeCounty,
       hasSelectedCounties,
-      selectedCounties,
       scatterPlotDatasets,
       selectedMetric,
       histogramRef,

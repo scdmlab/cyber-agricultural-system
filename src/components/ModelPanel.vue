@@ -1,101 +1,102 @@
 <template>
   <notifications position="top-right" />
-  <div class="model-panel">
-    <h2>Run Model</h2>
+  <div class="bg-white p-6 rounded-lg shadow-md h-full flex flex-col">
+    <h2 class="text-2xl font-bold text-green-600 mb-4">Run Model</h2>
     
-    <details>
-      <summary>Latest Model Results</summary>
+    <div class="overflow-y-auto flex-grow">
+      <details class="mb-4">
+        <summary class="cursor-pointer font-bold mb-2">Latest Model Results</summary>
 
-      <div class="input-group">
+        <div class="space-y-4">
+          <div>
+            <label for="state" class="block text-sm font-medium text-gray-700">State:</label>
+            <select id="state" v-model="selectedState" @change="updateCounties" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+              <option v-for="state in availableStates" :key="state" :value="state">{{ state }}</option>
+            </select>
+          </div>
 
-      <label for="state">State:</label>
-      <select id="state" v-model="selectedState" @change="updateCounties" class="fixed-width">
-        <option v-for="state in availableStates" :key="state" :value="state">{{ state }}</option>
-      </select>
-      </div>
+          <div>
+            <label for="county" class="block text-sm font-medium text-gray-700">County:</label>
+            <select id="county" v-model="selectedCounty" :disabled="!selectedState" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+              <option v-for="county in availableCounties" :key="county.countyFp" :value="county">
+                {{ county.name }}
+              </option>
+            </select>
+          </div>
 
-      <div class="input-group">
-        <label for="county">County:</label>
-        <select id="county" v-model="selectedCounty" :disabled="!selectedState" class="fixed-width">
-            <option v-for="county in availableCounties" :key="county.countyFp" :value="county">
-            {{ county.name }} 
-          </option>
-        </select>
-      </div>
+          <div>
+            <label for="predictionType" class="block text-sm font-medium text-gray-700">Prediction Type:</label>
+            <select id="predictionType" v-model="selectedPredictionType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+              <option value="In Season">In Season</option>
+              <option value="End of Season">End of Season</option>
+            </select>
+          </div>
 
-      <div class="input-group">
-        <label for="predictionType">Prediction Type</label>
-        <select id="predictionType" v-model="selectedPredictionType" class="fixed-width">
-          <option value="In Season">In Season</option>
-          <option value="In Season">End of Season</option>
-          <!-- Add more prediction type options as needed -->
-        </select>
-      </div>
+          <div>
+            <label for="model" class="block text-sm font-medium text-gray-700">Select a model:</label>
+            <select id="model" v-model="selectedModel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+              <option value="Bayesian">Bayesian</option>
+              <option value="Partial Domain Adaption">Partial Domain Adaption</option>
+              <option value="Multiple Instance Learning">Multiple Instance Learning</option>
+              <option value="Hybrid">Hybrid</option>
+            </select>
+          </div>
 
-      <div class="input-group">
-        <label for="model">Select a model:</label>
-        <select id="model" v-model="selectedModel" class="fixed-width">
-          <option value="Hybrid">Bayesian</option>
-          <option value="Hybrid">Partial Domain Adaption</option>
-          <option value="Hybrid">Multiple Instance Learning</option>
-          <option value="Hybrid">Hybrid</option>
-          <!-- Add more model options as needed -->
-        </select>
-      </div>
+          <button @click="runModel" class="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300" :disabled="isRunning">
+            {{ isRunning ? 'Running...' : 'Run Selected Model' }}
+          </button>
+        </div>
+      </details>
 
-      <button @click="runModel" class="run-button" :disabled="isRunning">
-        {{ isRunning ? 'Running...' : 'Run Selected Model' }}
-        </button>
-  
-    </details>
+      <!-- Drawn Polygons section -->
+      <details class="mb-4">
+        <summary class="cursor-pointer font-bold mb-2">Drawn Polygons</summary>
+        <div v-if="drawnPolygons.length > 0">
+          <ul class="list-none p-0 m-0">
+            <li v-for="(polygon, index) in drawnPolygons" :key="polygon.id" class="mb-2 text-sm">
+              Polygon {{ index + 1 }}: {{ formatPolygonCoordinates(polygon) }}
+            </li>
+          </ul>
+          <div class="mt-4 space-x-2">
+            <button @click="runSelectedArea" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300">Run Selected Area</button>
+            <button @click="clearAllPolygons" class="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition duration-300">Clear All Polygons</button>
+          </div>
+        </div>
+        <div v-else class="text-gray-600">
+          No polygons have been drawn on the map.
+        </div>
+      </details>
 
-    <!-- New summary for drawn polygons -->
-    <details>
-      <summary>Drawn Polygons</summary>
-      <div v-if="drawnPolygons.length > 0">
-        <ul class="polygon-list">
-          <li v-for="(polygon, index) in drawnPolygons" :key="polygon.id">
-            Polygon {{ index + 1 }}: {{ formatPolygonCoordinates(polygon) }}
-          </li>
-        </ul>
-        <button @click="runSelectedArea" class="run-selected-area-button">Run Selected Area</button>
-        <button @click="clearAllPolygons" class="clear-polygons-button">Clear All Polygons</button>
-      </div>
-      <div v-else>
-        No polygons have been drawn on the map.
-      </div>
-    </details>
-
-    <details open>
-    <summary>Model Queue</summary>
-    <div class="queue-container">
-    <div class="table-wrapper">
-      <table class="queue-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Prediction</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="job in modelQueue" :key="job.id">
-            <td>{{ job.name || job.county + ', ' + job.state }}</td>
-            <td>{{ job.prediction || 'Pending' }}</td>
-            <td>
-              <span v-if="job.status === 'complete'" class="status-icon complete">✓</span>
-              <span v-else-if="job.status === 'failed'" class="status-icon failed">✗</span>
-              <span v-else class="status-icon pending">●</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- Model Queue section -->
+      <details open class="mb-4">
+  <summary class="cursor-pointer font-bold mb-2">Model Queue</summary>
+  <div class="overflow-y-auto max-h-64 relative">
+    <table class="w-full border-collapse">
+      <thead class="sticky top-0 bg-white z-10">
+        <tr class="bg-gray-100">
+          <th class="p-2 text-left">Name</th>
+          <th class="p-2 text-left">Prediction</th>
+          <th class="p-2 text-left">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="job in modelQueue" :key="job.id" class="border-b">
+          <td class="p-2">{{ job.name || job.county + ', ' + job.state }}</td>
+          <td class="p-2">{{ job.status === 'failed' ? 'Failed' : (job.prediction || 'Pending') }}</td>
+          <td class="p-2">
+            <span v-if="job.status === 'complete'" class="text-green-600">✓</span>
+            <span v-else-if="job.status === 'failed'" class="text-red-600">✗</span>
+            <span v-else class="text-yellow-600">●</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <button @click="clearQueue" class="mt-4 bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition duration-300">Clear Queue</button>
+</details>
     </div>
-    <button @click="clearQueue" class="clear-queue-button">Clear Queue</button>
-    </div>
-    </details>
 
-      <ProgressBar v-if="isRunning" :value="progress" :text="`${estimatedTime}s remaining`" />
+    <ProgressBar v-if="isRunning" :value="progress" :text="`${estimatedTime}s remaining`" class="mt-4" />
   </div>
 </template>
 
@@ -423,165 +424,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.model-panel {
-  background-color: #ffffff;
-  padding: 20px;
-  border-radius: 8px;
-  /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
-}
-
-h2 {
-  color: #00a86b;
-  margin-top: 0;
-  margin-bottom: 20px;
-}
-
-.input-group {
-  margin-bottom: 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-label {
-  font-weight: bold;
-}
-
-select {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 16px;
-}
-
-.fixed-width {
-  width: 200px; /* Adjust the width as needed */
-}
-
-.run-button {
-  background-color: var(--color-primary);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  font-size: 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  width: 100%;
-  margin-top: 10px;
-}
-
-.run-button:hover {
-  background-color: #008f5b;
-}
-
-.run-button:disabled {
-background-color: #cccccc;
-cursor: not-allowed;
-}
-
-.queue-container {
-  max-height: 300px; /* Adjust the height as needed */
-  overflow-y: auto;
-}
-
-.table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-}
-
-.queue-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-
-.queue-table th, .queue-table td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
-}
-
-.queue-table th {
-  background-color: #f2f2f2;
-}
-
-.status-icon {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  text-align: center;
-  line-height: 20px;
-}
-
-.status-icon.complete {
-  color: green;
-  font-weight: bold;
-  font-size: 1.4em;
-}
-
-.status-icon.pending {
-  color: red;
-}
-
-.status-icon.failed {
-  color: red;
-  font-weight: bold;
-  font-size: 1.4em;
-}
-
-details {
-  margin-bottom: 20px;
-}
-
-summary {
-  cursor: pointer;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.polygon-list {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-}
-
-.polygon-list li {
-  margin-bottom: 10px;
-  font-size: 0.9em;
-  word-break: break-all;
-}
-
-.clear-polygons-button {
-  background-color: #f44336;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  font-size: 14px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-top: 10px;
-}
-
-.clear-polygons-button:hover {
-  background-color: #d32f2f;
-}
-
-.run-selected-area-button {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  font-size: 14px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-top: 10px;
-  margin-right: 10px;
-}
-
-.run-selected-area-button:hover {
-  background-color: #45a049;
-}
-</style>
