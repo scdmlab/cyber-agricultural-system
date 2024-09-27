@@ -52,6 +52,11 @@
           <Icon icon="mdi:minus" />
           <span class="tooltip">Zoom Out</span>
         </button>
+        <div class="separator"></div>
+        <button @click="toggleYearSlider" aria-label="Toggle Year Slider">
+          <Icon icon="mdi:calendar-range" />
+          <span class="tooltip">Toggle Year Slider</span>
+        </button>
       </div>
     </div>
 
@@ -100,7 +105,8 @@ export default {
     'reset-view',
     'toggle-sidebar',
     'update-settings',
-    'toggle-legend'
+    'toggle-legend',
+    'toggle-year-slider'
   ],
   setup(props, { emit }) {
     const store = useStore() // Use Vuex store if needed
@@ -148,6 +154,10 @@ export default {
       closeSettings()
     }
 
+    function toggleYearSlider() {
+      store.commit('toggleYearSlider')
+    }
+
     return {
       showSettings,
       minValue,
@@ -164,7 +174,8 @@ export default {
       csvData,
       dataHeaders,
       toggleBasemapPopup,
-      showBasemapPopup
+      showBasemapPopup,
+      toggleYearSlider
     }
   }
 }

@@ -38,6 +38,7 @@ export default createStore({
       countyInfo: {},
       modelQueue: [],
       drawnPolygons: [], // Add this line to store drawn polygons
+      yearSliderVisible: true,
     },
     mutations: {
       setMap(state, data) {
@@ -122,6 +123,12 @@ export default createStore({
         clearDrawnPolygons(state) {
           state.drawnPolygons = []; // Mutation to clear drawn polygons
         },
+        setCurrentYear(state, year) {
+          state.currentYear = year;
+        },
+        toggleYearSlider(state) {
+          state.yearSliderVisible = !state.yearSliderVisible
+        },
     },
     actions: {
         async fetchMapData({ commit, state }) {
@@ -185,7 +192,8 @@ export default createStore({
                   year: parseInt(row.year),
                   pred: parseFloat(row.pred).toFixed(2),
                   yield: parseFloat(row.yield).toFixed(2),
-                  error: (parseFloat(row.pred) - parseFloat(row.yield)).toFixed(2)
+                  error: (parseFloat(row.pred) - parseFloat(row.yield)).toFixed(2),
+                  uncertainty: (parseFloat(row.error)/parseFloat(row.yield)).toFixed(2)
                 }))
                 commit('setAllPredictions', allPredictions)
               },

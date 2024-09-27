@@ -1,0 +1,91 @@
+<template>
+    <div v-if="isVisible" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-white bg-opacity-80 p-2 rounded shadow-md flex flex-col items-center w-3/4 max-w-3xl">
+      <div class="flex items-center w-full mb-2">
+        <button @click="togglePlay" class="mr-2 p-1 bg-blue-500 text-white rounded">
+          {{ isPlaying ? '⏸' : '▶' }}
+        </button>
+        <input
+          type="range"
+          :min="2001"
+          :max="2023"
+          :value="currentYear"
+          @input="updateYear"
+          class="flex-grow appearance-none bg-gray-200 h-1 rounded-full outline-none slider-thumb"
+        />
+      </div>
+      <div class="text-xs font-bold">Year: {{ currentYear }} &nbsp;&nbsp; {{ currentProperty }}</div>
+    </div>
+</template>
+
+<script>
+import { ref, computed, onUnmounted } from 'vue'
+import { useStore } from 'vuex'
+
+export default {
+  name: 'YearSlider',
+  setup() {
+    const store = useStore()
+    const isPlaying = ref(false)
+    let intervalId = null
+
+    const currentYear = computed(() => store.state.currentYear)
+    const propertyMap = {
+        'yield': 'Yield',
+        'pred':'Model Prediction',
+        'error':'Prediction Error',
+        'uncertainty':'Uncertainty'
+    }
+    const currentProperty = computed(() => propertyMap[store.state.currentProperty])
+    const isVisible = computed(() => store.state.yearSliderVisible)
+
+    const updateYear = (event) => {
+      store.commit('setYear', parseInt(event.target.value))
+    }
+
+    const togglePlay = () => {
+      isPlaying.value = !isPlaying.value
+      if (isPlaying.value) {
+        playYears()
+      } else {
+        stopPlaying()
+      }
+    }
+
+    const playYears = () => {
+      intervalId = setInterval(() => {
+        let nextYear = store.state.currentYear + 1
+        if (nextYear > 2023) {
+          nextYear = 2001
+        }
+        store.commit('setYear', nextYear)
+      }, 1000) // Change year every second
+    }
+
+    const stopPlaying = () => {
+      clearInterval(intervalId)
+    }
+
+    onUnmounted(() => {
+      stopPlaying()
+    })
+
+    return {
+      currentYear,
+      currentProperty,
+      updateYear,
+      isVisible,
+      isPlaying,
+      togglePlay
+    }
+  }
+}
+</script>
+
+<style>
+.slider-thumb::-webkit-slider-thumb {
+  @apply appearance-none w-4 h-4 bg-blue-500 rounded-full cursor-pointer;
+}
+.slider-thumb::-moz-range-thumb {
+  @apply w-4 h-4 bg-blue-500 rounded-full cursor-pointer border-none;
+}
+</style>

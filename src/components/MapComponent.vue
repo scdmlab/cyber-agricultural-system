@@ -1,7 +1,7 @@
 <!-- MapComponent.vue -->
 <template>
   <div id="map-container">
-
+    <YearSlider />
     <ToolbarComponent
         @zoom-in="zoomIn"
         @zoom-out="zoomOut"
@@ -53,7 +53,7 @@ import DataAnalysisPanel from "@/components/DataAnalysisPanel.vue";
 import MappingPanel from "@/components/MappingPanel.vue";
 import ModelPanel from "@/components/ModelPanel.vue";
 import LegendComponent from "@/components/LegendComponent.vue";
-
+import YearSlider from "@/components/YearSlider.vue";
 
 export default {
   name: 'MapComponent',
@@ -64,7 +64,8 @@ export default {
     DataAnalysisPanel,
     MappingPanel,
     ModelPanel,
-    LegendComponent
+    LegendComponent,
+    YearSlider
   },
   setup() {
     const store = useStore()
@@ -188,21 +189,21 @@ export default {
       }
 
       const dataById = {}
-      csvData.forEach(row => {
-        if (row[currentProperty] !== null && row[currentProperty] !== undefined) {
-          dataById[row.FIPS] = parseFloat(row[currentProperty])
-        }
-      })
-
-      // const currentYear = parseInt(store.state.currentYear)
-      // allPredictions.value.forEach(row => {
-      //   if (row[currentProperty] !== null &&
-      //    row[currentProperty] !== undefined &&
-      //    row.year === currentYear
-      //   ) {
+      // csvData.forEach(row => {
+      //   if (row[currentProperty] !== null && row[currentProperty] !== undefined) {
       //     dataById[row.FIPS] = parseFloat(row[currentProperty])
       //   }
       // })
+
+      const currentYear = parseInt(store.state.currentYear)
+      allPredictions.value.forEach(row => {
+        if (
+         row.year === currentYear
+        ) {const val = parseFloat(row[currentProperty])
+
+          if (val > 0)dataById[row.FIPS] = parseFloat(row[currentProperty])
+        }
+      })
 
       const updatedFeatures = countiesWithFIPS.value.features.map(feature => ({
         ...feature,
@@ -882,7 +883,7 @@ export default {
   height: 20px;
 }
 
-/* .map-controls button {
+.map-controls button {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -903,7 +904,7 @@ export default {
 
 
 /* Add these styles for the zoom control */
-/* .maplibregl-ctrl-group {
+.maplibregl-ctrl-group {
   border-radius: 4px;
   overflow: hidden;
 } */
@@ -983,5 +984,17 @@ export default {
   pointer-events: auto;
 }
 
+.mapboxgl-ctrl-group button {
+  background-color: var(--color-button-bg);
+}
+
+.mapboxgl-ctrl-group button:hover {
+  background-color: var(--color-button-hover);
+}
+
+/* Style for active draw buttons */
+.mapboxgl-ctrl-group button.active {
+  background-color: var(--color-button-active);
+}
 
 </style>
