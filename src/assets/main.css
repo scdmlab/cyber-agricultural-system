@@ -1,5 +1,7 @@
 @import './base.css';
-
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 #app {
   margin: 0 auto;
   padding: 2rem;

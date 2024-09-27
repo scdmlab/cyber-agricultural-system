@@ -14,6 +14,7 @@ export default createStore({
         mapData: null,
         selectedLocation: null,
         csvData: null,
+        allPredictions: null,
         hoveredCounty: null,
         hoveredCountyId: null,
         historicalData: [],
@@ -62,6 +63,9 @@ export default createStore({
         },
         setCsvData(state, data) {
             state.csvData = data
+          },
+          setAllPredictions(state, data) {
+            state.allPredictions = data
           },
           setHoveredCounty(state, county) {
             state.hoveredCounty = county
@@ -164,6 +168,34 @@ export default createStore({
             } catch (error) {
               console.error('Error loading CSV data:', error)
             }
+        },
+        async fetchAllPredictions({ commit }) {
+          try {
+            const response = await fetch('data/prediction23.csv')
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`)
+            }
+            const csvText = await response.text()
+            Papa.parse(csvText, {
+              header: true,
+              complete: (results) => {
+                const allPredictions = results.data
+                .map(row => ({
+                  FIPS: row.FIPS,
+                  year: parseInt(row.year),
+                  pred: parseFloat(row.pred).toFixed(2),
+                  yield: parseFloat(row.yield).toFixed(2),
+                  error: (parseFloat(row.pred) - parseFloat(row.yield)).toFixed(2)
+                }))
+                commit('setAllPredictions', allPredictions)
+              },
+              error: (error) => {
+                console.error('Error parsing CSV:', error)
+              }
+            })
+          } catch (error) {
+            console.error('Error fetching all predictions:', error)
+          }
         },
         async fetchHistoricalData({ commit }) {
           try {
@@ -286,6 +318,7 @@ export default createStore({
       await dispatch('fetchAveragePred');
       await dispatch('loadCountyData');
       await dispatch('loadCountyInfo');
+      await dispatch('fetchAllPredictions');
     }
     },
     getters: {
@@ -296,6 +329,7 @@ export default createStore({
         hoveredCountyName: state => state.hoveredCounty ? state.hoveredCounty.name : null,
         hoveredCountyValue: state => state.hoveredCounty ? state.hoveredCounty.value : null,
         getHistoryData: state => state.historicalData ,
+        getAllPredictions: state => state.allPredictions,
         getAveragePredData: state => state.averagePredData ,
         currentBasemapUrl: (state) => {
           return getBasemapUrl(state.selectedBasemap)

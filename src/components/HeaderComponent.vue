@@ -1,19 +1,19 @@
 <template>
-  <header>
-    <div class="title-container">
-      <h1>Crop Yield Prediction</h1>
+  <header class="bg-green-600 text-black font-sans flex justify-between items-center w-full h-12 px-0">
+    <div class="bg-gray-700 text-white px-4 py-2 flex items-center">
+      <h1 class="text-2xl font-bold m-0">Crop Yield Prediction</h1>
     </div>
-    <nav>
-      <a href="#" @click.prevent="showReferences">
-        <Icon icon="mdi:file-document" :width="24" :height="24" :inline="true" />
+    <nav class="flex items-center">
+      <a href="#" @click.prevent="showReferences" class="text-black no-underline mx-4 hover:underline hover:text-gray-700 flex items-center">
+        <Icon icon="mdi:file-document" :width="24" :height="24" :inline="true" class="mr-1" />
         References
       </a>
-      <a href="#" @click.prevent="showResearchGroup">
-        <Icon icon="mdi:account-group" :width="24" :height="24" :inline="true" />
+      <a href="#" @click.prevent="showResearchGroup" class="text-black no-underline mx-4 hover:underline hover:text-gray-700 flex items-center">
+        <Icon icon="mdi:account-group" :width="24" :height="24" :inline="true" class="mr-1" />
         Research Group
       </a>
-      <a href="https://github.com/scdmlab/" target="_blank"> 
-        <Icon icon="mdi:github" :width="24" :height="24" :inline="true" />
+      <a href="https://github.com/scdmlab/" target="_blank" class="text-black no-underline mx-4 hover:underline hover:text-gray-700 flex items-center"> 
+        <Icon icon="mdi:github" :width="24" :height="24" :inline="true" class="mr-1" />
         Github
       </a>
     </nav>
@@ -75,44 +75,3 @@ export default {
 }
 </script>
 
-<style scoped>
-header {
-  background-color: #04AA6D; /* Changed to green */
-  color: #000;
-  font-family: 'Arial', sans-serif;
-  padding: var(--space-medium) var(--space-large);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0;
-  height: 50px;
-}
-
-.title-container {
-  background-color: rgb(85, 85, 85); /* Changed to gray */
-  color: white; /* Text color changed to white */
-  padding: var(--space-small) var(--space-medium);
-  display: flex;
-  align-items: center;
-}
-
-h1 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: bold; /* Made the title bolder */
-}
-
-nav a {
-  color: black;
-  text-decoration: none;
-  margin-left: var(--space-large);
-  margin-right: var(--space-medium);
-}
-
-nav a:hover {
-  text-decoration: underline;
-  color: var(--color-text-hover);
-}
-</style>

@@ -72,7 +72,7 @@ export default {
     const map = ref(null)
     const draw = ref(null)
     const drawnPolygons = ref([])
-
+    const allPredictions = computed(() => store.state.allPredictions)
     const activeSidebar = ref(null)
     const scaleControl = ref(null)
     const currentUnit = ref('metric')
@@ -193,6 +193,16 @@ export default {
           dataById[row.FIPS] = parseFloat(row[currentProperty])
         }
       })
+
+      // const currentYear = parseInt(store.state.currentYear)
+      // allPredictions.value.forEach(row => {
+      //   if (row[currentProperty] !== null &&
+      //    row[currentProperty] !== undefined &&
+      //    row.year === currentYear
+      //   ) {
+      //     dataById[row.FIPS] = parseFloat(row[currentProperty])
+      //   }
+      // })
 
       const updatedFeatures = countiesWithFIPS.value.features.map(feature => ({
         ...feature,

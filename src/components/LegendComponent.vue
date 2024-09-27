@@ -1,7 +1,7 @@
 <template>
     <div ref="legendContainer" class="legend-container" :style="{ left: position.x + 'px', top: position.y + 'px' }">
       <div class="legend-header" @mousedown="startDrag">
-        <span>Legend</span>
+        <span>{{ mappedPropertyTitle }}</span>
         <button @click="$emit('close')" class="close-button">&times;</button>
       </div>
       <div class="legend-content">
@@ -18,9 +18,16 @@
   
   <script>
   import { ref, computed } from 'vue';
+  import { useStore } from 'vuex'; // Add this import
   import { scaleLinear } from 'd3-scale';
   import { interpolateRgb } from 'd3-interpolate';
   
+  const propertyTitleMap = {
+    pred: 'Prediction',
+    yield: 'Crop Yield',
+    error: 'Error',
+  };
+
   export default {
     name: 'LegendComponent',
     props: {
@@ -30,6 +37,14 @@
     },
     emits: ['close'],
     setup(props) {
+      const store = useStore(); // Add this line
+      const currentProperty = computed(() => store.state.currentProperty); // Add this line
+      
+      // Add this computed property
+      const mappedPropertyTitle = computed(() => {
+        return propertyTitleMap[currentProperty.value] || currentProperty.value;
+      });
+
       const position = ref({ x: window.innerWidth - 250, y: window.innerHeight - 200 });
       const isDragging = ref(false);
       const dragOffset = ref({ x: 0, y: 0 });
@@ -78,6 +93,7 @@
         legendContainer,
         startDrag,
         interpolatedColorScale,
+        mappedPropertyTitle, // Return this instead of currentProperty
       };
     },
   };
