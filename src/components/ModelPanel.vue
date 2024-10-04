@@ -403,7 +403,7 @@ export default {
       
       try {
         const response = await axios.post(
-          'https://3a6b477c-5f32-40dd-b06d-69be04ada480-00-3boaaj7j16t6o.riker.replit.dev/api/predict', 
+          'https://crop-prediction-endpoint.replit.app/api/predict',
           JSON.stringify(featureCollection),
           {
             headers: {
