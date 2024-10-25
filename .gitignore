@@ -29,4 +29,6 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+.cursorrules
+.cursorignore
 

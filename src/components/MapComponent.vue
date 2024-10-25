@@ -201,7 +201,7 @@ export default {
          row.year === currentYear
         ) {const val = parseFloat(row[currentProperty])
 
-          if (val > 0)dataById[row.FIPS] = parseFloat(row[currentProperty])
+          if (val > 0 )dataById[row.FIPS] = parseFloat(row[currentProperty])
         }
       })
 
@@ -341,13 +341,12 @@ export default {
 
       map.value.on('load', () => {
         addCustomScaleControl()
-        // addDraggableControl(maplibregl.NavigationControl, {showCompass:false}, 'top-right')
         
         // Load county boundaries
         map.value.addSource('counties', {
           type: 'geojson',
           data: countiesWithFIPS.value,
-          generateId: true // This generates a unique id for each feature
+          generateId: true
         })
 
         map.value.addLayer({
@@ -355,23 +354,10 @@ export default {
           type: 'fill',
           source: 'counties',
           paint: {
-            'fill-color': [
-              'case',
-              ['!=', ['get', 'value'], null],
-              [
-                'interpolate',
-                ['linear'],
-                ['get', 'value'],
-                0, '#FFEDA0',
-                100, '#FEB24C',
-                200, '#F03B20'
-              ],
-              'rgba(0, 0, 0, 0)' // Transparent for counties with no data
-            ],
+            'fill-color': 'rgba(0, 0, 0, 0)', // Start with transparent fill
             'fill-opacity': 0.7,
             'fill-outline-color': '#000000'
           }
-
         })
 
         // Add state boundaries
@@ -459,8 +445,10 @@ export default {
         })
 
         store.commit('setMap', map.value)
-
-        updateChoropleth()
+        
+        // Remove this line as we don't want default choropleth
+        // updateChoropleth()
+        
         initializeDrawControl()
       })
 

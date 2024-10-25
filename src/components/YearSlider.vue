@@ -4,6 +4,17 @@
       <button @click="togglePlay" class="mr-2 p-1 bg-blue-500 text-white rounded">
         {{ isPlaying ? '⏸' : '▶' }}
       </button>
+      <!-- Year dropdown -->
+      <select 
+        :value="currentYear" 
+        @change="updateYear($event)"
+        class="mr-2 p-1 bg-white border border-gray-300 rounded"
+      >
+        <option v-for="year in yearRange" :key="year" :value="year">
+          {{ year }}
+        </option>
+      </select>
+      <!-- Existing property dropdown -->
       <select v-model="selectedProperty" class="mr-2 p-1 bg-white border border-gray-300 rounded">
         <option value="yield">Yield</option>
         <option value="pred">Prediction</option>
@@ -23,7 +34,7 @@
 </template>
 
 <script>
-import { ref, computed, onUnmounted, watch } from 'vue'
+import { ref, computed, onUnmounted, watch, onMounted } from 'vue'
 import { useStore } from 'vuex'
 
 export default {
@@ -34,7 +45,7 @@ export default {
     let intervalId = null
 
     const currentYear = computed(() => store.state.currentYear)
-    const selectedProperty = ref(store.state.currentProperty)
+    const selectedProperty = ref('yield') // Set default value
     const propertyMap = {
       'yield': 'Yield',
       'pred': 'Model Prediction',
@@ -43,8 +54,33 @@ export default {
     const currentProperty = computed(() => propertyMap[selectedProperty.value])
     const isVisible = computed(() => store.state.yearSliderVisible)
 
+    // Add onMounted to initialize default values
+    onMounted(() => {
+      // Set initial year if not already set
+      if (!store.state.currentYear) {
+        store.commit('setYear', 2001)
+      }
+      // Set initial property if not already set
+      if (!store.state.currentProperty) {
+        store.commit('setProperty', 'yield')
+      }
+    })
+
+    // Add computed property for year range
+    const yearRange = computed(() => {
+      const years = []
+      for (let year = 2001; year <= 2023; year++) {
+        years.push(year)
+      }
+      return years
+    })
+
+    // Modify updateYear to handle both slider and dropdown
     const updateYear = (event) => {
-      store.commit('setYear', parseInt(event.target.value))
+      const newYear = typeof event === 'object' 
+        ? parseInt(event.target.value) 
+        : parseInt(event)
+      store.commit('setYear', newYear)
     }
 
     const togglePlay = () => {
@@ -85,7 +121,8 @@ export default {
       isVisible,
       isPlaying,
       togglePlay,
-      selectedProperty
+      selectedProperty,
+      yearRange
     }
   }
 }
