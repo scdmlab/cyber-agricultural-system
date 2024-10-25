@@ -24,7 +24,7 @@
       <input
         type="range"
         :min="2001"
-        :max="2023"
+        :max="2024"
         :value="currentYear"
         @input="updateYear"
         class="flex-grow appearance-none bg-gray-200 h-1 rounded-full outline-none slider-thumb"
@@ -60,7 +60,7 @@ export default {
     onMounted(() => {
       // Set initial year if not already set
       if (!store.state.currentYear) {
-        store.commit('setYear', 2001)
+        store.commit('setYear', 2024)
       }
       // Set initial property if not already set
       if (!store.state.currentProperty) {
@@ -71,7 +71,7 @@ export default {
     // Add computed property for year range
     const yearRange = computed(() => {
       const years = []
-      for (let year = 2001; year <= 2023; year++) {
+      for (let year = 2001; year <= 2024; year++) {
         years.push(year)
       }
       return years
@@ -97,7 +97,7 @@ export default {
     const playYears = () => {
       intervalId = setInterval(() => {
         let nextYear = store.state.currentYear + 1
-        if (nextYear > 2023) {
+        if (nextYear > 2024) {
           nextYear = 2001
         }
         store.commit('setYear', nextYear)
