@@ -202,7 +202,15 @@ export default {
       // Collect data for the current year
       allPredictions.value.forEach(row => {
         if (row.year === currentYear) {
-          const val = parseFloat(row[currentProperty])
+          let val;
+          if (currentProperty === 'uncertainty') {
+            // Calculate uncertainty directly if needed
+            const pred = parseFloat(row.pred)
+            const yield_val = parseFloat(row.yield)
+            val = yield_val !== 0 ? (pred - yield_val) / yield_val : null
+          } else {
+            val = parseFloat(row[currentProperty])
+          }
           if (!isNaN(val)) dataById[row.FIPS] = val
         }
       })
@@ -211,6 +219,13 @@ export default {
       const values = Object.values(dataById).filter(v => !isNaN(v))
       let minValue = Math.min(...values)
       let maxValue = Math.max(...values)
+
+      // For uncertainty, we might want to set symmetric bounds around 0
+      if (currentProperty === 'uncertainty') {
+        const absMax = Math.max(Math.abs(minValue), Math.abs(maxValue))
+        minValue = -absMax
+        maxValue = absMax
+      }
 
       // Update colorScale with new domain
       colorScale.value = scaleLinear()
@@ -979,6 +994,8 @@ export default {
 }
 
 </style>
+
+
 
 
 

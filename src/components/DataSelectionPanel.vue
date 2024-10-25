@@ -31,6 +31,7 @@
           <option value="pred">Prediction</option>
           <option value="yield">Yield</option>
           <option value="error">Error</option>
+          <option value="uncertainty">Uncertainty</option>
         </select>
       </div>
     </div>

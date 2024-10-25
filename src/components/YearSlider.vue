@@ -19,6 +19,7 @@
         <option value="yield">Yield</option>
         <option value="pred">Prediction</option>
         <option value="error">Error</option>
+        <option value="uncertainty">Uncertainty</option>
       </select>
       <input
         type="range"
@@ -49,7 +50,8 @@ export default {
     const propertyMap = {
       'yield': 'Yield',
       'pred': 'Model Prediction',
-      'error': 'Prediction Error'
+      'error': 'Prediction Error',
+      'uncertainty': 'Prediction Uncertainty'
     }
     const currentProperty = computed(() => propertyMap[selectedProperty.value])
     const isVisible = computed(() => store.state.yearSliderVisible)
