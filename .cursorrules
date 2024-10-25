@@ -1,1 +1,3 @@
 I'm using Vue 3 with Vite. Use tailwind for styling whenever possible. 
+After giving your code, reflect on it and see if there is discrepancy between the code and the instruction, and if
+it over complicate things. Our goal is to make minimalistic and clean code, while keeping a modern, appealing UI/UX.

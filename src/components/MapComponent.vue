@@ -189,74 +189,59 @@ export default {
       }
 
       const dataById = {}
-      // csvData.forEach(row => {
-      //   if (row[currentProperty] !== null && row[currentProperty] !== undefined) {
-      //     dataById[row.FIPS] = parseFloat(row[currentProperty])
-      //   }
-      // })
-
       const currentYear = parseInt(store.state.currentYear)
-      allPredictions.value.forEach(row => {
-        if (
-         row.year === currentYear
-        ) {const val = parseFloat(row[currentProperty])
+      
+      // Initialize colorScale if not already set
+      if (!colorScale.value) {
+        colorScale.value = scaleLinear()
+          .domain([0, 1])
+          .range(choroplethSettings.value.colorScheme || ['#FFEDA0', '#04AA6D'])
+          .interpolate(interpolateRgb)
+      }
 
-          if (val > 0 )dataById[row.FIPS] = parseFloat(row[currentProperty])
+      // Collect data for the current year
+      allPredictions.value.forEach(row => {
+        if (row.year === currentYear) {
+          const val = parseFloat(row[currentProperty])
+          if (!isNaN(val)) dataById[row.FIPS] = val
         }
       })
-
-      const updatedFeatures = countiesWithFIPS.value.features.map(feature => ({
-        ...feature,
-        properties: {
-          ...feature.properties,
-          value: dataById[feature.properties.FIPS] !== undefined ? dataById[feature.properties.FIPS] : null
-        }
-      }))
 
       // Get min and max values for color scaling
       const values = Object.values(dataById).filter(v => !isNaN(v))
       let minValue = Math.min(...values)
       let maxValue = Math.max(...values)
 
-      // Use new settings if provided
-      if (newSettings) {
-        minValue = newSettings.minValue !== undefined ? newSettings.minValue : minValue
-        maxValue = newSettings.maxValue !== undefined ? newSettings.maxValue : maxValue
-        
-        if (newSettings.colorScheme) {
-          colorScale.value = scaleLinear()
-            .domain([minValue, (minValue + maxValue) / 2, maxValue])
-            .range(newSettings.colorScheme)
-            .interpolate(interpolateRgb)
-        }
-        
-        if (newSettings.choroplethOpacity !== undefined) {
-          map.value.setPaintProperty('counties-layer', 'fill-opacity', [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            0.8,
-            newSettings.choroplethOpacity
-          ])
-        }
-      } else {
-        // Use existing color scale if no new settings
-        colorScale.value = scaleLinear()
-          .domain([minValue, maxValue])
-          .range(store.state.choroplethSettings.colorScheme)
-          .interpolate(interpolateRgb)
-      }
+      // Update colorScale with new domain
+      colorScale.value = scaleLinear()
+        .domain([minValue, maxValue])
+        .range(choroplethSettings.value.colorScheme || ['#FFEDA0', '#04AA6D'])
+        .interpolate(interpolateRgb)
 
-      // Update colors for all features
-      updatedFeatures.forEach(feature => {
-        feature.properties.color = getColor(feature.properties.value)
+      // Update store with new min/max values
+      store.commit('setChoroplethSettings', {
+        ...choroplethSettings.value,
+        minValue,
+        maxValue
       })
 
+      // Update features with colors
+      const updatedFeatures = countiesWithFIPS.value.features.map(feature => ({
+        ...feature,
+        properties: {
+          ...feature.properties,
+          value: dataById[feature.properties.FIPS],
+          color: getColor(dataById[feature.properties.FIPS])
+        }
+      }))
+
+      // Update the source data
       map.value.getSource('counties').setData({
         type: 'FeatureCollection',
         features: updatedFeatures
       })
 
-      // Update the fill color based on the new values
+      // Update the layer paint properties
       map.value.setPaintProperty('counties-layer', 'fill-color', [
         'case',
         ['boolean', ['feature-state', 'hover'], false],
@@ -307,6 +292,14 @@ export default {
 
       window.addEventListener('mousemove', resizeSidebar)
       window.addEventListener('mouseup', stopResizeSidebar)
+
+      // Initial choropleth update after map loads
+      map.value.on('load', () => {
+        // ... existing load event code ...
+        
+        // Trigger initial choropleth update
+        updateChoropleth()
+      })
     })
 
 
@@ -986,3 +979,6 @@ export default {
 }
 
 </style>
+
+
+
