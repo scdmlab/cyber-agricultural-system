@@ -191,23 +191,12 @@ export default {
       const dataById = {}
       const currentYear = parseInt(store.state.currentYear)
       
-      // Initialize colorScale if not already set
-      if (!colorScale.value) {
-        colorScale.value = scaleLinear()
-          .domain([0, 1])
-          .range(choroplethSettings.value.colorScheme || ['#FFEDA0', '#04AA6D'])
-          .interpolate(interpolateRgb)
-      }
-
       // Collect data for the current year
       allPredictions.value.forEach(row => {
         if (row.year === currentYear) {
           let val;
           if (currentProperty === 'uncertainty') {
-            // Calculate uncertainty directly if needed
-            const pred = parseFloat(row.pred)
-            const yield_val = parseFloat(row.yield)
-            val = yield_val !== 0 ? (pred - yield_val) / yield_val : null
+            val = parseFloat(row.uncertainty)
           } else {
             val = parseFloat(row[currentProperty])
           }
@@ -220,18 +209,45 @@ export default {
       let minValue = Math.min(...values)
       let maxValue = Math.max(...values)
 
-      // For uncertainty, we might want to set symmetric bounds around 0
-      if (currentProperty === 'uncertainty') {
+      // Update how we handle different properties
+      if (currentProperty === 'error') {
         const absMax = Math.max(Math.abs(minValue), Math.abs(maxValue))
         minValue = -absMax
         maxValue = absMax
+      } else if (currentProperty === 'uncertainty') {
+        minValue = 0  // Uncertainty should start at 0
+        maxValue = Math.max(...values)
       }
 
-      // Update colorScale with new domain
-      colorScale.value = scaleLinear()
-        .domain([minValue, maxValue])
-        .range(choroplethSettings.value.colorScheme || ['#FFEDA0', '#04AA6D'])
-        .interpolate(interpolateRgb)
+      // Get the appropriate color scheme
+      const colors = choroplethSettings.value.colorSchemes[currentProperty] || choroplethSettings.value.colorSchemes.pred
+
+      // Create color scale based on property type
+      if (currentProperty === 'error') {
+        const midpoint = 0
+        colorScale.value = (value) => {
+          if (value === null || value === undefined || isNaN(value)) {
+            return 'rgba(0, 0, 0, 0)'
+          }
+          if (value <= midpoint) {
+            return scaleLinear()
+              .domain([minValue, midpoint])
+              .range([colors[0], colors[1]])
+              .interpolate(interpolateRgb)(value)
+          } else {
+            return scaleLinear()
+              .domain([midpoint, maxValue])
+              .range([colors[1], colors[2]])
+              .interpolate(interpolateRgb)(value)
+          }
+        }
+      } else {
+        // Use this scale for both 'pred', 'yield', and 'uncertainty'
+        colorScale.value = scaleLinear()
+          .domain([minValue, maxValue])
+          .range(colors)
+          .interpolate(interpolateRgb)
+      }
 
       // Update store with new min/max values
       store.commit('setChoroplethSettings', {
@@ -260,11 +276,9 @@ export default {
       map.value.setPaintProperty('counties-layer', 'fill-color', [
         'case',
         ['boolean', ['feature-state', 'hover'], false],
-        '#666666', // Hover color
-        ['get', 'color'] // Use the pre-calculated color
+        '#666666',
+        ['get', 'color']
       ])
-
-      console.log("Updated choropleth with data range:", minValue, "-", maxValue);
     }
 
     const getColor = (value) => {

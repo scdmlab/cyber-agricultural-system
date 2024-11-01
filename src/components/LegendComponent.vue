@@ -63,16 +63,38 @@ export default {
 
     // Update interpolatedColorScale to use choroplethSettings
     const interpolatedColorScale = computed(() => {
-      const scale = scaleLinear()
-        .domain([0, choroplethSettings.value.colorScheme.length - 1])
-        .range([choroplethSettings.value.minValue, choroplethSettings.value.maxValue]);
-
-      const colorInterpolator = scaleLinear()
-        .domain(choroplethSettings.value.colorScheme.map((_, i) => scale(i)))
-        .range(choroplethSettings.value.colorScheme)
-        .interpolate(interpolateRgb);
-
-      return Array.from({ length: 100 }, (_, i) => colorInterpolator(scale(i / 99)));
+      const property = currentProperty.value;
+      const schemes = choroplethSettings.value.colorSchemes;
+      const colors = schemes[property] || schemes.pred;
+      
+      // Only use divergent scale for error
+      if (property === 'error') {
+        const midpoint = (currentMaxValue.value + currentMinValue.value) / 2;
+        
+        const negativeScale = scaleLinear()
+          .domain([currentMinValue.value, midpoint])
+          .range([colors[0], colors[1]])
+          .interpolate(interpolateRgb);
+          
+        const positiveScale = scaleLinear()
+          .domain([midpoint, currentMaxValue.value])
+          .range([colors[1], colors[2]])
+          .interpolate(interpolateRgb);
+          
+        return Array.from({ length: 100 }, (_, i) => {
+          const value = currentMinValue.value + (i / 99) * (currentMaxValue.value - currentMinValue.value);
+          return value <= midpoint ? negativeScale(value) : positiveScale(value);
+        });
+      }
+      
+      // For all other properties (including uncertainty), use sequential scale
+      return Array.from({ length: 100 }, (_, i) => {
+        const value = currentMinValue.value + (i / 99) * (currentMaxValue.value - currentMinValue.value);
+        return scaleLinear()
+          .domain([currentMinValue.value, currentMaxValue.value])
+          .range(colors)
+          .interpolate(interpolateRgb)(value);
+      });
     });
 
     const startDrag = (event) => {

@@ -28,7 +28,13 @@ export default createStore({
         choroplethSettings: {
           minValue: 55,
           maxValue: 215,
-          colorScheme: ['#ebf8b3', '#074359'],
+          colorSchemes: {
+            pred: ['#ebf8b3', '#074359'],     // Sequential blue-green
+            yield: ['#ebf8b3', '#074359'],    // Sequential blue-green
+            error: ['#3B4992', '#FFFFFF', '#EE7733'],      // Divergent blue-orange
+            uncertainty: ['#ffffff', '#916C07']  // Sequential brown
+          },
+          colorScheme: ['#ebf8b3', '#074359'], // Default scheme
           choroplethOpacity: 0.7,
           basemapOpacity: 1.0,
           selectedBasemap: 'osm',
@@ -193,7 +199,7 @@ export default createStore({
                   pred: parseFloat(row.pred).toFixed(2),
                   yield: parseFloat(row.yield).toFixed(2),
                   error: (parseFloat(row.pred) - parseFloat(row.yield)).toFixed(2),
-                  uncertainty: (parseFloat(row.error)/parseFloat(row.yield)).toFixed(2)
+                  uncertainty: Math.abs((parseFloat(row.pred) - parseFloat(row.yield))/parseFloat(row.yield) * 100).toFixed(2)
                 }))
                 commit('setAllPredictions', allPredictions)
               },
