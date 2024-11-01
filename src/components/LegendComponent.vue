@@ -26,6 +26,7 @@ const propertyTitleMap = {
   pred: 'Prediction',
   yield: 'Crop Yield',
   error: 'Error',
+  uncertainty: 'Uncertainty'
 };
 
 export default {
@@ -64,11 +65,18 @@ export default {
     // Update interpolatedColorScale to use choroplethSettings
     const interpolatedColorScale = computed(() => {
       const property = currentProperty.value;
-      const schemes = choroplethSettings.value.colorSchemes;
-      const colors = schemes[property] || schemes.pred;
+      const colorSchemes = choroplethSettings.value.colorSchemes;
       
-      // Only use divergent scale for error
-      if (property === 'error') {
+      // Ensure we have a valid color scheme
+      if (!colorSchemes || !colorSchemes[property]) {
+        console.warn(`No color scheme found for property: ${property}`);
+        return Array.from({ length: 100 }, () => '#CCCCCC'); // Fallback color
+      }
+
+      const colors = colorSchemes[property];
+      
+      // Handle error property with divergent scale
+      if (property === 'error' && colors.length === 3) {
         const midpoint = (currentMaxValue.value + currentMinValue.value) / 2;
         
         const negativeScale = scaleLinear()
@@ -89,11 +97,8 @@ export default {
       
       // For all other properties (including uncertainty), use sequential scale
       return Array.from({ length: 100 }, (_, i) => {
-        const value = currentMinValue.value + (i / 99) * (currentMaxValue.value - currentMinValue.value);
-        return scaleLinear()
-          .domain([currentMinValue.value, currentMaxValue.value])
-          .range(colors)
-          .interpolate(interpolateRgb)(value);
+        const t = i / 99;
+        return interpolateRgb(colors[0], colors[1])(t);
       });
     });
 
