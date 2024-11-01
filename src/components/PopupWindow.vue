@@ -79,22 +79,29 @@ export default {
       this.startY = event.clientY;
       this.startWidth = this.popupWidth;
       this.startHeight = this.popupHeight;
-      document.addEventListener('mousemove', this.resize);
-      document.addEventListener('mouseup', this.stopResize);
+      document.addEventListener('mousemove', this.resize, { passive: true });
+      document.addEventListener('mouseup', this.stopResize, { passive: true });
+      event.preventDefault();
     },
     resize(event) {
-      if (this.isResizing) {
-        const newWidth = this.startWidth + (event.clientX - this.startX);
-        const newHeight = this.startHeight + (event.clientY - this.startY);
-        this.popupWidth = Math.max(200, newWidth); // Minimum width of 200px
-        this.popupHeight = Math.max(150, newHeight); // Minimum height of 150px
-      }
+      if (!this.isResizing) return;
+      
+      const deltaX = event.clientX - this.startX;
+      const deltaY = event.clientY - this.startY;
+      
+      this.popupWidth = Math.max(200, this.startWidth + deltaX);
+      this.popupHeight = Math.max(150, this.startHeight + deltaY);
     },
     stopResize() {
+      if (!this.isResizing) return;
       this.isResizing = false;
       document.removeEventListener('mousemove', this.resize);
       document.removeEventListener('mouseup', this.stopResize);
     },
+    beforeUnmount() {
+      this.stopDrag();
+      this.stopResize();
+    }
   }
 }
 </script>
