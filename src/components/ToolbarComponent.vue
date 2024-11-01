@@ -1,60 +1,60 @@
 <!-- ToolbarComponent.vue -->
 <template>
-  <nav class="toolbar" aria-label="Map controls">
-    <div class="toolbar-content">
-      <div class="left-buttons">
-        <button @click="toggleSidebar('run')" aria-label="Run Model">
-          <Icon icon="mdi:play" />
-          <span class="tooltip">Models</span>
+  <nav class="bg-gray-100 border-b border-gray-200 shadow-md py-1 px-4" aria-label="Map controls">
+    <div class="flex justify-between items-center max-w-7xl mx-auto">
+      <div class="flex space-x-2 ">
+        <button @click="toggleSidebar('run')" aria-label="Run Model" class="toolbar-button">
+          <Icon icon="mdi:play" class="text-gray-600" />
+          <span class="tooltip">Models</span> 
         </button>
-        <button @click="toggleSidebar('data')" aria-label="Data">
-          <Icon icon="mdi:database" />
+        <button @click="toggleSidebar('data')" aria-label="Data" class="toolbar-button">
+          <Icon icon="mdi:database" class="text-gray-600" />
           <span class="tooltip">Data Selection</span>
         </button>
-        <button @click="toggleSidebar('analysis')" aria-label="Analysis">
-          <Icon icon="mdi:chart-bar" />
+        <button @click="toggleSidebar('analysis')" aria-label="Analysis" class="toolbar-button">
+          <Icon icon="mdi:chart-bar" class="text-gray-600" />
           <span class="tooltip">Analysis</span>
         </button>
-        <button @click="toggleSidebar('mapping')" aria-label="Mapping">
-          <Icon icon="mdi:map" />
+        <button @click="toggleSidebar('mapping')" aria-label="Mapping" class="toolbar-button">
+          <Icon icon="mdi:map" class="text-gray-600" />
           <span class="tooltip">Mapping</span>
         </button>
       </div>
-      <div class="right-buttons">
-        <button @click="toggleDataPopup">
-          <Icon icon="mdi:table-filter" />
+      <div class="flex space-x-2">
+        <button @click="toggleDataPopup" class="toolbar-button">
+          <Icon icon="mdi:table-filter" class="text-gray-600" />
           <span class="tooltip">Data Table</span>
         </button>
-        <div class="separator"></div>
-        <button @click="toggleBasemapPopup" aria-label="Change Basemap">
-          <Icon icon="tdesign:map-double"/>
+        <div class="h-6 w-px bg-gray-600 mx-2"></div>
+        <button @click="toggleBasemapPopup" aria-label="Change Basemap" class="toolbar-button">
+          <Icon icon="tdesign:map-double" class="text-gray-600" />
           <span class="tooltip">Change Basemap</span>
         </button>
-        <button @click="toggleSettings" aria-label="Map Settings">
-          <Icon icon="mdi:cog" />
+        <button @click="toggleSettings" aria-label="Map Settings" class="toolbar-button">
+          <Icon icon="mdi:cog" class="text-gray-600" />
           <span class="tooltip">Map Settings</span>
         </button>
-        <div class="separator"></div>
-        <button @click="$emit('toggle-legend')" aria-label="Toggle Legend">
-          <Icon icon="material-symbols:legend-toggle-rounded"/>
+        <div class="h-6 w-px bg-gray-600 mx-2"></div>
+        <button @click="$emit('toggle-legend')" aria-label="Toggle Legend" class="toolbar-button">
+          <Icon icon="material-symbols:legend-toggle-rounded" class="text-gray-600" />
           <span class="tooltip">Toggle Legend</span>
         </button>
-        <div class="separator"></div>
-        <button @click="$emit('zoom-in')" aria-label="Zoom In">
-          <Icon icon="mdi:plus" />
+        <div class="h-6 w-px bg-gray-600 mx-2"></div>
+        <button @click="$emit('zoom-in')" aria-label="Zoom In" class="toolbar-button">
+          <Icon icon="mdi:plus" class="text-gray-600" />
           <span class="tooltip">Zoom In</span>
         </button>
-        <button @click="$emit('reset-view')" aria-label="Reset View">
-          <Icon icon="mdi:home" />
+        <button @click="$emit('reset-view')" aria-label="Reset View" class="toolbar-button">
+          <Icon icon="mdi:home" class="text-gray-600" />
           <span class="tooltip">Reset View</span>
         </button>
-        <button @click="$emit('zoom-out')" aria-label="Zoom Out">
-          <Icon icon="mdi:minus" />
+        <button @click="$emit('zoom-out')" aria-label="Zoom Out" class="toolbar-button">
+          <Icon icon="mdi:minus" class="text-gray-600" />
           <span class="tooltip">Zoom Out</span>
         </button>
-        <div class="separator"></div>
-        <button @click="toggleYearSlider" aria-label="Toggle Year Slider">
-          <Icon icon="mdi:calendar-range" />
+        <div class="h-6 w-px bg-gray-600 mx-2"></div>
+        <button @click="toggleYearSlider" aria-label="Toggle Year Slider" class="toolbar-button">
+          <Icon icon="mdi:calendar-range" class="text-gray-600" />
           <span class="tooltip">Toggle Year Slider</span>
         </button>
       </div>
@@ -182,94 +182,15 @@ export default {
 </script>
 
 <style scoped>
-.toolbar {
-  background-color: var(--color-background-mute);
-  border-bottom: 1px solid var(--color-border);
-  border-top: 1px solid var(--color-border);
-  padding: 6px 2px;
-  width: 100%;
-  box-sizing: border-box;
-  position: relative;
-  height: 40px;
-}
-
-.toolbar-content {
-  display: flex;
-  justify-content: space-between;
-  /* max-width: var(--max-width); */
-  margin-top: 2px;
-  margin: 0 auto;
-  padding: 0 var(--space-medium);
-}
-
-.left-buttons, .right-buttons {
-  display: flex;
-}
-
-.separator {
-  width: 2px;
-  height: 24px;
-  background-color: var(--color-border);
-  margin: 0 0;
-}
-
-button {
-  margin-left: var(--space-small);
-  margin-right: var(--space-small);
-  padding: var(--space-xsmall) var(--space-xsmall);
-  background-color: transparent;
-  color: var(--color-primary);
-  border: none;
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-button:hover {
-  background-color: transparent;
-  color: var(--color-primary-dark);
-}
-
-button:hover .tooltip {
-  visibility: visible;
-  opacity: 1;
+.toolbar-button {
+  @apply p-1.5 rounded-full transition-colors duration-200 ease-in-out text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white relative;
 }
 
 .tooltip {
-  visibility: hidden;
-  width: 100px;
-  background-color: var(--color-tooltip-bg);
-  color: var(--color-tooltip-text);
-  text-align: center;
-  border-radius: var(--border-radius);
-  padding: var(--space-small) 0;
-  position: absolute;
-  z-index: var(--z-index-tooltip);
-  bottom: 125%;
-  left: 50%;
-  margin-left: -50px;
-  opacity: 0;
-  transition: opacity 0.3s;
+  @apply absolute bottom-full left-1/2 transform -translate-x-1/2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded-md opacity-0 transition-opacity duration-300 pointer-events-none mb-2;
 }
 
-.tooltip::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-left: -5px;
-  border-width: 5px;
-  border-style: solid;
-  border-color: var(--color-tooltip-bg) transparent transparent transparent;
-}
-
-button svg {
-  /* width: var(--icon-size);
-  height: var(--icon-size); */
-  width: 26px;
-  height: 26px;
+.toolbar-button:hover .tooltip {
+  @apply opacity-100;
 }
 </style>

@@ -327,6 +327,14 @@ export default createStore({
       await dispatch('loadCountyData');
       await dispatch('loadCountyInfo');
       await dispatch('fetchAllPredictions');
+    },
+    async initializeMapState({ dispatch, commit }) {
+      // First load all necessary data
+      await dispatch('initializeData')
+      
+      // Then set the property and year
+      commit('setProperty', 'pred')
+      commit('setYear', 2024)
     }
     },
     getters: {

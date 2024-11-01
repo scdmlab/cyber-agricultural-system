@@ -57,15 +57,8 @@ export default {
     const isVisible = computed(() => store.state.yearSliderVisible)
 
     // Add onMounted to initialize default values
-    onMounted(() => {
-      // Set initial year if not already set
-      if (!store.state.currentYear) {
-        store.commit('setYear', 2024)
-      }
-      // Set initial property if not already set
-      if (!store.state.currentProperty) {
-        store.commit('setProperty', 'yield')
-      }
+    onMounted(async () => {
+      await store.dispatch('initializeMapState')
     })
 
     // Add computed property for year range

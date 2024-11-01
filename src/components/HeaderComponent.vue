@@ -1,29 +1,31 @@
 <template>
-  <header class="bg-green-600 text-black font-sans flex justify-between items-center w-full h-12 px-0">
-    <div class="bg-gray-700 text-white px-4 py-2 flex items-center">
-      <h1 class="text-2xl font-bold m-0">Crop Yield Prediction</h1>
+  <header class="bg-gradient-to-r from-green-600 to-green-800 text-white font-sans">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+      <div class="flex items-center">
+        <h1 class="text-2xl font-bold">Crop Yield Prediction</h1>
+      </div>
+      <nav class="flex items-center space-x-6">
+        <a href="#" @click.prevent="showReferences" class="header-link">
+          <Icon icon="mdi:file-document" :width="24" :height="24" :inline="true" class="mr-2" />
+          References
+        </a>
+        <a href="#" @click.prevent="showResearchGroup" class="header-link">
+          <Icon icon="mdi:account-group" :width="24" :height="24" :inline="true" class="mr-2" />
+          Research Group
+        </a>
+        <a href="https://github.com/scdmlab/" target="_blank" class="header-link">
+          <Icon icon="mdi:github" :width="24" :height="24" :inline="true" class="mr-2" />
+          Github
+        </a>
+      </nav>
     </div>
-    <nav class="flex items-center">
-      <a href="#" @click.prevent="showReferences" class="text-black no-underline mx-4 hover:underline hover:text-gray-700 flex items-center">
-        <Icon icon="mdi:file-document" :width="24" :height="24" :inline="true" class="mr-1" />
-        References
-      </a>
-      <a href="#" @click.prevent="showResearchGroup" class="text-black no-underline mx-4 hover:underline hover:text-gray-700 flex items-center">
-        <Icon icon="mdi:account-group" :width="24" :height="24" :inline="true" class="mr-1" />
-        Research Group
-      </a>
-      <a href="https://github.com/scdmlab/" target="_blank" class="text-black no-underline mx-4 hover:underline hover:text-gray-700 flex items-center"> 
-        <Icon icon="mdi:github" :width="24" :height="24" :inline="true" class="mr-1" />
-        Github
-      </a>
-    </nav>
 
-    <PopupWindow v-if="showReferencesPopup" @close="showReferencesPopup = false" title="References" width="600px" height="400px">
-      <div v-html="referencesContent"></div>
+    <PopupWindow v-if="showReferencesPopup" @close="showReferencesPopup = false" title="References" width="600" height="400">
+      <div class="prose prose-sm max-w-none" v-html="referencesContent"></div>
     </PopupWindow>
 
-    <PopupWindow v-if="showResearchGroupPopup" @close="showResearchGroupPopup = false" title="Research Group" width="500px" height="400px">
-      <div v-html="researchGroupContent"></div>
+    <PopupWindow v-if="showResearchGroupPopup" @close="showResearchGroupPopup = false" title="Research Group" width="500" height="400">
+      <div class="prose prose-sm max-w-none" v-html="researchGroupContent"></div>
     </PopupWindow>
   </header>
 </template>
@@ -75,3 +77,8 @@ export default {
 }
 </script>
 
+<style scoped>
+.header-link {
+  @apply flex items-center text-white hover:text-green-100 transition-colors duration-200 ease-in-out;
+}
+</style>
