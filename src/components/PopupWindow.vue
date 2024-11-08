@@ -1,20 +1,25 @@
 <template>
-  <div class="fixed inset-0 bg-black/50 flex justify-center items-center z-[999]" @click.self="close">
-    <div class="bg-[var(--color-background)] rounded-lg shadow-xl flex flex-col pointer-events-auto overflow-auto relative max-h-[90vh] max-w-[90vw]"
+  <div class="fixed flex z-[999]" 
+       :style="{ 
+         left: `${initialX + positionX}px`, 
+         top: `${initialY + positionY}px` 
+       }">
+    <div class="bg-white rounded-lg shadow-xl flex flex-col overflow-auto relative"
          :style="{ 
            width: `${popupWidth}px`,
-           height: `${popupHeight}px`,
-           transform: `translate(${positionX}px, ${positionY}px)`
+           height: `${popupHeight}px`
          }">
-      <div class="flex-shrink-0 bg-[var(--color-background-soft)] p-2 cursor-move w-full flex justify-between items-center"
+      <div class="flex-shrink-0 bg-gray-100 p-2 cursor-move w-full flex justify-between items-center"
            @mousedown="startDrag">
-        <h2 v-if="title" class="m-0 text-lg leading-none select-none">{{ title }}</h2>
-        <button class="bg-transparent border-none text-2xl cursor-pointer text-[var(--color-text)] p-0 m-0 leading-none flex items-center justify-center" @click="close">&times;</button>
+        <h2 v-if="title" class="m-0 text-lg leading-none select-none text-gray-800">{{ title }}</h2>
+        <button class="bg-transparent border-none text-2xl cursor-pointer text-gray-600 hover:text-gray-800 p-0 m-0 leading-none flex items-center justify-center" 
+                @click="close">&times;</button>
       </div>
       <div class="flex-grow overflow-auto p-2.5">
         <slot></slot>
       </div>
-      <div class="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize" @mousedown="startResize"></div>
+      <div class="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize" 
+           @mousedown="startResize"></div>
     </div>
   </div>
 </template>
@@ -34,6 +39,14 @@ export default {
     height: {
       type: Number,
       default: 300
+    },
+    initialX: {
+      type: Number,
+      default: 100
+    },
+    initialY: {
+      type: Number,
+      default: 100
     }
   },
   emits: ['close'],
