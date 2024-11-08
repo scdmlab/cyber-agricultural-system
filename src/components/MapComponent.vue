@@ -789,9 +789,9 @@ export default {
 @import 'maplibre-gl/dist/maplibre-gl.css';
 
 #map-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  position: relative;
+  height: 100vh;
+  width: 100%;
 }
 
 .content-wrapper {
@@ -802,12 +802,13 @@ export default {
 
 .sidebar {
   position: absolute;
-  top: 86px;
-  width: 300px;
-  height: calc(100% - 86px);
+  top: 36px;
+  left: 0;
+  height: calc(100vh - 36px);
   background-color: var(--color-background);
   box-shadow: var(--shadow-light);
-  z-index: var(--z-index-sidebar);
+  z-index: 10;
+  overflow-y: auto;
 }
 
 .resize-handle {
@@ -831,8 +832,12 @@ export default {
 }
 
 #map {
-  flex-grow: 1;
-  width: 100%;
+  position: absolute;
+  top: 36px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
 }
 
 .map-controls {
@@ -956,7 +961,7 @@ export default {
 }
 
 .maplibregl-ctrl {
-  z-index: var(--z-index-maplibre-controls);
+  z-index: 15;
 }
 
 .maplibregl-ctrl-top-right {

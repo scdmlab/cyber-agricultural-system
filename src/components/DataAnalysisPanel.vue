@@ -81,7 +81,13 @@
     },
     setup() {
       const store = useStore()
-      const selectedCounties = ref([{ input: '', showSuggestions: false, selected: null, data: [], filteredSuggestions: [] }])
+      const selectedCounties = ref([{ 
+        input: '', 
+        showSuggestions: false, 
+        selected: null, 
+        data: [], 
+        filteredSuggestions: [] 
+      }])
       const csvData = computed(() => store.state.csvData || [])
       const csvHeaders = computed(() => csvData.value.length ? Object.keys(csvData.value[0]) : [])
       const tableRef = ref(null)
@@ -104,14 +110,16 @@
 
       const countySuggestions = computed(() => {
         const uniqueCounties = new Map()
-        csvData.value.forEach(row => {
+        if (csvData.value) {
+          csvData.value.forEach(row => {
             const stateCode = row.FIPS.substring(0, 2)
             const stateName = stateCodeMap[stateCode] || 'Unknown State'
             const name = `${row.NAME}, ${stateName}`
             uniqueCounties.set(row.FIPS, { name, fips: row.FIPS })
-        })
+          })
+        }
         return Array.from(uniqueCounties.values())
-        })
+      })
   
         const filteredSuggestions = computed(() => {
             if (!countyInput.value) return []
@@ -143,9 +151,17 @@ function updateCountyData(index) {
       const county = selectedCounties.value[index]
       if (county.selected) {
         const fips = county.selected.fips
-        county.data = historicalData.value.filter(d => d.FIPS === fips)
-        }
+        county.data = historicalData.value
+          .filter(d => d.FIPS === fips)
+          .map(d => ({
+            year: d.year,
+            yield: d.yield,
+            pred: d.pred,
+            error: d.error
+          }))
+          .sort((a, b) => a.year - b.year)
       }
+    }
 
     function selectCounty(index) {
       const county = selectedCounties.value[index]
@@ -248,6 +264,12 @@ function updateCountyData(index) {
         initTable()
         updateHistogram()
       }
+    })
+
+    watch(historicalData, () => {
+      selectedCounties.value.forEach((_, index) => {
+        updateCountyData(index)
+      })
     })
 
     function initTable() {

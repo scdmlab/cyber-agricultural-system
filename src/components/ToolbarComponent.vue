@@ -1,8 +1,9 @@
 <!-- ToolbarComponent.vue -->
 <template>
-  <nav class="bg-gray-100 border-b border-gray-200 shadow-md py-1 px-4" aria-label="Map controls">
-    <div class="flex justify-between items-center max-w-7xl mx-auto">
-      <div class="flex space-x-2 ">
+  <nav class="relative bg-gray-100 border-b border-gray-200 shadow-sm py-0.5 px-4 z-30" aria-label="Map controls">
+    <div class="flex justify-between items-center h-full w-full">
+      <!-- Left group -->
+      <div class="flex items-center space-x-2">
         <button @click="toggleSidebar('run')" aria-label="Run Model" class="toolbar-button">
           <Icon icon="mdi:play" class="text-gray-600" />
           <span class="tooltip">Models</span> 
@@ -20,7 +21,9 @@
           <span class="tooltip">Mapping</span>
         </button>
       </div>
-      <div class="flex space-x-2">
+
+      <!-- Right group -->
+      <div class="flex items-center space-x-2">
         <button @click="toggleDataPopup" class="toolbar-button">
           <Icon icon="mdi:table-filter" class="text-gray-600" />
           <span class="tooltip">Data Table</span>
@@ -59,27 +62,6 @@
         </button>
       </div>
     </div>
-
-    <MapSettingsPopup
-      v-if="showSettings"
-      :minValue="minValue"
-      :maxValue="maxValue"
-      :colorScheme="colorScheme"
-      :choroplethOpacity="choroplethOpacity"
-      :basemapOpacity="basemapOpacity"
-      @close="closeSettings"
-      @apply="applySettings"
-    />
-
-    <DataTablePopup
-      v-if="showDataPopup"
-      :title="'Current Data'"
-      :data="csvData"
-      :headers="dataHeaders"
-      @close="toggleDataPopup"
-    />
-
-    <BasemapPopup v-if="showBasemapPopup" @close="toggleBasemapPopup" />
   </nav>
 </template>
 
@@ -182,15 +164,37 @@ export default {
 </script>
 
 <style scoped>
+nav {
+  height: 36px;
+  width: 100%;
+  display: flex;
+  align-items: center; /* Center all content vertically */
+}
+
 .toolbar-button {
-  @apply p-1.5 rounded-full transition-colors duration-200 ease-in-out text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white relative;
+  @apply p-1 rounded-full transition-colors duration-200 ease-in-out relative;
+  @apply hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-green-500;
+  @apply flex items-center justify-center; /* Center icon within button */
+  z-index: 30;
 }
 
 .tooltip {
   @apply absolute bottom-full left-1/2 transform -translate-x-1/2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded-md opacity-0 transition-opacity duration-300 pointer-events-none mb-2;
+  z-index: 31;
 }
 
 .toolbar-button:hover .tooltip {
   @apply opacity-100;
+}
+
+.toolbar-button svg {
+  @apply w-4 h-4;
+  color: currentColor;
+}
+
+.h-6 {
+  height: 16px;
+  margin-top: auto;
+  margin-bottom: auto;
 }
 </style>
