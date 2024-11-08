@@ -135,6 +135,15 @@ export default createStore({
         toggleYearSlider(state) {
           state.yearSliderVisible = !state.yearSliderVisible
         },
+        setMapTitle(state, title) {
+          state.mapTitle = title;
+        },
+        setMapDescription(state, description) {
+          state.mapDescription = description;
+        },
+        setMapFont(state, font) {
+          state.mapFont = font;
+        },
     },
     actions: {
         async fetchMapData({ commit, state }) {

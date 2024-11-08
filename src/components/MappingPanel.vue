@@ -5,17 +5,21 @@
     <div class="space-y-4">
       <div>
         <label for="title" class="block text-sm font-medium text-gray-700">Title:</label>
-        <input id="title" v-model="title" @input="updateTitle" placeholder="Crop Property for US in Year" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50">
+        <input id="title" v-model="title" placeholder="Crop Property for US in Year" 
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50">
       </div>
       
       <div>
         <label for="description" class="block text-sm font-medium text-gray-700">Description:</label>
-        <textarea id="description" v-model="description" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50"></textarea>
+        <textarea id="description" v-model="description" rows="4" 
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50">
+        </textarea>
       </div>
       
       <div>
         <label for="font" class="block text-sm font-medium text-gray-700">Font:</label>
-        <select id="font" v-model="font" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50">
+        <select id="font" v-model="font" 
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50">
           <option value="Arial">Arial</option>
           <option value="Helvetica">Helvetica</option>
           <option value="Times New Roman">Times New Roman</option>
@@ -25,12 +29,17 @@
       
       <div>
         <label for="backgroundColor" class="block text-sm font-medium text-gray-700">Background Color:</label>
-        <input type="color" id="backgroundColor" v-model="backgroundColor" class="mt-1 block w-full h-10 rounded-md border-gray-300 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50">
+        <input type="color" id="backgroundColor" v-model="backgroundColor" 
+          class="mt-1 block w-full h-10 rounded-md border-gray-300 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50">
       </div>
 
       <div class="flex space-x-4">
-        <button @click="exportMap" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">Export Map</button>
-        <button @click="openMapEditor" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">Edit Map</button>
+        <button @click="exportMap" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">
+          Export Map
+        </button>
+        <button @click="openMapEditor" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+          Edit Map
+        </button>
       </div>
     </div>
 
@@ -38,6 +47,8 @@
       v-if="showMapEditor"
       :title="title"
       :description="description"
+      :font="font"
+      :backgroundColor="backgroundColor"
       @close="closeMapEditor"
       @save="handleMapSave"
     />
@@ -47,7 +58,6 @@
 <script>
 import { useStore } from 'vuex';  
 import { computed, ref } from 'vue';
-import { MaplibreExportControl, Size, PageOrientation, Format, DPI  } from '@watergis/maplibre-gl-export';
 import MapEditComponent from './MapEditComponent.vue';
 
 export default {
@@ -76,26 +86,28 @@ export default {
       set: (value) => store.commit('setMapBackgroundColor', value)
     })
 
-    const exportMap = () => {
-      const map = store.state.map
+    const exportMap = async () => {
+      const map = store.state.map;
       if (!map) {
-        console.error('Map instance not found')
-        return
+        console.error('Map instance not found');
+        return;
       }
 
-      const exportControl = new MaplibreExportControl({
-        PageSize: Size.A4,
-        PageOrientation: PageOrientation.Landscape,
-        Format: Format.PNG,
-        DPI: DPI[300],
-        Filename: `${store.state.mapTitle || 'Map'}_export`,
-        Attribution: '© OpenStreetMap contributors',
-        Local: 'en',
-        Crosshair: false,
-        PrintableArea: false,
-      });
+      try {
+        // Get the map canvas and convert it to a data URL
+        const canvas = map.getCanvas();
+        const dataURL = canvas.toDataURL('image/png');
 
-      map.addControl(exportControl, 'top-left');
+        // Create a temporary link element to trigger the download
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = `${title.value || 'map'}_export.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        console.error('Error exporting map:', error);
+      }
     }
 
     const openMapEditor = () => {
