@@ -34,3 +34,16 @@ a,
     padding: 0 2rem;
   }
 }
+
+:root {
+  --z-map: 1;
+  --z-controls: 30;
+  --z-sidebar: 40;
+  --z-popup: 999;
+}
+
+/* Then use these variables in your components */
+.map { z-index: var(--z-map); }
+.controls { z-index: var(--z-controls); }
+.sidebar { z-index: var(--z-sidebar); }
+.popup { z-index: var(--z-popup); }

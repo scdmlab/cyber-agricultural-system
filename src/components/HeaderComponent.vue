@@ -21,11 +21,11 @@
     </div>
 
     <PopupWindow v-if="showReferencesPopup" @close="showReferencesPopup = false" title="References" width="600" height="400">
-      <div class="prose prose-sm max-w-none" v-html="referencesContent"></div>
+      <div class="prose prose-sm max-w-none text-gray-800" v-html="referencesContent"></div>
     </PopupWindow>
 
     <PopupWindow v-if="showResearchGroupPopup" @close="showResearchGroupPopup = false" title="Research Group" width="500" height="400">
-      <div class="prose prose-sm max-w-none" v-html="researchGroupContent"></div>
+      <div class="prose prose-sm max-w-none text-gray-800" v-html="researchGroupContent"></div>
     </PopupWindow>
   </header>
 </template>

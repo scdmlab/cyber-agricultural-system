@@ -1,68 +1,94 @@
 <!-- ToolbarComponent.vue -->
 <template>
-  <nav class="relative bg-gray-100 border-b border-gray-200 shadow-sm py-0.5 px-4 z-30" aria-label="Map controls">
-    <div class="flex justify-between items-center h-full w-full">
-      <!-- Left group -->
-      <div class="flex items-center space-x-2">
-        <button @click="toggleSidebar('run')" aria-label="Run Model" class="toolbar-button">
-          <Icon icon="mdi:play" class="text-gray-600" />
-          <span class="tooltip">Models</span> 
-        </button>
-        <button @click="toggleSidebar('data')" aria-label="Data" class="toolbar-button">
-          <Icon icon="mdi:database" class="text-gray-600" />
-          <span class="tooltip">Data Selection</span>
-        </button>
-        <button @click="toggleSidebar('analysis')" aria-label="Analysis" class="toolbar-button">
-          <Icon icon="mdi:chart-bar" class="text-gray-600" />
-          <span class="tooltip">Analysis</span>
-        </button>
-        <button @click="toggleSidebar('mapping')" aria-label="Mapping" class="toolbar-button">
-          <Icon icon="mdi:map" class="text-gray-600" />
-          <span class="tooltip">Mapping</span>
-        </button>
-      </div>
+  <div>
+    <nav class="relative bg-gray-100 border-b border-gray-200 shadow-sm py-0.5 px-4 z-30" aria-label="Map controls">
+      <div class="flex justify-between items-center h-full w-full">
+        <!-- Left group -->
+        <div class="flex items-center space-x-2">
+          <button @click="toggleSidebar('run')" aria-label="Run Model" class="toolbar-button">
+            <Icon icon="mdi:play" class="text-gray-600" />
+            <span class="tooltip">Models</span> 
+          </button>
+          <button @click="toggleSidebar('data')" aria-label="Data" class="toolbar-button">
+            <Icon icon="mdi:database" class="text-gray-600" />
+            <span class="tooltip">Data Selection</span>
+          </button>
+          <button @click="toggleSidebar('analysis')" aria-label="Analysis" class="toolbar-button">
+            <Icon icon="mdi:chart-bar" class="text-gray-600" />
+            <span class="tooltip">Analysis</span>
+          </button>
+          <button @click="toggleSidebar('mapping')" aria-label="Mapping" class="toolbar-button">
+            <Icon icon="mdi:map" class="text-gray-600" />
+            <span class="tooltip">Mapping</span>
+          </button>
+        </div>
 
-      <!-- Right group -->
-      <div class="flex items-center space-x-2">
-        <button @click="toggleDataPopup" class="toolbar-button">
-          <Icon icon="mdi:table-filter" class="text-gray-600" />
-          <span class="tooltip">Data Table</span>
-        </button>
-        <div class="h-6 w-px bg-gray-600 mx-2"></div>
-        <button @click="toggleBasemapPopup" aria-label="Change Basemap" class="toolbar-button">
-          <Icon icon="tdesign:map-double" class="text-gray-600" />
-          <span class="tooltip">Change Basemap</span>
-        </button>
-        <button @click="toggleSettings" aria-label="Map Settings" class="toolbar-button">
-          <Icon icon="mdi:cog" class="text-gray-600" />
-          <span class="tooltip">Map Settings</span>
-        </button>
-        <div class="h-6 w-px bg-gray-600 mx-2"></div>
-        <button @click="$emit('toggle-legend')" aria-label="Toggle Legend" class="toolbar-button">
-          <Icon icon="material-symbols:legend-toggle-rounded" class="text-gray-600" />
-          <span class="tooltip">Toggle Legend</span>
-        </button>
-        <div class="h-6 w-px bg-gray-600 mx-2"></div>
-        <button @click="$emit('zoom-in')" aria-label="Zoom In" class="toolbar-button">
-          <Icon icon="mdi:plus" class="text-gray-600" />
-          <span class="tooltip">Zoom In</span>
-        </button>
-        <button @click="$emit('reset-view')" aria-label="Reset View" class="toolbar-button">
-          <Icon icon="mdi:home" class="text-gray-600" />
-          <span class="tooltip">Reset View</span>
-        </button>
-        <button @click="$emit('zoom-out')" aria-label="Zoom Out" class="toolbar-button">
-          <Icon icon="mdi:minus" class="text-gray-600" />
-          <span class="tooltip">Zoom Out</span>
-        </button>
-        <div class="h-6 w-px bg-gray-600 mx-2"></div>
-        <button @click="toggleYearSlider" aria-label="Toggle Year Slider" class="toolbar-button">
-          <Icon icon="mdi:calendar-range" class="text-gray-600" />
-          <span class="tooltip">Toggle Year Slider</span>
-        </button>
+        <!-- Right group -->
+        <div class="flex items-center space-x-2">
+          <button @click="toggleDataPopup" class="toolbar-button">
+            <Icon icon="mdi:table-filter" class="text-gray-600" />
+            <span class="tooltip">Data Table</span>
+          </button>
+          <div class="h-6 w-px bg-gray-600 mx-2"></div>
+          <button @click="toggleBasemapPopup" aria-label="Change Basemap" class="toolbar-button">
+            <Icon icon="tdesign:map-double" class="text-gray-600" />
+            <span class="tooltip">Change Basemap</span>
+          </button>
+          <button @click="toggleSettings" aria-label="Map Settings" class="toolbar-button">
+            <Icon icon="mdi:cog" class="text-gray-600" />
+            <span class="tooltip">Map Settings</span>
+          </button>
+          <div class="h-6 w-px bg-gray-600 mx-2"></div>
+          <button @click="$emit('toggle-legend')" aria-label="Toggle Legend" class="toolbar-button">
+            <Icon icon="material-symbols:legend-toggle-rounded" class="text-gray-600" />
+            <span class="tooltip">Toggle Legend</span>
+          </button>
+          <div class="h-6 w-px bg-gray-600 mx-2"></div>
+          <button @click="$emit('zoom-in')" aria-label="Zoom In" class="toolbar-button">
+            <Icon icon="mdi:plus" class="text-gray-600" />
+            <span class="tooltip">Zoom In</span>
+          </button>
+          <button @click="$emit('reset-view')" aria-label="Reset View" class="toolbar-button">
+            <Icon icon="mdi:home" class="text-gray-600" />
+            <span class="tooltip">Reset View</span>
+          </button>
+          <button @click="$emit('zoom-out')" aria-label="Zoom Out" class="toolbar-button">
+            <Icon icon="mdi:minus" class="text-gray-600" />
+            <span class="tooltip">Zoom Out</span>
+          </button>
+          <div class="h-6 w-px bg-gray-600 mx-2"></div>
+          <button @click="toggleYearSlider" aria-label="Toggle Year Slider" class="toolbar-button">
+            <Icon icon="mdi:calendar-range" class="text-gray-600" />
+            <span class="tooltip">Toggle Year Slider</span>
+          </button>
+        </div>
       </div>
-    </div>
-  </nav>
+    </nav>
+
+    <!-- Add popups -->
+    <MapSettingsPopup
+      v-if="showSettings"
+      :min-value="minValue"
+      :max-value="maxValue"
+      :color-scheme="colorScheme"
+      :choropleth-opacity="choroplethOpacity"
+      :basemap-opacity="basemapOpacity"
+      @close="closeSettings"
+      @apply="applySettings"
+    />
+
+    <DataTablePopup
+      v-if="showDataPopup"
+      :data="csvData"
+      :headers="dataHeaders"
+      @close="toggleDataPopup"
+    />
+
+    <BasemapPopup
+      v-if="showBasemapPopup"
+      @close="toggleBasemapPopup"
+    />
+  </div>
 </template>
 
 <script>

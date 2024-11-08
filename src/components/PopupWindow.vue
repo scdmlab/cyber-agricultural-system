@@ -1,6 +1,6 @@
 <template>
-  <div class="fixed inset-0 flex justify-center items-center pointer-events-none z-[100]" @click.self="close">
-    <div class="bg-[var(--color-background)] rounded-[var(--border-radius)] shadow-lg flex flex-col pointer-events-auto overflow-auto relative"
+  <div class="fixed inset-0 bg-black/50 flex justify-center items-center z-[999]" @click.self="close">
+    <div class="bg-[var(--color-background)] rounded-lg shadow-xl flex flex-col pointer-events-auto overflow-auto relative max-h-[90vh] max-w-[90vw]"
          :style="{ 
            width: `${popupWidth}px`,
            height: `${popupHeight}px`,
