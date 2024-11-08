@@ -52,6 +52,12 @@ export default createStore({
       },
         setCrop(state, crop) {
             state.currentCrop = crop
+            if (crop === 'soybean') {
+                state.currentYear = '2024'
+                if (state.currentProperty === 'error') {
+                    state.currentProperty = 'pred'
+                }
+            }
         },
         setYear(state, year) {
             state.currentYear = year
@@ -191,33 +197,33 @@ export default createStore({
               console.error('Error loading CSV data:', error)
             }
         },
-        async fetchAllPredictions({ commit }) {
+        async fetchAllPredictions({ commit, state }) {
           try {
-            const response = await fetch('data/prediction23.csv')
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`)
-            }
+            const filePath = state.currentCrop === 'corn' 
+              ? 'data/prediction23.csv'
+              : 'data/soybean_2024_284.csv'
+            
+            const response = await fetch(filePath)
             const csvText = await response.text()
+            
             Papa.parse(csvText, {
               header: true,
               complete: (results) => {
                 const allPredictions = results.data
-                .map(row => ({
-                  FIPS: row.FIPS,
-                  year: parseInt(row.year),
-                  pred: parseFloat(row.pred).toFixed(2),
-                  yield: parseFloat(row.yield).toFixed(2),
-                  error: (parseFloat(row.pred) - parseFloat(row.yield)).toFixed(2),
-                  uncertainty: Math.abs((parseFloat(row.pred) - parseFloat(row.yield))/parseFloat(row.yield) * 100).toFixed(2)
-                }))
+                  .filter(row => row.FIPS) // Filter out empty rows
+                  .map(row => ({
+                    FIPS: row.FIPS,
+                    year: state.currentCrop === 'corn' ? parseInt(row.year) : 2024,
+                    pred: parseFloat(row.pred),
+                    yield: parseFloat(row.yield),
+                    uncertainty: parseFloat(row.uncertainty),
+                    error: state.currentCrop === 'corn' ? (parseFloat(row.pred) - parseFloat(row.yield)) : null
+                  }))
                 commit('setAllPredictions', allPredictions)
-              },
-              error: (error) => {
-                console.error('Error parsing CSV:', error)
               }
             })
           } catch (error) {
-            console.error('Error fetching all predictions:', error)
+            console.error('Error fetching predictions:', error)
           }
         },
         async fetchHistoricalData({ commit }) {
@@ -343,13 +349,10 @@ export default createStore({
       await dispatch('loadCountyInfo');
       await dispatch('fetchAllPredictions');
     },
-    async initializeMapState({ dispatch, commit }) {
-      // First load all necessary data
+    async initializeMapState({ dispatch, commit, state }) {
       await dispatch('initializeData')
-      
-      // Then set the property and year
       commit('setProperty', 'pred')
-      commit('setYear', 2024)
+      commit('setYear', state.currentCrop === 'soybean' ? 2024 : state.currentYear)
     }
     },
     getters: {

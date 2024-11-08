@@ -4,27 +4,35 @@
       <button @click="togglePlay" class="mr-2 p-1 bg-blue-500 text-white rounded">
         {{ isPlaying ? '⏸' : '▶' }}
       </button>
+      <!-- Crop dropdown -->
+      <select 
+        v-model="selectedCrop"
+        class="mr-2 p-1 bg-white border border-gray-300 rounded"
+        @change="handleCropChange"
+      >
+        <option value="corn">Corn</option>
+        <option value="soybean">Soybean</option>
+      </select>
       <!-- Year dropdown -->
       <select 
         :value="currentYear" 
         @change="updateYear($event)"
         class="mr-2 p-1 bg-white border border-gray-300 rounded"
       >
-        <option v-for="year in yearRange" :key="year" :value="year">
+        <option v-for="year in availableYears" :key="year" :value="year">
           {{ year }}
         </option>
       </select>
-      <!-- Existing property dropdown -->
+      <!-- Property dropdown -->
       <select v-model="selectedProperty" class="mr-2 p-1 bg-white border border-gray-300 rounded">
-        <option value="yield">Yield</option>
-        <option value="pred">Prediction</option>
-        <option value="error">Error</option>
-        <option value="uncertainty">Uncertainty</option>
+        <option v-for="prop in availableProperties" :key="prop.value" :value="prop.value">
+          {{ prop.label }}
+        </option>
       </select>
       <input
         type="range"
-        :min="2001"
-        :max="2024"
+        :min="sliderMin"
+        :max="sliderMax"
         :value="currentYear"
         @input="updateYear"
         class="flex-grow appearance-none bg-gray-200 h-1 rounded-full outline-none slider-thumb"
@@ -35,48 +43,75 @@
 </template>
 
 <script>
-import { ref, computed, onUnmounted, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 
 export default {
   name: 'YearSlider',
   setup() {
     const store = useStore()
+    const selectedCrop = ref(store.state.currentCrop)
+    const selectedProperty = ref(store.state.currentProperty)
     const isPlaying = ref(false)
-    let intervalId = null
-
-    const currentYear = computed(() => store.state.currentYear)
-    const selectedProperty = ref('yield') // Set default value
-    const propertyMap = {
-      'yield': 'Yield',
-      'pred': 'Model Prediction',
-      'error': 'Prediction Error',
-      'uncertainty': 'Prediction Uncertainty'
-    }
-    const currentProperty = computed(() => propertyMap[selectedProperty.value])
-    const isVisible = computed(() => store.state.yearSliderVisible)
-
-    // Add onMounted to initialize default values
-    onMounted(async () => {
-      await store.dispatch('initializeMapState')
+    
+    // Compute available years based on crop
+    const availableYears = computed(() => {
+      return selectedCrop.value === 'corn' 
+        ? Array.from({ length: 24 }, (_, i) => (2001 + i).toString())
+        : ['2024']
     })
 
-    // Add computed property for year range
-    const yearRange = computed(() => {
-      const years = []
-      for (let year = 2001; year <= 2024; year++) {
-        years.push(year)
+    // Compute available properties based on crop
+    const availableProperties = computed(() => {
+      const commonProps = [
+        { value: 'pred', label: 'Prediction' },
+        { value: 'yield', label: 'Yield' },
+        { value: 'uncertainty', label: 'Uncertainty' }
+      ]
+      
+      return selectedCrop.value === 'corn' 
+        ? [...commonProps, { value: 'error', label: 'Error' }]
+        : commonProps
+    })
+
+    const handleCropChange = async () => {
+      store.commit('setCrop', selectedCrop.value)
+      // Update property if it's currently 'error'
+      if (selectedProperty.value === 'error') {
+        selectedProperty.value = 'pred'
+        store.commit('setProperty', 'pred')
       }
-      return years
+      await store.dispatch('initializeMapState')
+    }
+
+    // Watch for property changes
+    watch(selectedProperty, (newProperty) => {
+      store.commit('setProperty', newProperty)
     })
 
-    // Modify updateYear to handle both slider and dropdown
-    const updateYear = (event) => {
-      const newYear = typeof event === 'object' 
-        ? parseInt(event.target.value) 
-        : parseInt(event)
-      store.commit('setYear', newYear)
-    }
+    // Watch for crop changes
+    watch(selectedCrop, async (newCrop) => {
+      if (newCrop === 'soybean') {
+        if (selectedProperty.value === 'error') {
+          selectedProperty.value = 'pred'
+        }
+      }
+    })
+
+    const sliderMin = computed(() => selectedCrop.value === 'corn' ? 2001 : 2024)
+    const sliderMax = computed(() => 2024)
+
+    const currentYear = computed({
+      get: () => store.state.currentYear,
+      set: value => store.commit('setYear', value)
+    })
+
+    const currentProperty = computed({
+      get: () => store.state.currentProperty,
+      set: value => store.commit('setProperty', value)
+    })
+
+    const isVisible = computed(() => store.state.yearSliderVisible)
 
     const togglePlay = () => {
       isPlaying.value = !isPlaying.value
@@ -101,23 +136,27 @@ export default {
       clearInterval(intervalId)
     }
 
-    onUnmounted(() => {
-      stopPlaying()
-    })
-
-    watch(selectedProperty, (newValue) => {
-      store.commit('setProperty', newValue)
-    })
+    const updateYear = (event) => {
+      const newYear = typeof event === 'object' 
+        ? parseInt(event.target.value) 
+        : parseInt(event)
+      store.commit('setYear', newYear)
+    }
 
     return {
+      selectedCrop,
+      selectedProperty,
+      availableYears,
+      availableProperties,
+      sliderMin,
+      sliderMax,
+      isPlaying,
+      handleCropChange,
       currentYear,
       currentProperty,
       updateYear,
       isVisible,
-      isPlaying,
-      togglePlay,
-      selectedProperty,
-      yearRange
+      togglePlay
     }
   }
 }
