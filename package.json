@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "homepage": "https://Heyweol.github.io/nifa-webdev",
+  "homepage": "https://scdmlab.github.io/cyber-agricultural-system",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

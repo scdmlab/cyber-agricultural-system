@@ -32,3 +32,4 @@ coverage
 .cursorrules
 .cursorignore
 
+.dist

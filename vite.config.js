@@ -6,7 +6,7 @@ import vue from '@vitejs/plugin-vue'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-base:"/nifa-webdev/",
+base:"/cyber-agricultural-system/",
   plugins: [
     vue(),
       vueDevTools({
