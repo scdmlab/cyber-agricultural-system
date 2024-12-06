@@ -155,7 +155,7 @@ export default createStore({
         async fetchMapData({ commit, state }) {
             const { currentCrop, currentYear, currentMonth } = state
             try {
-                const response = await fetch(`data/${currentCrop}/${currentYear}/${currentMonth}.json`)
+                const response = await fetch(`/api/data/${currentCrop}/${currentYear}/${currentMonth}.json`)
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`)
                 }
@@ -200,35 +200,27 @@ export default createStore({
         async fetchAllPredictions({ commit, state }) {
             try {
                 const predictions = [];
-                // Determine year range based on crop
                 const startYear = 2015;
                 const endYear = 2023;
                 
-                // Fetch data for all years
                 for (let year = startYear; year <= endYear; year++) {
-                    const filePath = `result_${state.currentCrop}/bnn/result${year}.csv`;
-                    const response = await fetch(filePath);
-                    const csvText = await response.text();
+                    const response = await fetch(`/api/predictions/${state.currentCrop}/${year}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
                     
-                    await new Promise((resolve) => {
-                        Papa.parse(csvText, {
-                            header: true,
-                            complete: (results) => {
-                                const yearPredictions = results.data
-                                    .filter(row => row.FIPS) // Filter out empty rows
-                                    .map(row => ({
-                                        FIPS: row.FIPS,
-                                        year: year,
-                                        pred: parseFloat(row.y_test_pred),
-                                        yield: parseFloat(row.y_test),
-                                        uncertainty: parseFloat(row.y_test_pred_uncertainty),
-                                        error: parseFloat(row.y_test_pred) - parseFloat(row.y_test)
-                                    }));
-                                predictions.push(...yearPredictions);
-                                resolve();
-                            }
-                        });
-                    });
+                    const yearPredictions = data
+                        .filter(row => row.FIPS)
+                        .map(row => ({
+                            FIPS: row.FIPS,
+                            year: year,
+                            pred: parseFloat(row.y_test_pred),
+                            yield: parseFloat(row.y_test),
+                            uncertainty: parseFloat(row.y_test_pred_uncertainty),
+                            error: parseFloat(row.y_test_pred) - parseFloat(row.y_test)
+                        }));
+                    predictions.push(...yearPredictions);
                 }
                 
                 commit('setAllPredictions', predictions);
@@ -238,7 +230,7 @@ export default createStore({
         },
         async fetchHistoricalData({ commit }) {
           try {
-              const response = await fetch('data/corn_yield_US.csv')
+              const response = await fetch('/api/data/corn_yield_US.csv')
               if (!response.ok) {
                   throw new Error(`HTTP error! status: ${response.status}`)
               }
@@ -255,7 +247,7 @@ export default createStore({
         },
         async fetchAveragePred({ commit }) {
             try {
-                const response = await fetch('data/average_pred.csv')
+                const response = await fetch('/api/data/average_pred.csv')
                 const csvText = await response.text()
                 const parsedData = d3.csvParse(csvText, d => ({
                     FIPS: d.FIPS,
@@ -272,7 +264,7 @@ export default createStore({
         
         async loadCountyData({ commit }) {
             try {
-              const response = await fetch('data/county.csv');
+              const response = await fetch('/api/data/county.csv');
               if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
               }
@@ -307,12 +299,12 @@ export default createStore({
 
         async loadCountyInfo({ commit }) {
           try {
-            const response = await fetch('data/county_info.csv');
+            const response = await fetch('/api/data/county_info.csv');
             if (!response.ok) {
               throw new Error(`HTTP error! status: ${response.status}`);
             }
             const csvText = await response.text();
-            const parsedData = Papa.parse(csvText, {
+            Papa.parse(csvText, {
               header: true,
               dynamicTyping: true,
               complete: (results) => {

@@ -1,25 +1,27 @@
-import { fileURLToPath, URL } from 'node:url'
-
 import { defineConfig } from 'vite'
-import vueDevTools from 'vite-plugin-vue-devtools'
 import vue from '@vitejs/plugin-vue'
+import { fileURLToPath } from 'url'
+import { dirname, resolve } from 'path'
 
-// https://vitejs.dev/config/
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
 export default defineConfig({
-base:"/cyber-agricultural-system/",
-  plugins: [
-    vue(),
-      vueDevTools({
-        launchEditor: "webstorm",
-      })
-  ],
+  plugins: [vue()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
+      '@': resolve(__dirname, './src'),
+    },
+  },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
   },
   server: {
-    port: 5174,
-    strictPort: false
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      }
+    }
   }
 })

@@ -1,0 +1,2 @@
+model_checkpoint_path: "BNN2"
+all_model_checkpoint_paths: "BNN2"
