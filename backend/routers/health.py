@@ -1,42 +1,82 @@
-from fastapi import APIRouter, Response
-from typing import Dict
+from fastapi import APIRouter, Response, status
+from typing import Dict, List
 import psutil
 import time
+from datetime import datetime, timezone
+import sys
+import os
 
 router = APIRouter()
 
-@router.get("/api/health", 
-    response_model=Dict[str, str],
-    summary="Health Check",
-    description="Returns the current status of the API service.")
-async def health_check():
-    """
-    Performs a basic health check of the service.
-    
-    Returns:
-        dict: Contains status information about the service
-    """
+def get_system_health() -> Dict:
+    """Get system health metrics"""
+    memory = psutil.virtual_memory()
+    disk = psutil.disk_usage('/')
     return {
-        "status": "healthy",
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        "cpu": {
+            "usage_percent": psutil.cpu_percent(),
+            "cores": psutil.cpu_count()
+        },
+        "memory": {
+            "total": memory.total,
+            "available": memory.available,
+            "used_percent": memory.percent
+        },
+        "disk": {
+            "total": disk.total,
+            "free": disk.free,
+            "used_percent": disk.percent
+        }
     }
 
-@router.get("/api/health/detailed",
-    summary="Detailed Health Check",
-    description="Returns detailed system metrics and service status.")
-async def detailed_health_check():
+@router.get("/api/health",
+    response_model=Dict,
+    summary="Basic Health Check",
+    status_code=status.HTTP_200_OK)
+async def health_check(response: Response):
     """
-    Performs a detailed health check including system metrics.
-    
-    Returns:
-        dict: Contains detailed system metrics and status information
+    Basic health check endpoint that returns service status
     """
-    return {
-        "status": "healthy",
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "system": {
-            "cpu_usage": f"{psutil.cpu_percent()}%",
-            "memory_usage": f"{psutil.virtual_memory().percent}%",
-            "disk_usage": f"{psutil.disk_usage('/').percent}%"
+    try:
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
-    } 
+    except:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {
+            "status": "unhealthy",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+
+@router.get("/api/health/detailed",
+    response_model=Dict,
+    summary="Detailed Health Check",
+    status_code=status.HTTP_200_OK)
+async def detailed_health_check(response: Response):
+    """
+    Detailed health check including system metrics, uptime, and environment info
+    """
+    try:
+        boot_time = datetime.fromtimestamp(psutil.boot_time())
+        uptime = datetime.now() - boot_time
+        
+        health_info = {
+            "status": "healthy",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "uptime": str(uptime),
+            "system": get_system_health(),
+            "environment": {
+                "python_version": sys.version,
+                "timezone": time.tzname[0],
+                "hostname": os.uname().nodename if hasattr(os, 'uname') else None
+            }
+        }
+        return health_info
+    except Exception as e:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {
+            "status": "unhealthy",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "error": str(e)
+        } 

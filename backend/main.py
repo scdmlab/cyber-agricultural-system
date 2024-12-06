@@ -47,7 +47,7 @@ DATA_DIR = BASE_DIR / "data"
 RESULT_DIR = BASE_DIR / "result_corn"
 RESULT_SOYBEAN_DIR = BASE_DIR / "result_soybean"
 
-@app.get("/api/data/{crop}/{year}/{month}.json")
+@app.get("/api/data/{crop}/{year}/{month}.json", include_in_schema=False)
 async def get_map_data(crop: str, year: str, month: str):
     try:
         file_path = DATA_DIR / crop / year / f"{month}.json"
