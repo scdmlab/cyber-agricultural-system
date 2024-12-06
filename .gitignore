@@ -35,6 +35,8 @@ coverage
 .dist
 
 __pycache__/
+backend/__pycache__/
+backend/utils/__pycache__/
 
 #remove secrets
 .env
