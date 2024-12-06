@@ -24,4 +24,4 @@ if __name__ == "__main__":
     print("test....")
     print("input shape should be (1, 293)")
     array = np.random.rand(1, 293)
-    print(run_model(array)[0])
+    print(run_model(array))

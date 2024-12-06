@@ -15,7 +15,7 @@ from tensorflow.keras.layers import Dense, BatchNormalization
 from tensorflow.keras.layers import ReLU, Dropout
 from tensorflow.keras.optimizers import Adam
 from numpy.random import seed
-from file_organize import model_prediction, evaluate_regression_results
+from utils.file_organize import model_prediction, evaluate_regression_results
 
 
 # Xavier initializer
