@@ -5,7 +5,7 @@ import pandas as pd
 from pathlib import Path
 import os
 
-from routers import model
+from routers import model, prediction
 
 app = FastAPI()
 
@@ -20,6 +20,9 @@ app.add_middleware(
 
 # Include the model router
 app.include_router(model.router)
+
+# Include the prediction router
+app.include_router(prediction.router)
 
 # Data directory configuration
 BASE_DIR = Path(__file__).resolve().parent
