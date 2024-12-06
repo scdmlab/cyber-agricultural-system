@@ -53,34 +53,23 @@ export default {
     const selectedCrop = ref(store.state.currentCrop)
     const selectedProperty = ref(store.state.currentProperty)
     const isPlaying = ref(false)
+    const intervalId = ref(null)
     
-    // Compute available years based on crop
-    const availableYears = computed(() => {
-      return selectedCrop.value === 'corn' 
-        ? Array.from({ length: 24 }, (_, i) => (2001 + i).toString())
-        : ['2024']
-    })
+    // Simplified year range
+    const availableYears = computed(() => 
+      Array.from({ length: 9 }, (_, i) => (2015 + i).toString())
+    )
 
-    // Compute available properties based on crop
-    const availableProperties = computed(() => {
-      const commonProps = [
-        { value: 'pred', label: 'Prediction' },
-        { value: 'yield', label: 'Yield' },
-        { value: 'uncertainty', label: 'Uncertainty' }
-      ]
-      
-      return selectedCrop.value === 'corn' 
-        ? [...commonProps, { value: 'error', label: 'Error' }]
-        : commonProps
-    })
+    // Compute available properties - same for both crops
+    const availableProperties = computed(() => [
+      { value: 'pred', label: 'Prediction' },
+      { value: 'yield', label: 'Yield' },
+      { value: 'uncertainty', label: 'Uncertainty' },
+      { value: 'error', label: 'Error' }
+    ])
 
     const handleCropChange = async () => {
       store.commit('setCrop', selectedCrop.value)
-      // Update property if it's currently 'error'
-      if (selectedProperty.value === 'error') {
-        selectedProperty.value = 'pred'
-        store.commit('setProperty', 'pred')
-      }
       await store.dispatch('initializeMapState')
     }
 
@@ -89,17 +78,8 @@ export default {
       store.commit('setProperty', newProperty)
     })
 
-    // Watch for crop changes
-    watch(selectedCrop, async (newCrop) => {
-      if (newCrop === 'soybean') {
-        if (selectedProperty.value === 'error') {
-          selectedProperty.value = 'pred'
-        }
-      }
-    })
-
-    const sliderMin = computed(() => selectedCrop.value === 'corn' ? 2001 : 2024)
-    const sliderMax = computed(() => 2024)
+    const sliderMin = computed(() => 2015)
+    const sliderMax = computed(() => 2023)
 
     const currentYear = computed({
       get: () => store.state.currentYear,
@@ -123,17 +103,17 @@ export default {
     }
 
     const playYears = () => {
-      intervalId = setInterval(() => {
+      intervalId.value = setInterval(() => {
         let nextYear = store.state.currentYear + 1
-        if (nextYear > 2024) {
-          nextYear = 2001
+        if (nextYear > 2023) {
+          nextYear = 2015
         }
         store.commit('setYear', nextYear)
-      }, 1000) // Change year every second
+      }, 1000)
     }
 
     const stopPlaying = () => {
-      clearInterval(intervalId)
+      clearInterval(intervalId.value)
     }
 
     const updateYear = (event) => {

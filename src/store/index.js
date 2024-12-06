@@ -198,33 +198,43 @@ export default createStore({
             }
         },
         async fetchAllPredictions({ commit, state }) {
-          try {
-            const filePath = state.currentCrop === 'corn' 
-              ? 'data/prediction23.csv'
-              : 'data/soybean_2024_284.csv'
-            
-            const response = await fetch(filePath)
-            const csvText = await response.text()
-            
-            Papa.parse(csvText, {
-              header: true,
-              complete: (results) => {
-                const allPredictions = results.data
-                  .filter(row => row.FIPS) // Filter out empty rows
-                  .map(row => ({
-                    FIPS: row.FIPS,
-                    year: state.currentCrop === 'corn' ? parseInt(row.year) : 2024,
-                    pred: parseFloat(row.pred),
-                    yield: parseFloat(row.yield),
-                    uncertainty: parseFloat(row.uncertainty),
-                    error: state.currentCrop === 'corn' ? (parseFloat(row.pred) - parseFloat(row.yield)) : null
-                  }))
-                commit('setAllPredictions', allPredictions)
-              }
-            })
-          } catch (error) {
-            console.error('Error fetching predictions:', error)
-          }
+            try {
+                const predictions = [];
+                // Determine year range based on crop
+                const startYear = 2015;
+                const endYear = 2023;
+                
+                // Fetch data for all years
+                for (let year = startYear; year <= endYear; year++) {
+                    const filePath = `result_${state.currentCrop}/bnn/result${year}.csv`;
+                    const response = await fetch(filePath);
+                    const csvText = await response.text();
+                    
+                    await new Promise((resolve) => {
+                        Papa.parse(csvText, {
+                            header: true,
+                            complete: (results) => {
+                                const yearPredictions = results.data
+                                    .filter(row => row.FIPS) // Filter out empty rows
+                                    .map(row => ({
+                                        FIPS: row.FIPS,
+                                        year: year,
+                                        pred: parseFloat(row.y_test_pred),
+                                        yield: parseFloat(row.y_test),
+                                        uncertainty: parseFloat(row.y_test_pred_uncertainty),
+                                        error: parseFloat(row.y_test_pred) - parseFloat(row.y_test)
+                                    }));
+                                predictions.push(...yearPredictions);
+                                resolve();
+                            }
+                        });
+                    });
+                }
+                
+                commit('setAllPredictions', predictions);
+            } catch (error) {
+                console.error('Error fetching predictions:', error);
+            }
         },
         async fetchHistoricalData({ commit }) {
           try {
