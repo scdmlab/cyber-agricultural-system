@@ -1,13 +1,31 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 import pandas as pd
 from pathlib import Path
 import os
 
-from routers import model, prediction
+from routers import model, prediction, health
 
-app = FastAPI()
+app = FastAPI(
+    title="Crop Yield Prediction API",
+    description="""
+    This API provides crop yield predictions and historical data for corn and soybean crops.
+    It offers both end-of-season and in-season predictions based on various environmental and agricultural features.
+    
+    Key Features:
+    - Crop yield predictions using machine learning models
+    - Historical yield data access
+    - Geographic data integration
+    - Real-time feature extraction from GeoJSON input
+    """,
+    version="1.0.0",
+    contact={
+        "name": "SCDMlab @ UW-Madison",
+        "email": "",
+    },
+)
 
 # Add CORS middleware
 app.add_middleware(
@@ -18,11 +36,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include the model router
-app.include_router(model.router)
-
-# Include the prediction router
-app.include_router(prediction.router)
+# Include routers
+app.include_router(health.router, tags=["Health"])
+app.include_router(model.router, tags=["Model"])
+app.include_router(prediction.router, tags=["Predictions"])
 
 # Data directory configuration
 BASE_DIR = Path(__file__).resolve().parent
@@ -40,7 +57,7 @@ async def get_map_data(crop: str, year: str, month: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/data/corn_yield_US.csv")
+@app.get("/api/data/corn_yield_US.csv", include_in_schema=False)
 async def get_historical_data():
     try:
         file_path = DATA_DIR / "corn_yield_US.csv"
@@ -51,7 +68,7 @@ async def get_historical_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/data/average_pred.csv")
+@app.get("/api/data/average_pred.csv", include_in_schema=False)
 async def get_average_pred():
     try:
         file_path = DATA_DIR / "average_pred.csv"
@@ -60,7 +77,7 @@ async def get_average_pred():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/data/county.csv")
+@app.get("/api/data/county.csv", include_in_schema=False)
 async def get_county_data():
     try:
         file_path = DATA_DIR / "county.csv"
@@ -69,7 +86,7 @@ async def get_county_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/data/county_info.csv")
+@app.get("/api/data/county_info.csv", include_in_schema=False)
 async def get_county_info():
     try:
         file_path = DATA_DIR / "county_info.csv"
@@ -95,4 +112,18 @@ app.mount("/result_soybean", StaticFiles(directory=str(RESULT_SOYBEAN_DIR)), nam
 
 # Only serve the Vue app in production
 if os.path.exists("dist"):
-    app.mount("/", StaticFiles(directory="dist", html=True), name="static") 
+    app.mount("/", StaticFiles(directory="dist", html=True), name="static")
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi 

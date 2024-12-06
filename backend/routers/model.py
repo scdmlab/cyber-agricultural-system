@@ -85,7 +85,16 @@ def verify_feature_vector(feature_vector):
     
     return True
 
-@router.post("/api/model/")
+@router.post("/api/model/",
+    summary="Process GeoJSON and Get Predictions",
+    description="""
+    Processes GeoJSON data to extract features and generate crop yield predictions.
+    
+    The endpoint accepts GeoJSON data representing a field boundary and returns:
+    - Predicted crop yield
+    - Model uncertainty estimates
+    """,
+    response_description="Prediction results including yield estimate and uncertainty")
 async def process_geojson(geojson_data: GeoJSONRequest):
     """
     Process GeoJSON data and return feature vector

@@ -9,6 +9,21 @@
 
         <div class="space-y-4">
           <div>
+            <label for="crop" class="block text-sm font-medium text-gray-700">Crop:</label>
+            <select id="crop" v-model="selectedCrop" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+              <option value="corn">Corn</option>
+              <option value="soybean">Soybean</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="year" class="block text-sm font-medium text-gray-700">Year:</label>
+            <select id="year" v-model="selectedYear" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+              <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
+            </select>
+          </div>
+
+          <div>
             <label for="state" class="block text-sm font-medium text-gray-700">State:</label>
             <select id="state" v-model="selectedState" @change="updateCounties" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
               <option v-for="state in availableStates" :key="state" :value="state">{{ state }}</option>
@@ -18,7 +33,7 @@
           <div>
             <label for="county" class="block text-sm font-medium text-gray-700">County:</label>
             <select id="county" v-model="selectedCounty" :disabled="!selectedState" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
-              <option v-for="county in availableCounties" :key="county.countyFp" :value="county">
+              <option v-for="county in availableCounties" :key="county.fips" :value="county">
                 {{ county.name }}
               </option>
             </select>
@@ -27,23 +42,13 @@
           <div>
             <label for="predictionType" class="block text-sm font-medium text-gray-700">Prediction Type:</label>
             <select id="predictionType" v-model="selectedPredictionType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
-              <option value="In Season">In Season</option>
-              <option value="End of Season">End of Season</option>
+              <option value="in_season">In Season</option>
+              <option value="end_of_season">End of Season</option>
             </select>
           </div>
 
-          <div>
-            <label for="model" class="block text-sm font-medium text-gray-700">Select a model:</label>
-            <select id="model" v-model="selectedModel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
-              <option value="Bayesian">Bayesian</option>
-              <option value="Partial Domain Adaption">Partial Domain Adaption</option>
-              <option value="Multiple Instance Learning">Multiple Instance Learning</option>
-              <option value="Hybrid">Hybrid</option>
-            </select>
-          </div>
-
-          <button @click="runModel" class="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300" :disabled="isRunning">
-            {{ isRunning ? 'Running...' : 'Run Selected Model' }}
+          <button @click="runModel" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300">
+            Get Prediction
           </button>
         </div>
       </details>
@@ -122,14 +127,19 @@ export default {
   },
   data() {
     return {
-      selectedState: '',
+      selectedCrop: 'corn',
+      selectedYear: new Date().getFullYear().toString(),
+      selectedState: null,
       selectedCounty: null,
-      selectedPredictionType: 'In Season',
-      selectedModel: 'Hybrid',
+      selectedPredictionType: 'in_season',
       isRunning: false,
       progress: 0,
       estimatedTime: 0,
-      modelQueue: []
+      modelQueue: [],
+      availableYears: [
+        (new Date().getFullYear() - 1).toString(),
+        new Date().getFullYear().toString(),
+      ],
     }
   },
   computed: {
@@ -139,26 +149,25 @@ export default {
       return this.getDrawnPolygons;
     },
     availableStates() {
-      const states = new Set();
-      Object.values(this.countyData).forEach(counties => {
-        counties.forEach(county => {
-          const stateName = this.getStateName(county.stateFp);
-          if (stateName !== 'Unknown State') {
-            states.add(stateName);
-          }
-        });
-      });
-      return Array.from(states).sort();
+      return [...new Set(Object.values(this.countyInfo)
+        .map(county => stateCodeMap[county.stateFips]))]
+        .filter(Boolean)
+        .sort();
     },
     availableCounties() {
       if (!this.selectedState) return [];
-      const stateFp = this.getStateFp(this.selectedState);
-      return Object.entries(this.countyData)
-        .flatMap(([name, counties]) => 
-          counties.filter(county => county.stateFp === stateFp)
-            .map(county => ({ ...county, name }))
-        )
-        .sort((a, b) => a.name.localeCompare(b.name)); // Sort counties alphabetically
+      
+      const stateFp = Object.keys(stateCodeMap)
+        .find(key => stateCodeMap[key] === this.selectedState);
+        
+      return Object.values(this.countyInfo)
+        .filter(county => county.stateFips === stateFp)
+        .map(county => ({
+          name: county.name,
+          fips: county.fips,
+          stateFips: county.stateFips
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
     }
   },
   methods: {
@@ -175,95 +184,55 @@ export default {
   },
 
   async runModel() {
-    const stateFips = this.getStateFp(this.selectedState);
-    const countyFips = this.selectedCounty.countyFp;
-    
-    if (stateFips && countyFips) {
-      const fullFips = stateFips + countyFips.padStart(3, '0');
-      const notification = useNotification();
-      
-      // Add job to the queue
-      const jobId = Date.now();
-      this.modelQueue.push({
-        id: jobId,
-        county: this.selectedCounty.name,
-        state: this.selectedState,
-        prediction: null,
-        status: 'pending'
-      });
-
-      notification.notify({
-        title: "Model Added to Queue",
-        text: `${this.selectedModel} model for ${this.selectedCounty.name}, ${this.selectedState} added to queue`,
-        type: "info",
-      });
-
-      // Display the longer-lasting toast notification
-      const dataRequestToast = notification.notify({
-        title: "Requesting Data",
-        text: "Requesting latest prediction data...",
-        type: "info",
-        duration: 10000, // 10 seconds
-      });
-
-      try {
-        // Make API request
-        const response = await axios.get(`https://us-central1-nifa-webgis.cloudfunctions.net/nifa-pred-get?FIPS=${fullFips}&year=2023`);
-        
-        // Close the data request toast
-        if (dataRequestToast && dataRequestToast.close) {
-          dataRequestToast.close();
-        }
-
-        // Simulate delay (1-3 seconds)
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 4000 + 1000));
-
-        const predictionData = response.data[0];
-        const prediction = predictionData.pred.toFixed(2);
-
-        // Update job in the queue
-        this.updateJobStatus(jobId, 'complete', prediction);
-        
-        notification.notify({
-          title: "Model Completed",
-          text: `${this.selectedModel} model run completed for ${this.selectedCounty.name}, ${this.selectedState}`,
-          type: "success",
-        });
-
-        // Add marker to the map
-        const countyInfo = this.countyInfo[fullFips];
-        if (countyInfo) {
-          const marker = {
-            lat: countyInfo.lat,
-            lon: countyInfo.lon,
-            name: this.selectedCounty.name,
-            value: prediction,
-          };
-          this.$store.commit('addMarker', marker);
-        }
-      } catch (error) {
-        console.error('Error fetching prediction:', error);
-        
-        // Close the data request toast if it's still open
-        if (dataRequestToast && dataRequestToast.close) {
-          dataRequestToast.close();
-        }
-
-        // Update job status to failed
-        this.updateJobStatus(jobId, 'failed');
-
-        notification.notify({
-          title: "Error",
-          text: "Failed to fetch prediction data",
-          type: "error",
-        });
-      }
-    } else {
+    if (!this.selectedCounty) {
       const notification = useNotification();
       notification.notify({
         title: "Error",
-        text: "Invalid state or county selection",
-        type: "error",
+        text: "Please select a county",
+        type: "error"
+      });
+      return;
+    }
+
+    const notification = useNotification();
+    const jobId = Date.now();
+
+    // Add job to queue
+    this.modelQueue.push({
+      id: jobId,
+      name: `${this.selectedCrop} - ${this.selectedCounty.name}, ${this.selectedState}`,
+      county: this.selectedCounty.name,
+      state: this.selectedState,
+      prediction: null,
+      status: 'pending'
+    });
+
+    try {
+      const response = await axios.get(
+        `/api/predictions/${this.selectedCrop}/${this.selectedYear}/${this.selectedPredictionType}/${this.selectedCounty.fips}`
+      );
+
+      // Update job status with prediction
+      const prediction = this.selectedPredictionType === 'in_season' 
+        ? Object.values(response.data.predictions).pop().prediction
+        : response.data.prediction;
+
+      this.updateJobStatus(jobId, 'complete', prediction);
+
+      notification.notify({
+        title: "Prediction Complete",
+        text: `Prediction for ${this.selectedCounty.name}, ${this.selectedState} completed successfully`,
+        type: "success"
+      });
+
+    } catch (error) {
+      console.error('Error fetching prediction:', error);
+      this.updateJobStatus(jobId, 'failed');
+      
+      notification.notify({
+        title: "Error",
+        text: error.response?.data?.detail || "Failed to fetch prediction",
+        type: "error"
       });
     }
   },
@@ -389,56 +358,39 @@ export default {
       });
 
       const notification = useNotification();
-      notification.notify({
-        title: "Selected Area Added to Queue",
-        text: `${polygonName} added to processing queue`,
-        type: "info",
-      });
-
-      notification.notify({
-          title: "Running Model",
-          text: `Running model on the latest data`,
-          type: "info",
-        });
       
       try {
         const response = await axios.post(
-          'https://crop-prediction-endpoint.replit.app/api/predict',
-          JSON.stringify(featureCollection),
+          '/api/model/',
+          featureCollection,
           {
             headers: {
               'Content-Type': 'application/json'
             }
           }
         );
-        console.log('Selected area processed:', response.data);
+
+        if (response.data.status === 'success') {
+          const prediction = response.data.prediction[0].toFixed(2); // Format to 2 decimal places
+          this.updateJobStatus(jobId, 'complete', prediction);
+          
+          notification.notify({
+            title: "Prediction Complete",
+            text: `Prediction for selected area: ${prediction} bu/acre`,
+            type: "success"
+          });
+        } else {
+          throw new Error('Prediction failed');
+        }
         
-        // Simulate delay (1-3 seconds)
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
-
-        const prediction = response.data.prediction.toFixed(2);
-
-        // Update job in the queue
-        this.updateJobStatus(jobId, 'complete', prediction);
-        
-        notification.notify({
-          title: "Selected Area Processed",
-          text: `${polygonName} processed successfully`,
-          type: "success",
-        });
-
-        
-
       } catch (error) {
         console.error('Error processing selected area:', error);
-        
-        // Update job status to failed
         this.updateJobStatus(jobId, 'failed');
-
+        
         notification.notify({
           title: "Error",
-          text: `Failed to process ${polygonName}`,
-          type: "error",
+          text: error.response?.data?.detail || "Failed to process selected area",
+          type: "error"
         });
       }
     },

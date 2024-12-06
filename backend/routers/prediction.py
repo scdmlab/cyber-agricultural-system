@@ -14,7 +14,19 @@ def get_all_prediction_files(crop: str, year: str) -> list[Path]:
     result_dir = BASE_DIR / f"result_{crop}" / "bnn"
     return list(result_dir.glob(f"result{year}*.csv"))
 
-@router.get("/api/predictions/{crop}/{year}/{prediction_type}/{fips}")
+@router.get("/api/predictions/{crop}/{year}/{prediction_type}/{fips}",
+    summary="Get Crop Yield Predictions",
+    description="""
+    Retrieves crop yield predictions for a specific county (FIPS code).
+    
+    Parameters:
+    - crop: Type of crop (corn or soybean)
+    - year: Prediction year
+    - prediction_type: Either 'end_of_season' or 'in_season'
+    - fips: County FIPS code
+    
+    Returns predictions and uncertainty estimates.
+    """)
 async def get_predictions(
     crop: Literal["corn", "soybean"],
     year: str,
