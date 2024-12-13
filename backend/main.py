@@ -3,8 +3,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 import pandas as pd
-from pathlib import Path
+from pathlib import Path as FilePath
 import os
+from pydantic import BaseModel, Field
+from typing import List
+from enum import Enum
+from fastapi.params import Path
 
 from routers import model, prediction, health
 
@@ -42,10 +46,20 @@ app.include_router(model.router, tags=["Model"])
 app.include_router(prediction.router, tags=["Predictions"])
 
 # Data directory configuration
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = FilePath(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 RESULT_DIR = BASE_DIR / "result_corn"
 RESULT_SOYBEAN_DIR = BASE_DIR / "result_soybean"
+
+class CropType(str, Enum):
+    corn = "corn"
+    soybean = "soybean"
+
+class PredictionRecord(BaseModel):
+    FIPS: int = Field(..., description="County FIPS code", example=55013)
+    y_test_pred: float = Field(..., description="Predicted crop yield in bushels per acre", example=45.8)
+    y_test: float = Field(..., description="Actual crop yield in bushels per acre", example=45.8)
+    y_test_pred_uncertainty: float = Field(..., description="Prediction uncertainty (standard deviation)", example=0.79)
 
 @app.get("/api/data/{crop}/{year}/{month}.json", include_in_schema=False)
 async def get_map_data(crop: str, year: str, month: str):
@@ -95,8 +109,63 @@ async def get_county_info():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/predictions/{crop}/{year}")
-async def get_predictions(crop: str, year: str):
+@app.get(
+    "/api/predictions/{crop}/{year}",
+    summary="Get All County Predictions",
+    description="""
+    Retrieves crop yield predictions for all counties for a specific crop and year.
+    
+    The response includes:
+    - FIPS code for each county
+    - Predicted yield (bushels per acre)
+    - Actual yield (bushels per acre)
+    - Prediction uncertainty (standard deviation)
+    """,
+    response_model=List[PredictionRecord],
+    responses={
+        200: {
+            "description": "Successful retrieval of predictions",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "FIPS": 55013,
+                            "y_test_pred": 45.8,
+                            "y_test": 45.8,
+                            "y_test_pred_uncertainty": 0.79
+                        },
+                        {
+                            "FIPS": 27097,
+                            "y_test_pred": 51.0,
+                            "y_test": 51.0,
+                            "y_test_pred_uncertainty": 0.78
+                        }
+                    ]
+                }
+            }
+        },
+        404: {
+            "description": "Predictions not found",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "No predictions found for specified crop and year"}
+                }
+            }
+        },
+        500: {
+            "description": "Internal Server Error",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Error reading prediction file"}
+                }
+            }
+        }
+    }
+)
+async def get_predictions(
+    crop: CropType = Path(..., description="Type of crop (corn or soybean)"),
+    year: str = Path(..., description="Prediction year (e.g., 2024)", regex="^20\d{2}$")
+):
     try:
         base_dir = RESULT_SOYBEAN_DIR if crop == "soybean" else RESULT_DIR
         file_path = base_dir / "bnn" / f"result{year}.csv"
