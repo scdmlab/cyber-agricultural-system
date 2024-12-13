@@ -1,13 +1,22 @@
 from fastapi import APIRouter, HTTPException, Query
 from pathlib import Path
 import pandas as pd
-from typing import Literal, Optional
+from enum import Enum
 import re
 
 router = APIRouter()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 VALID_CROPS = ["corn", "soybean"]
+
+# Define enums for validation
+class CropType(str, Enum):
+    corn = "corn"
+    soybean = "soybean"
+
+class PredictionType(str, Enum):
+    end_of_season = "end_of_season"
+    in_season = "in_season"
 
 def get_all_prediction_files(crop: str, year: str) -> list[Path]:
     """Helper function to get all prediction files for a year"""
@@ -28,9 +37,9 @@ def get_all_prediction_files(crop: str, year: str) -> list[Path]:
     Returns predictions and uncertainty estimates.
     """)
 async def get_predictions(
-    crop: Literal["corn", "soybean"],
+    crop: CropType,
     year: str,
-    prediction_type: Literal["end_of_season", "in_season"],
+    prediction_type: PredictionType,
     fips: str
 ):
     """
@@ -42,18 +51,18 @@ async def get_predictions(
     - prediction_type: end_of_season or in_season
     - fips: county FIPS code
     """
-    if crop not in VALID_CROPS:
+    if crop.value not in VALID_CROPS:
         raise HTTPException(status_code=400, detail="Invalid crop type")
     
     try:
-        result_dir = BASE_DIR / f"result_{crop}" / "bnn"
+        result_dir = BASE_DIR / f"result_{crop.value}" / "bnn"
         
-        if prediction_type == "end_of_season":
+        if prediction_type == PredictionType.end_of_season:
             file_path = result_dir / f"result{year}.csv"
             if not file_path.exists():
                 raise HTTPException(
                     status_code=404, 
-                    detail=f"No predictions available for {crop} in {year}"
+                    detail=f"No predictions available for {crop.value} in {year}"
                 )
             
             df = pd.read_csv(file_path)
@@ -66,7 +75,7 @@ async def get_predictions(
                 )
             
             return {
-                "crop": crop,
+                "crop": crop.value,
                 "year": year,
                 "fips": fips,
                 "prediction": float(prediction.iloc[0]['y_test_pred']),
@@ -75,11 +84,11 @@ async def get_predictions(
             }
             
         else:  # in_season
-            files = get_all_prediction_files(crop, year)
+            files = get_all_prediction_files(crop.value, year)
             if not files:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"No predictions found for {crop} in {year}"
+                    detail=f"No predictions found for {crop.value} in {year}"
                 )
             
             predictions = {}
@@ -104,7 +113,7 @@ async def get_predictions(
                 )
             
             return {
-                "crop": crop,
+                "crop": crop.value,
                 "year": year,
                 "fips": fips,
                 "predictions": predictions
