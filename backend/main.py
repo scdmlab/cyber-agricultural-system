@@ -57,9 +57,9 @@ class CropType(str, Enum):
 
 class PredictionRecord(BaseModel):
     FIPS: int = Field(..., description="County FIPS code", example=55013)
-    y_test_pred: float = Field(..., description="Predicted crop yield in bushels per acre", example=45.8)
-    y_test: float = Field(..., description="Actual crop yield in bushels per acre", example=45.8)
-    y_test_pred_uncertainty: float = Field(..., description="Prediction uncertainty (standard deviation)", example=0.79)
+    y_test_pred: float = Field(..., description="Predicted yield", example=45.8)
+    y_test: float = Field(..., description="Actual yield", example=45.8)
+    y_test_pred_uncertainty: float = Field(..., description="Prediction uncertainty", example=0.79)
 
 @app.get("/api/data/{crop}/{year}/{month}.json", include_in_schema=False)
 async def get_map_data(crop: str, year: str, month: str):
@@ -117,9 +117,9 @@ async def get_county_info():
     
     The response includes:
     - FIPS code for each county
-    - Predicted yield (bushels per acre)
-    - Actual yield (bushels per acre)
-    - Prediction uncertainty (standard deviation)
+    - Predicted yield
+    - Actual yield
+    - Prediction uncertainty
     """,
     response_model=List[PredictionRecord],
     responses={

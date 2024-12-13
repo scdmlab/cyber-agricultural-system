@@ -28,16 +28,16 @@ def get_all_prediction_files(crop: str, year: str) -> list[PathLib]:
 
 # Define response models
 class PredictionData(BaseModel):
-    prediction: float = Field(..., description="Predicted crop yield in bushels per acre", example=45.8)
-    actual: float = Field(..., description="Actual crop yield in bushels per acre", example=45.8)
-    uncertainty: float = Field(..., description="Prediction uncertainty (standard deviation)", example=0.79)
+    prediction: float = Field(..., description="Predicted crop yield", example=45.8)
+    actual: float = Field(..., description="Actual crop yield", example=45.8)
+    uncertainty: float = Field(..., description="Prediction uncertainty", example=0.79)
 
 class SinglePredictionResponse(BaseModel):
     crop: str = Field(..., description="Crop type (corn or soybean)", example="corn")
     year: str = Field(..., description="Prediction year", example="2024")
     fips: str = Field(..., description="County FIPS code", example="55013")
-    prediction: float = Field(..., description="Predicted crop yield", example=45.8)
-    actual: float = Field(..., description="Actual crop yield", example=45.8)
+    prediction: float = Field(..., description="Predicted yield", example=45.8)
+    actual: float = Field(..., description="Actual yield", example=45.8)
     uncertainty: float = Field(..., description="Prediction uncertainty", example=0.79)
 
 class InSeasonPredictionResponse(BaseModel):
@@ -65,7 +65,6 @@ class InSeasonPredictionResponse(BaseModel):
     For end_of_season predictions, returns a single prediction for the entire season.
     For in_season predictions, returns multiple predictions throughout the growing season.
     
-    The prediction values are in bushels per acre.
     Uncertainty is represented as one standard deviation.
     """,
     response_model=Union[SinglePredictionResponse, InSeasonPredictionResponse],
