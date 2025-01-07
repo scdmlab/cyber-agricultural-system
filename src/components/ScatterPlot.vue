@@ -29,73 +29,74 @@
       let chart = null
 
       const renderScatterPlot = () => {
-      if (!chartRef.value) return
+        console.log('Rendering scatter plot with data:', props.datasets)
+        if (!chartRef.value) return
 
-      // Destroy previous chart if it exists
-      if (chart) {
-        chart.destroy()
-      }
+        // Destroy previous chart if it exists
+        if (chart) {
+          chart.destroy()
+        }
 
-      const ctx = chartRef.value.getContext('2d')
-      chart = new Chart(ctx, {
-        type: 'scatter',
-        data: {
-          datasets: props.datasets.map((dataset, index) => ({
-            label: dataset.countyName,
-            data: dataset.data,
-            backgroundColor: getColor(index),
-          }))
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: {
-              type: 'linear',
-              position: 'bottom',
-              title: {
-                display: true,
-                text: 'Year'
-              }
-            },
-            y: {
-              title: {
-                display: true,
-                text: 'Yield (BU/ACRE)'
-              }
-            }
+        const ctx = chartRef.value.getContext('2d')
+        chart = new Chart(ctx, {
+          type: 'scatter',
+          data: {
+            datasets: props.datasets.map((dataset, index) => ({
+              label: dataset.countyName,
+              data: dataset.data,
+              backgroundColor: getColor(index),
+            }))
           },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return `${context.dataset.label} - ${context.parsed.x}: ${context.parsed.y}`;
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                type: 'linear',
+                position: 'bottom',
+                title: {
+                  display: true,
+                  text: 'Year'
+                }
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: 'Yield (BU/ACRE)'
                 }
               }
-            }
-          },
-        }
-      })
-    }
+            },
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return `${context.dataset.label} - ${context.parsed.x}: ${context.parsed.y}`;
+                  }
+                }
+              }
+            },
+          }
+        })
+      }
   
-    const getColor = (index) => {
-      const colors = ['steelblue', 'orange', 'green', 'red', 'purple', 'brown', 'pink', 'gray', 'cyan', 'magenta']
-      return colors[index % colors.length]
-    }
+      const getColor = (index) => {
+        const colors = ['steelblue', 'orange', 'green', 'red', 'purple', 'brown', 'pink', 'gray', 'cyan', 'magenta']
+        return colors[index % colors.length]
+      }
 
       onMounted(() => {
         renderScatterPlot()
       })
   
       watch(() => props.datasets, () => {
-      renderScatterPlot()
-    }, { deep: true })
+        renderScatterPlot()
+      }, { deep: true })
 
-    onUnmounted(() => {
-      if (chart) {
-        chart.destroy()
-      }
-    })
+      onUnmounted(() => {
+        if (chart) {
+          chart.destroy()
+        }
+      })
   
       return { chartRef }
     }

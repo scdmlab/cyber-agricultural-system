@@ -100,13 +100,16 @@
       let histogramChart = null
   
       const scatterPlotDatasets = computed(() => {
-  return selectedCounties.value
-    .filter(county => county.selected && county.data.length > 0)
-    .map(county => ({
-      countyName: county.selected.name,
-      data: county.data.map(d => ({ x: d.year, y: d.yield }))
-    }))
-})
+        const datasets = selectedCounties.value
+          .filter(county => county.selected)
+          .map(county => ({
+            countyName: county.selected.name,
+            data: Array.isArray(county.data) ? county.data : []
+          }))
+        
+        console.log('Final datasets:', datasets) // Debug log
+        return datasets
+      })
 
       const countySuggestions = computed(() => {
         const uniqueCounties = new Map()
@@ -151,15 +154,19 @@ function updateCountyData(index) {
       const county = selectedCounties.value[index]
       if (county.selected) {
         const fips = county.selected.fips
-        county.data = historicalData.value
+        // Convert Proxy Array to regular array and access its values
+        const historicalDataArray = Array.from(historicalData.value)
+        console.log('Historical data array:', historicalDataArray) // Debug log
+
+        county.data = historicalDataArray
           .filter(d => d.FIPS === fips)
           .map(d => ({
-            year: d.year,
-            yield: d.yield,
-            pred: d.pred,
-            error: d.error
+            x: parseInt(d.year),
+            y: parseFloat(d.yield)
           }))
-          .sort((a, b) => a.year - b.year)
+          .sort((a, b) => a.x - b.x)
+        
+        console.log('Processed county data:', county.data) // Debug log
       }
     }
 
@@ -329,7 +336,7 @@ function updateCountyData(index) {
     border-radius: var(--border-radius);
   }
   
- 
+
 
   
   .suggestions li:hover {

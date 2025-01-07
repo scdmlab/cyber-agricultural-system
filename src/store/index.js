@@ -229,21 +229,25 @@ export default createStore({
             }
         },
         async fetchHistoricalData({ commit }) {
-          try {
-              const response = await fetch('/api/data/corn_yield_US.csv')
-              if (!response.ok) {
-                  throw new Error(`HTTP error! status: ${response.status}`)
-              }
-              const csvText = await response.text()
-              const parsedData = d3.csvParse(csvText, d => ({
-                  FIPS: d.FIPS,
-                  year: +d.year,
-                  yield: +d.yield
-              }))
-              commit('setHistoricalData', parsedData)
-          } catch (error) {
-              console.error('Error fetching historical data:', error)
-          }
+            try {
+                const response = await fetch('/api/data/corn_yield_US.csv')
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`)
+                }
+                const data = await response.json()
+                
+                // Ensure data is properly formatted
+                const transformedData = data.map(d => ({
+                    FIPS: d.FIPS.toString().padStart(5, '0'), // Ensure FIPS is properly formatted
+                    year: parseInt(d.year),
+                    yield: parseFloat(d.yield)
+                }))
+                
+                console.log('Transformed historical data:', transformedData) // Debug log
+                commit('setHistoricalData', transformedData)
+            } catch (error) {
+                console.error('Error fetching historical data:', error)
+            }
         },
         async fetchAveragePred({ commit }) {
             try {

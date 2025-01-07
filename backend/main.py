@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from typing import List
 from enum import Enum
 from fastapi.params import Path
+import numpy as np
 
 from routers import model, prediction, health
 
@@ -75,12 +76,40 @@ async def get_map_data(crop: str, year: str, month: str):
 async def get_historical_data():
     try:
         file_path = DATA_DIR / "corn_yield_US.csv"
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
+            
         df = pd.read_csv(file_path)
+        
+        # Print data info for debugging
+        print("DataFrame info:")
+        print(df.info())
+        
+        # Convert all numeric columns to float64 first
+        numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+        for col in numeric_columns:
+            df[col] = df[col].astype('float64', errors='ignore')
+        
+        # Replace problematic values
         df = df.replace([float('inf'), float('-inf')], None)
+        df = df.replace({pd.NA: None})
         df = df.where(pd.notnull(df), None)
-        return df.to_dict(orient="records")
+        
+        # Additional safety check
+        for col in df.columns:
+            df[col] = df[col].apply(lambda x: None if pd.isna(x) or (isinstance(x, float) and not np.isfinite(x)) else x)
+        
+        result = df.to_dict(orient="records")
+        
+        # Verify the result is JSON serializable
+        import json
+        json.dumps(result)  # This will raise an error if there are any JSON incompatible values
+        
+        return result
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Error processing CSV: {str(e)}")  # Debug log
+        raise HTTPException(status_code=500, detail=f"Error processing data: {str(e)}")
 
 @app.get("/api/data/average_pred.csv", include_in_schema=False)
 async def get_average_pred():
