@@ -45,6 +45,9 @@ export default createStore({
       modelQueue: [],
       drawnPolygons: [], // Add this line to store drawn polygons
       yearSliderVisible: true,
+      cachedPredictions: {}, // Add this line to store cached predictions
+      currentPredictionType: 'end-of-season',
+      currentDay: '188', // Default to day 188 (early July)
     },
     mutations: {
       setMap(state, data) {
@@ -150,6 +153,15 @@ export default createStore({
         setMapFont(state, font) {
           state.mapFont = font;
         },
+        setCachedPrediction(state, { key, data }) {
+          state.cachedPredictions[key] = data;
+        },
+        setPredictionType(state, type) {
+          state.currentPredictionType = type;
+        },
+        setPredictionDay(state, day) {
+          state.currentDay = day.toString().padStart(3, '0'); // Ensure 3-digit format (e.g., '060', '188')
+        },
     },
     actions: {
         async fetchMapData({ commit, state }) {
@@ -165,6 +177,7 @@ export default createStore({
                 console.error('Error fetching map data:', error)
             }
         },
+
         async loadCsvData({ state, commit }) {
             const { currentCrop, currentYear, currentMonth } = state
             const csvPath = `csv/${currentCrop}/${currentYear}/${currentMonth}.csv`
@@ -197,6 +210,64 @@ export default createStore({
               console.error('Error loading CSV data:', error)
             }
         },
+
+        async fetchPredictionData({ commit, state }) {
+          const { currentCrop, currentYear, currentDay, currentPredictionType } = state
+          
+          // Create a cache key
+          const cacheKey = currentPredictionType === 'end-of-season' 
+            ? `${currentCrop}_${currentYear}_eos`
+            : `${currentCrop}_${currentYear}_${currentDay}`
+
+          console.log(cacheKey)
+          
+          // Check cache first
+          if (state.cachedPredictions[cacheKey]) {
+            return state.cachedPredictions[cacheKey]
+          }
+
+          let csvPath = ''
+          if (currentPredictionType === 'end-of-season') {
+            csvPath = `result_${currentCrop}/bnn/result${currentYear}.csv`
+          } else if (currentPredictionType === 'in-season') {
+            csvPath = `result_${currentCrop}/bnn/result${currentYear}_${currentDay}.csv`
+          }
+
+          try {
+            const response = await fetch(csvPath)
+            if (!response.ok) {
+              throw new Error('Local file fetch failed')
+            }
+            const csvText = await response.text()
+            
+            // Parse CSV data
+            const parsedData = Papa.parse(csvText, {
+              header: true,
+              dynamicTyping: true,
+              skipEmptyLines: true
+            }).data
+
+            const predictions = parsedData
+              .filter(row => row.FIPS)
+              .map(row => ({
+                FIPS: row.FIPS.toString(),
+                pred: parseFloat(row.y_test_pred),
+                yield: parseFloat(row.y_test),
+                uncertainty: parseFloat(row.y_test_pred_uncertainty),
+                error: parseFloat(row.y_test_pred) - parseFloat(row.y_test)
+              }))
+
+            // Cache the processed data
+            commit('setCachedPrediction', { key: cacheKey, data: predictions })
+            return predictions
+
+          } catch (error) {
+            console.error('Error fetching prediction data:', error)
+            return []
+          }
+        },
+
+
         async fetchAllPredictions({ commit, state }) {
             try {
                 const predictions = [];
@@ -243,26 +314,50 @@ export default createStore({
                     yield: parseFloat(d.yield)
                 }))
                 
-                console.log('Transformed historical data:', transformedData) // Debug log
+                // console.log('Transformed historical data:', transformedData) // Debug log
                 commit('setHistoricalData', transformedData)
             } catch (error) {
                 console.error('Error fetching historical data:', error)
             }
         },
+        
         async fetchAveragePred({ commit }) {
             try {
+                // First try the API endpoint
                 const response = await fetch('/api/data/average_pred.csv')
+                if (!response.ok) {
+                    throw new Error('API endpoint failed')
+                }
                 const csvText = await response.text()
                 const parsedData = d3.csvParse(csvText, d => ({
                     FIPS: d.FIPS,
                     year: +d.YEAR,
                     pred: +d.PRED,
                     yield: +d.YIELD,
-                    crop: d.CROP === 'c'? 'corn' : 'soybean'
+                    crop: d.CROP === 'c' ? 'corn' : 'soybean'
                 }))
                 commit('setAveragePredData', parsedData)
             } catch (error) {
-                console.error('Error fetching historical data:', error)
+                console.warn('API fetch failed, trying local file:', error)
+                try {
+                    // Fallback to public directory
+                    const response = await fetch('/data/average_pred.csv')
+                    if (!response.ok) {
+                        throw new Error('Local file fetch failed')
+                    }
+                    const csvText = await response.text()
+                    const parsedData = d3.csvParse(csvText, d => ({
+                        FIPS: d.FIPS,
+                        year: +d.YEAR,
+                        pred: +d.PRED,
+                        yield: +d.YIELD,
+                        crop: d.CROP === 'c' ? 'corn' : 'soybean'
+                    }))
+                    commit('setAveragePredData', parsedData)
+                } catch (finalError) {
+                    console.error('Error fetching average prediction data:', finalError)
+                    commit('setAveragePredData', [])
+                }
             }
         },
         

@@ -19,17 +19,25 @@
       </div>
       
       <div>
-        <label for="month" class="block text-sm font-medium text-gray-700">Prediction Date:</label>
-        <select id="month" v-model="localMonth" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
-          <option v-for="(date, index) in monthOptions" :key="index" :value="index">{{ date }}</option>
+        <label for="predictionType" class="block text-sm font-medium text-gray-700">Prediction Type:</label>
+        <select id="predictionType" v-model="localPredictionType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+          <option value="end-of-season">End of Season</option>
+          <option value="in-season">In Season</option>
+        </select>
+      </div>
+      
+      <div v-if="localPredictionType === 'in-season'">
+        <label for="date" class="block text-sm font-medium text-gray-700">Prediction Date:</label>
+        <select id="date" v-model="localDay" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+          <option v-for="(date, day) in dayMapping" :key="day" :value="day">{{ date }}</option>
         </select>
       </div>
       
       <div>
-        <label for="property" class="block text-sm font-medium text-gray-700">Property:</label>
-        <select id="property" v-model="localProperty" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+        <label for="results" class="block text-sm font-medium text-gray-700">Results:</label>
+        <select id="results" v-model="localProperty" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
           <option value="pred">Prediction</option>
-          <option value="yield">Yield</option>
+          <option value="yield">Actual Yield</option>
           <option value="error">Error</option>
           <option value="uncertainty">Uncertainty</option>
         </select>
@@ -41,85 +49,88 @@
 </template>
 
 <script>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 
 export default {
   name: 'DataSelectionPanel',
-  emits: ['apply-data-selection'],
-  setup(props, { emit }) {
+  setup() {
     const store = useStore()
     const localCrop = ref(store.state.currentCrop)
     const localYear = ref(store.state.currentYear)
-    const localMonth = ref(store.state.currentMonth)
+    const localDay = ref(store.state.currentDay)
     const localProperty = ref(store.state.currentProperty)
+    const localPredictionType = ref(store.state.currentPredictionType)
 
-    const monthOptions = {
-      "0": "05/13",
-      "1": "05/29",
-      "2": "06/14",
-      "3": "06/30",
-      "4": "07/16",
-      "5": "08/01",
-      "6": "08/17",
-      "7": "09/02",
-      "8": "09/18",
-      "9": "10/04"
+    const dayMapping = {
+      "060": "03/01",
+      "076": "03/17",
+      "092": "04/02",
+      "108": "04/18",
+      "124": "05/04",
+      "140": "05/20",
+      "156": "06/05",
+      "172": "06/21",
+      "188": "07/07",
+      "204": "07/23",
+      "220": "08/08",
+      "236": "08/24",
+      "252": "09/09",
+      "268": "09/25",
+      "284": "10/11"
     }
 
     const years = computed(() => {
-      return Array.from({ length: 12 }, (_, i) => (2010 + i).toString())
+      return Array.from({ length: 10 }, (_, i) => (2015 + i).toString())
     })
 
-    const months = computed(() => {
-      return Array.from({ length: 10 }, (_, i) => i.toString())
+    // Watch for prediction type changes
+    watch(localPredictionType, (newType) => {
+      if (newType === 'end-of-season') {
+        localDay.value = null // Clear day selection for end-of-season
+      } else if (newType === 'in-season' && !localDay.value) {
+        localDay.value = '188' // Set default day for in-season
+      }
     })
 
-    function applyDataSelection() {
+    async function applyDataSelection() {
+      // Update store state
       store.commit('setCrop', localCrop.value)
       store.commit('setYear', localYear.value)
-      store.commit('setMonth', localMonth.value)
       store.commit('setProperty', localProperty.value)
-      
-      store.dispatch('loadCsvData').then(() => {
-        // Get the current data
-        const currentYear = parseInt(store.state.currentYear)
-        const currentProperty = store.state.currentProperty
-        const allPredictions = store.state.allPredictions
+      store.commit('setPredictionType', localPredictionType.value)
+      if (localPredictionType.value === 'in-season') {
+        store.commit('setPredictionDay', parseInt(localDay.value))
+      }
 
-        // Filter data for the current year and property
-        const values = allPredictions
-          .filter(row => row.year === currentYear)
-          .map(row => parseFloat(row[currentProperty]))
-          .filter(v => !isNaN(v) && v !== null && v !== undefined)
+      // Fetch new prediction data
+      const predictions = await store.dispatch('fetchPredictionData')
 
+      // Update choropleth with new data
+      if (predictions && predictions.length > 0) {
+        const values = predictions.map(p => p[localProperty.value]).filter(v => !isNaN(v))
         if (values.length > 0) {
           const minValue = Math.min(...values)
           const maxValue = Math.max(...values)
-
-          // Update choropleth settings with new min/max values
           store.commit('setChoroplethSettings', {
             ...store.state.choroplethSettings,
             minValue,
             maxValue
           })
         }
-
-        // Emit event after data selection is applied
-        emit('apply-data-selection')
-      })
+      }
     }
 
     return {
       localCrop,
       localYear,
-      localMonth,
+      localDay,
       localProperty,
+      localPredictionType,
       years,
-      months,
-      applyDataSelection,
-      monthOptions
+      dayMapping,
+      applyDataSelection
     }
-  },
+  }
 }
 </script>

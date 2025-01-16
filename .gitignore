@@ -33,6 +33,7 @@ coverage
 .cursorignore
 
 .dist
+dist/
 
 __pycache__/
 backend/__pycache__/
@@ -41,3 +42,4 @@ backend/utils/__pycache__/
 #remove secrets
 .env
 backend/utils/nifa-webgis-4e708187c46c.json
+
