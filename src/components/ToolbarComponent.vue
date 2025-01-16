@@ -5,10 +5,6 @@
       <div class="flex justify-between items-center h-full w-full">
         <!-- Left group -->
         <div class="flex items-center space-x-2">
-          <button @click="toggleSidebar('run')" aria-label="Run Model" class="toolbar-button">
-            <Icon icon="mdi:play" class="text-gray-600" />
-            <span class="tooltip">Models</span> 
-          </button>
           <button @click="toggleSidebar('data')" aria-label="Data" class="toolbar-button">
             <Icon icon="mdi:database" class="text-gray-600" />
             <span class="tooltip">Data Selection</span>

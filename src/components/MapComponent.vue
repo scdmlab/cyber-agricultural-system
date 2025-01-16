@@ -19,7 +19,6 @@
         <DataSelectionPanel v-if="activeSidebar === 'data'" />
         <DataAnalysisPanel v-if="activeSidebar === 'analysis'" />
         <MappingPanel v-if="activeSidebar === 'mapping'" />
-        <ModelPanel v-if="activeSidebar === 'run'" />
       </div>
     </transition>
     <div id="map" ref="mapContainer"></div>
@@ -51,7 +50,6 @@ import DataSelectionPanel from "@/components/DataSelectionPanel.vue";
 import ToolbarComponent from "@/components/ToolbarComponent.vue";
 import DataAnalysisPanel from "@/components/DataAnalysisPanel.vue";
 import MappingPanel from "@/components/MappingPanel.vue";
-import ModelPanel from "@/components/ModelPanel.vue";
 import LegendComponent from "@/components/LegendComponent.vue";
 import YearSlider from "@/components/YearSlider.vue";
 
@@ -63,7 +61,6 @@ export default {
     Icon,
     DataAnalysisPanel,
     MappingPanel,
-    ModelPanel,
     LegendComponent,
     YearSlider
   },
