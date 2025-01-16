@@ -42,7 +42,7 @@ import { onMounted, ref, computed } from 'vue';
 import { useStore } from 'vuex';
 import PopupWindow from './PopupWindow.vue';
 import maplibregl from 'maplibre-gl';
-import { MaplibreExportControl, Size, PageOrientation, Format } from '@watergis/maplibre-gl-export';
+
 
 // Define propertyTitleMap directly in this component
 const propertyTitleMap = {

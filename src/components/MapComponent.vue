@@ -576,12 +576,6 @@ export default {
       }
     }
 
-    function addDraggableControl(Control, options = {}, position = 'top-right') {
-      const control = new Control(options);
-      map.value.addControl(control, position);
-      makeDraggable(control);
-      return control;
-    }
 
 
     function zoomIn() {
@@ -695,7 +689,7 @@ export default {
       }
     }
 
-    function startResizeSidebar(event) {
+    function startResizeSidebar() {
       isResizing.value = true
       document.addEventListener('mousemove', resizeSidebar)
       document.addEventListener('mouseup', stopResizeSidebar)
@@ -732,11 +726,6 @@ export default {
         }
     }
 
-    function stopDrawing() {
-      if (draw.value) {
-        draw.value.changeMode('simple_select')
-      }
-    }
 
     onBeforeUnmount(() => {
       if (map.value) {
