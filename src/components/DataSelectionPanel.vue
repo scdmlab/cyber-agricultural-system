@@ -1,6 +1,6 @@
 <template>
   <div class="bg-white p-6 rounded-lg shadow-md">
-    <h2 class="text-2xl font-bold text-green-600 mb-4">Data Selection</h2>
+    <h2 class="text-2xl font-bold text-green-600 mb-4">Time Selection</h2>
     
     <div class="space-y-4">
       <div>
@@ -29,17 +29,17 @@
       <div v-if="localPredictionType === 'in-season'">
         <label for="date" class="block text-sm font-medium text-gray-700">Prediction Date:</label>
         <select id="date" v-model="localDay" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
-          <option v-for="(date, day) in dayMapping" :key="day" :value="day">{{ date }}</option>
+          <option v-for="{ day, date } in sortedDays" :key="day" :value="day">{{ date }}</option>
         </select>
       </div>
       
       <div>
         <label for="results" class="block text-sm font-medium text-gray-700">Results:</label>
         <select id="results" v-model="localProperty" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
-          <option value="pred">Prediction</option>
-          <option value="yield">Actual Yield</option>
-          <option value="error">Error</option>
-          <option value="uncertainty">Uncertainty</option>
+          <option value="pred">Predicted Yield (bu/acre)</option>
+          <!-- <option value="yield">Actual Yield: Unit: bu/acre</option> -->
+          <option value="error">Prediction Error (bu/acre)</option>
+          <option value="uncertainty">Model Uncertainty</option>
         </select>
       </div>
     </div>
@@ -63,25 +63,32 @@ export default {
     const localPredictionType = ref(store.state.currentPredictionType)
 
     const dayMapping = {
-      "060": "03/01",
-      "076": "03/17",
-      "092": "04/02",
-      "108": "04/18",
-      "124": "05/04",
-      "140": "05/20",
-      "156": "06/05",
-      "172": "06/21",
-      "188": "07/07",
-      "204": "07/23",
-      "220": "08/08",
-      "236": "08/24",
-      "252": "09/09",
-      "268": "09/25",
-      "284": "10/11"
+      "060": "March 1",
+      "076": "March 17",
+      "092": "April 2",
+      "108": "April 18",
+      "124": "May 4",
+      "140": "May 20",
+      "156": "June 5",
+      "172": "June 21",
+      "188": "July 7",
+      "204": "July 23",
+      "220": "August 8",
+      "236": "August 24",
+      "252": "September 9",
+      "268": "September 25",
+      "284": "October 11"
     }
 
     const years = computed(() => {
       return Array.from({ length: 10 }, (_, i) => (2015 + i).toString())
+    })
+
+    // Create a sorted entries array for the template
+    const sortedDays = computed(() => {
+      return Object.entries(dayMapping)
+        .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
+        .map(([day, date]) => ({ day, date }))
     })
 
     // Watch for prediction type changes
@@ -128,7 +135,7 @@ export default {
       localProperty,
       localPredictionType,
       years,
-      dayMapping,
+      sortedDays,
       applyDataSelection
     }
   }

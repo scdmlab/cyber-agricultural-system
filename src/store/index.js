@@ -219,7 +219,7 @@ export default createStore({
             ? `${currentCrop}_${currentYear}_eos`
             : `${currentCrop}_${currentYear}_${currentDay}`
 
-          console.log(cacheKey)
+          console.log("Fetching prediction data:", { currentPredictionType, currentDay, csvPath: cacheKey })
           
           // Check cache first
           if (state.cachedPredictions[cacheKey]) {
@@ -228,15 +228,18 @@ export default createStore({
 
           let csvPath = ''
           if (currentPredictionType === 'end-of-season') {
-            csvPath = `result_${currentCrop}/bnn/result${currentYear}.csv`
-          } else if (currentPredictionType === 'in-season') {
-            csvPath = `result_${currentCrop}/bnn/result${currentYear}_${currentDay}.csv`
+            csvPath = `/result_${currentCrop}/bnn/result${currentYear}.csv`
+          } else {
+            // Ensure day is padded to 3 digits
+            const paddedDay = currentDay.toString().padStart(3, '0')
+            csvPath = `/result_${currentCrop}/bnn/result${currentYear}_${paddedDay}.csv`
           }
 
           try {
+            console.log("Attempting to fetch from:", csvPath)
             const response = await fetch(csvPath)
             if (!response.ok) {
-              throw new Error('Local file fetch failed')
+              throw new Error(`Failed to fetch ${csvPath}: ${response.status}`)
             }
             const csvText = await response.text()
             

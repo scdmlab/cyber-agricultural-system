@@ -177,27 +177,31 @@ export default {
     );
 
 
-    const updateChoropleth = (newSettings = null) => {
-      const csvData = store.state.csvData
-      const currentProperty = store.state.currentProperty
-
-      if (!csvData || !map.value || !map.value.getSource('counties')) {
+    const updateChoropleth = async () => {
+      if (!map.value || !map.value.getSource('counties')) {
         return
       }
 
+      // Fetch prediction data using the store action
+      const predictions = await store.dispatch('fetchPredictionData')
+      if (!predictions || predictions.length === 0) {
+        console.warn('No prediction data available')
+        return
+      }
+
+      // Create data lookup by FIPS
       const dataById = {}
-      const currentYear = parseInt(store.state.currentYear)
-      
-      // Collect data for the current year
-      allPredictions.value.forEach(row => {
-        if (row.year === currentYear) {
-          let val;
-          if (currentProperty === 'uncertainty') {
-            val = parseFloat(row.uncertainty)
-          } else {
-            val = parseFloat(row[currentProperty])
-          }
-          if (!isNaN(val)) dataById[row.FIPS] = val
+      predictions.forEach(row => {
+        let val
+        if (store.state.currentProperty === 'uncertainty') {
+          val = row.uncertainty
+        } else if (store.state.currentProperty === 'error') {
+          val = row.error
+        } else {
+          val = row[store.state.currentProperty]
+        }
+        if (!isNaN(val)) {
+          dataById[row.FIPS] = val
         }
       })
 
@@ -206,44 +210,25 @@ export default {
       let minValue = Math.min(...values)
       let maxValue = Math.max(...values)
 
-      // Update how we handle different properties
-      if (currentProperty === 'error') {
+      // Handle different properties
+      if (store.state.currentProperty === 'error') {
         const absMax = Math.max(Math.abs(minValue), Math.abs(maxValue))
         minValue = -absMax
         maxValue = absMax
-      } else if (currentProperty === 'uncertainty') {
-        minValue = 0  // Uncertainty should start at 0
+      } else if (store.state.currentProperty === 'uncertainty') {
+        minValue = 0
         maxValue = Math.max(...values)
       }
 
-      // Get the appropriate color scheme
-      const colors = choroplethSettings.value.colorSchemes[currentProperty] || choroplethSettings.value.colorSchemes.pred
+      // Get color scheme from settings
+      const colors = choroplethSettings.value.colorSchemes[store.state.currentProperty] || 
+                     choroplethSettings.value.colorSchemes.pred
 
-      // Create color scale based on property type
-      if (currentProperty === 'error') {
-        const midpoint = 0
-        colorScale.value = (value) => {
-          if (value === null || value === undefined || isNaN(value)) {
-            return 'rgba(0, 0, 0, 0)'
-          }
-          if (value <= midpoint) {
-            return scaleLinear()
-              .domain([minValue, midpoint])
-              .range([colors[0], colors[1]])
-              .interpolate(interpolateRgb)(value)
-          } else {
-            return scaleLinear()
-              .domain([midpoint, maxValue])
-              .range([colors[1], colors[2]])
-              .interpolate(interpolateRgb)(value)
-          }
-        }
+      // Create appropriate color scale
+      if (store.state.currentProperty === 'error') {
+        colorScale.value = createDivergingColorScale(minValue, maxValue, colors)
       } else {
-        // Use this scale for both 'pred', 'yield', and 'uncertainty'
-        colorScale.value = scaleLinear()
-          .domain([minValue, maxValue])
-          .range(colors)
-          .interpolate(interpolateRgb)
+        colorScale.value = createSequentialColorScale(minValue, maxValue, colors)
       }
 
       // Update store with new min/max values
@@ -269,13 +254,45 @@ export default {
         features: updatedFeatures
       })
 
-      // Update the layer paint properties
+      // Update the paint property for the counties layer
       map.value.setPaintProperty('counties-layer', 'fill-color', [
         'case',
-        ['boolean', ['feature-state', 'hover'], false],
-        '#666666',
-        ['get', 'color']
+        ['has', 'value'],
+        ['get', 'color'],
+        'rgba(0, 0, 0, 0)' // transparent for counties with no data
       ])
+
+      // Optional: Update opacity if needed
+      map.value.setPaintProperty('counties-layer', 'fill-opacity', 
+        choroplethSettings.value.choroplethOpacity
+      )
+    }
+
+    // Helper functions for color scales
+    const createSequentialColorScale = (min, max, colors) => {
+      return scaleLinear()
+        .domain([min, max])
+        .range(colors)
+        .interpolate(interpolateRgb)
+    }
+
+    const createDivergingColorScale = (min, max, colors) => {
+      return (value) => {
+        if (value === null || value === undefined || isNaN(value)) {
+          return 'rgba(0, 0, 0, 0)'
+        }
+        if (value <= 0) {
+          return scaleLinear()
+            .domain([min, 0])
+            .range([colors[0], colors[1]])
+            .interpolate(interpolateRgb)(value)
+        } else {
+          return scaleLinear()
+            .domain([0, max])
+            .range([colors[1], colors[2]])
+            .interpolate(interpolateRgb)(value)
+        }
+      }
     }
 
     const getColor = (value) => {
@@ -289,12 +306,12 @@ export default {
       () => [
         store.state.currentCrop,
         store.state.currentYear,
-        store.state.currentMonth,
         store.state.currentProperty,
-        store.state.csvData
+        store.state.currentPredictionType,
+        store.state.currentDay
       ],
-      () => {
-        updateChoropleth()
+      async () => {
+        await updateChoropleth()
       },
       { deep: true }
     )
