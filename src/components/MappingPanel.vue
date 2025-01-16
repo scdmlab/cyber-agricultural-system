@@ -34,9 +34,6 @@
       </div>
 
       <div class="flex space-x-4">
-        <button @click="exportMap" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">
-          Export Map
-        </button>
         <button @click="openMapEditor" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
           Edit Map
         </button>
@@ -86,30 +83,6 @@ export default {
       set: (value) => store.commit('setMapBackgroundColor', value)
     })
 
-    const exportMap = async () => {
-      const map = store.state.map;
-      if (!map) {
-        console.error('Map instance not found');
-        return;
-      }
-
-      try {
-        // Get the map canvas and convert it to a data URL
-        const canvas = map.getCanvas();
-        const dataURL = canvas.toDataURL('image/png');
-
-        // Create a temporary link element to trigger the download
-        const link = document.createElement('a');
-        link.href = dataURL;
-        link.download = `${title.value || 'map'}_export.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } catch (error) {
-        console.error('Error exporting map:', error);
-      }
-    }
-
     const openMapEditor = () => {
       showMapEditor.value = true;
     };
@@ -128,7 +101,6 @@ export default {
       description,
       font,
       backgroundColor,
-      exportMap,
       showMapEditor,
       openMapEditor,
       closeMapEditor,

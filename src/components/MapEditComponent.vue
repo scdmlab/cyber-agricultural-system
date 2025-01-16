@@ -1,27 +1,44 @@
 <template>
   <PopupWindow :title="'Edit Map'" :width="800" :height="600" @close="closeEditor">
     <div class="map-edit-container">
-      <div class="map-title">{{ mapTitle }}</div>
+      <div class="map-title" :style="{ fontFamily: mapFont }">{{ mapTitle }}</div>
       <div class="map-metadata">
         <div class="north-arrow">
-          <svg width="24" height="24" viewBox="0 0 24 24">
-            <!-- Professional North Arrow -->
-            <g fill="#666">
+          <svg width="24" height="32" viewBox="0 0 24 32">
+            <!-- North Arrow with professional design -->
+            <g transform="translate(12,16)">
               <!-- Main Arrow -->
-              <path d="M12 2L17 12H7L12 2Z" />
-              <!-- Decorative Lines -->
-              <rect x="11" y="12" width="2" height="10" />
-              <path d="M12 14L14 12H10L12 14Z" />
+              <path 
+                d="M0,-14 L7,2 L0,-2 L-7,2 Z" 
+                fill="#555"
+                stroke="#555"
+                stroke-width="1"
+              />
+              <!-- Stem -->
+              <rect 
+                x="-1" 
+                y="-2" 
+                width="2" 
+                height="12" 
+                fill="#555"
+              />
+              <!-- N Letter -->
+              <text 
+                y="14"
+                text-anchor="middle" 
+                font-size="10" 
+                font-weight="bold" 
+                fill="#555"
+                font-family="Arial"
+              >N</text>
             </g>
-            <!-- N Letter -->
-            <text x="12" y="20" text-anchor="middle" font-size="8" font-weight="bold" fill="#666">N</text>
           </svg>
         </div>
-        <div class="map-description">{{ mapDescription }}</div>
+        <div class="map-description" :style="{ fontFamily: mapFont }">{{ mapDescription }}</div>
         <div class="simple-legend" v-if="currentProperty">
-          <span class="legend-min">{{ currentMinValue.toFixed(2) }}</span>
+          <span class="legend-min" :style="{ fontFamily: mapFont }">{{ currentMinValue.toFixed(2) }}</span>
           <div class="gradient-bar" :style="{ background: colorGradient }"></div>
-          <span class="legend-max">{{ currentMaxValue.toFixed(2) }}</span>
+          <span class="legend-max" :style="{ fontFamily: mapFont }">{{ currentMaxValue.toFixed(2) }}</span>
         </div>
       </div>
       <div id="map-editor" ref="mapContainer" class="map-container"></div>

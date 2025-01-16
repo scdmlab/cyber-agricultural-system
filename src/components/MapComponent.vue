@@ -37,12 +37,10 @@ import { onMounted, ref, watch, computed, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import {Icon} from '@iconify/vue'
 import { scaleLinear } from 'd3-scale'
 import { interpolateRgb } from 'd3-interpolate'
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
-import * as turf from '@turf/turf'
 import stateBoundaries from '@/assets/gz_2010_us_040_00_20m.json'
 import countyBoundaries from '@/assets/gz_2010_us_050_00_20m.json'
 
@@ -58,7 +56,6 @@ export default {
   components: {
     ToolbarComponent,
     DataSelectionPanel,
-    Icon,
     DataAnalysisPanel,
     MappingPanel,
     LegendComponent,
@@ -70,7 +67,6 @@ export default {
     const map = ref(null)
     const draw = ref(null)
     const drawnPolygons = ref([])
-    const allPredictions = computed(() => store.state.allPredictions)
     const activeSidebar = ref(null)
     const scaleControl = ref(null)
     const currentUnit = ref('metric')
