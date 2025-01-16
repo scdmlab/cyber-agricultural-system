@@ -4,6 +4,8 @@ import Papa from 'papaparse'
 import * as d3 from 'd3'
 import { getBasemapUrl } from '@/utils/basemaps'
 
+const baseUrl = import.meta.env.BASE_URL
+
 export default createStore({
     state: {
       map: null,
@@ -228,11 +230,11 @@ export default createStore({
 
           let csvPath = ''
           if (currentPredictionType === 'end-of-season') {
-            csvPath = `/result_${currentCrop}/bnn/result${currentYear}.csv`
+            csvPath = `${baseUrl}result_${currentCrop}/bnn/result${currentYear}.csv`
           } else {
             // Ensure day is padded to 3 digits
             const paddedDay = currentDay.toString().padStart(3, '0')
-            csvPath = `/result_${currentCrop}/bnn/result${currentYear}_${paddedDay}.csv`
+            csvPath = `${baseUrl}result_${currentCrop}/bnn/result${currentYear}_${paddedDay}.csv`
           }
 
           try {

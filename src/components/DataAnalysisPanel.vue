@@ -84,6 +84,7 @@ export default {
     }])
     const exportCrop = ref('all')
     const csvData = computed(() => store.state.csvData || [])
+    const baseUrl = import.meta.env.BASE_URL
 
     const countySuggestions = computed(() => {
       const uniqueCounties = new Map()
@@ -117,8 +118,8 @@ export default {
 
     async function fetchPredictionData(crop, year, day = null) {
       const csvPath = day 
-        ? `/result_${crop}/bnn/result${year}_${day.toString().padStart(3, '0')}.csv`
-        : `/result_${crop}/bnn/result${year}.csv`
+        ? `${baseUrl}result_${crop}/bnn/result${year}_${day.toString().padStart(3, '0')}.csv`
+        : `${baseUrl}result_${crop}/bnn/result${year}.csv`
 
       console.log(`Fetching data from: ${csvPath}`)
       try {
