@@ -3,8 +3,10 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
-export default defineConfig({
-  base: "/cyber-agricultural-system/",
+export default defineConfig(({ command }) => ({
+  base: command === 'build' 
+    ? '/cyber-agricultural-system/'
+    : '/',
   plugins: [
     vue(),
     vueDevTools({
@@ -29,4 +31,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))
