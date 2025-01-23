@@ -81,7 +81,12 @@ export default {
     }
 
     const years = computed(() => {
-      return Array.from({ length: 10 }, (_, i) => (2015 + i).toString())
+      const startYear = 2015
+      const endYear = localPredictionType.value === 'end-of-season' ? 2023 : 2024
+      return Array.from(
+        { length: endYear - startYear + 1 }, 
+        (_, i) => (startYear + i).toString()
+      )
     })
 
     // Create a sorted entries array for the template

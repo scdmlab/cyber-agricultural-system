@@ -15,14 +15,6 @@
       data: {
         type: Array,
         required: true
-      },
-      headers: {
-        type: Array,
-        required: true
-      },
-      columnToExclude: {
-        type: String,
-        default: ''
       }
     },
     data() {
@@ -35,44 +27,80 @@
     },
     methods: {
       initializeTable() {
-        const columns = this.getFormattedColumns();
+        const columns = [
+          { 
+            title: 'FIPS',
+            field: 'FIPS',
+            headerFilter: true,
+            width: 100
+          },
+          {
+            title: 'Predicted Yield',
+            field: 'pred',
+            headerFilter: true,
+            formatter: 'number',
+            formatterParams: {
+              precision: 2
+            },
+            width: 150
+          },
+          {
+            title: 'Actual Yield',
+            field: 'yield',
+            headerFilter: true,
+            formatter: 'number',
+            formatterParams: {
+              precision: 2
+            },
+            width: 150
+          },
+          {
+            title: 'Error',
+            field: 'error',
+            headerFilter: true,
+            formatter: 'number',
+            formatterParams: {
+              precision: 2
+            },
+            width: 120
+          },
+          {
+            title: 'Uncertainty',
+            field: 'uncertainty',
+            headerFilter: true,
+            formatter: 'number',
+            formatterParams: {
+              precision: 2
+            },
+            width: 120
+          }
+        ];
+
         this.table = new Tabulator(this.$refs.tableRef, {
-        data: this.data,
-        columns: columns,
-        layout: 'fitDataTable',
-        pagination: true,
-        paginationSize: 10,
-        paginationSizeSelector: [5, 10, 20, 50],
-        movableColumns: true,
-        responsiveLayout: 'hide',
-        height: '100%',
-        rowHeight: 30, // Reduced row height
-      });
-      },
-      getFormattedColumns() {
-        return this.headers
-          .filter(header => header !== this.columnToExclude)
-          .map(header => ({
-            title: this.getFriendlyName(header),
-            field: header,
-            headerFilter: true
-          }));
-      },
-      getFriendlyName(header) {
-        // Add your mapping logic here
-        const nameMap = {
-          'FIPS': 'FIPS',
-          "NAME":"County",
-          'yield': 'Yield',
-          'pred':"Prediction",
-          "error":"Error",
-          
-          "NAMELSAD":"NAMELSAD"
-        };
-        return nameMap[header] || this.capitalizeWords(header);
-      },
-      capitalizeWords(str) {
-        return str.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          data: this.data,
+          columns: columns,
+          layout: 'fitColumns',
+          pagination: true,
+          paginationSize: 15,
+          paginationSizeSelector: [10, 15, 20, 50],
+          movableColumns: true,
+          responsiveLayout: 'hide',
+          height: '400px',
+          rowHeight: 30,
+          initialSort: [
+            { column: 'FIPS', dir: 'asc' }
+          ]
+        });
+      }
+    },
+    watch: {
+      data: {
+        handler(newData) {
+          if (this.table) {
+            this.table.setData(newData);
+          }
+        },
+        deep: true
       }
     }
   }
@@ -80,41 +108,47 @@
   
   <style scoped>
   .data-table-wrapper {
-    width: 110%;
+    width: 100%;
     overflow-x: auto;
+    padding: 1rem;
   }
 
   /* Custom Tabulator Styles */
-.tabulator {
-  font-size: 14px; /* Adjust as needed */
-}
+  :deep(.tabulator) {
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
 
-.tabulator .tabulator-header .tabulator-col {
-  background-color: #f0aeae;
-  border-right: 1px solid #ddd;
-}
+  :deep(.tabulator .tabulator-header) {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+  }
 
-.tabulator .tabulator-header .tabulator-col-content {
-  padding: 2px;
-}
+  :deep(.tabulator .tabulator-header .tabulator-col) {
+    background-color: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+  }
 
-.tabulator .tabulator-header .tabulator-col-title {
-  color: rgb(177, 67, 67); /* Make header text black */
-  font-weight: bold;
-}
+  :deep(.tabulator .tabulator-header .tabulator-col-title) {
+    color: #495057;
+    font-weight: 600;
+  }
 
-.tabulator .tabulator-row .tabulator-cell {
-  padding: 6px 8px; /* Reduce cell padding to make columns narrower */
-}
+  :deep(.tabulator .tabulator-row) {
+    border-bottom: 1px solid #dee2e6;
+  }
 
-/* Adjust column widths */
-.tabulator-col {
-  min-width: 60px; /* Set a minimum width */
-  max-width: 200px; /* Set a maximum width */
-}
+  :deep(.tabulator .tabulator-row.tabulator-row-even) {
+    background-color: #f8f9fa;
+  }
 
-/* Add horizontal scrolling for the table */
-.tabulator .tabulator-tableholder {
-  overflow-x: auto;
-}
+  :deep(.tabulator .tabulator-row.tabulator-row-odd) {
+    background-color: #ffffff;
+  }
+
+  :deep(.tabulator .tabulator-footer) {
+    background-color: #f8f9fa;
+    border-top: 2px solid #dee2e6;
+  }
   </style>

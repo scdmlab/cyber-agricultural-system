@@ -111,7 +111,12 @@ export default {
     })
 
     const years = computed(() => {
-      return Array.from({ length: 9 }, (_, i) => (2015 + i).toString())
+      const startYear = 2015
+      const endYear = selectedPredictionType.value === 'end-of-season' ? 2023 : 2024
+      return Array.from(
+        { length: endYear - startYear + 1 }, 
+        (_, i) => (startYear + i).toString()
+      )
     })
 
     const sliderMin = computed(() => {
