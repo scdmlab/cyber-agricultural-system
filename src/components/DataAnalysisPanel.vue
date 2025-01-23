@@ -122,7 +122,9 @@ export default {
       county.selected = suggestion
       county.input = suggestion.name
       county.showSuggestions = false
-      console.log(`Selected county: ${suggestion.name} (FIPS: ${suggestion.fips})`)
+      
+      // Update the store with all selected FIPS codes
+      updateSelectedFIPS()
     }
 
     async function fetchPredictionData(crop, year, day = null) {
@@ -235,6 +237,16 @@ export default {
 
     function removeCounty(index) {
       selectedCounties.value.splice(index, 1)
+      // If no counties left, add an empty one
+      if (selectedCounties.value.length === 0) {
+        selectedCounties.value.push({ 
+          input: '', 
+          showSuggestions: false, 
+          selected: null, 
+          filteredSuggestions: [] 
+        })
+      }
+      updateSelectedFIPS()
     }
 
     function clearCounty(index) {
@@ -244,6 +256,15 @@ export default {
         selected: null, 
         filteredSuggestions: [] 
       }
+      updateSelectedFIPS()
+    }
+
+    // Helper function to update store with current selections
+    function updateSelectedFIPS() {
+      const selectedFIPS = selectedCounties.value
+        .filter(c => c.selected)
+        .map(c => c.selected.fips)
+      store.commit('setSelectedCountyFIPS', selectedFIPS)
     }
 
     const hasSelectedCounties = computed(() => {

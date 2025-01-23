@@ -258,10 +258,25 @@ export default {
         'rgba(0, 0, 0, 0)' // transparent for counties with no data
       ])
 
-      // Optional: Update opacity if needed
-      map.value.setPaintProperty('counties-layer', 'fill-opacity', 
-        choroplethSettings.value.choroplethOpacity
-      )
+      // Update the counties-layer paint property
+      watch(
+        () => store.getters.getSelectedCountyFIPS,
+        (newSelectedFIPS) => {
+          if (map.value) {
+            const paintExpression = [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              0.9, // hover opacity
+              ['in', ['get', 'FIPS'], ['literal', newSelectedFIPS.length ? newSelectedFIPS : ['']]], // check if FIPS is in selected array
+              0.8, // selected opacity
+              choroplethSettings.value.choroplethOpacity // default opacity
+            ];
+            
+            map.value.setPaintProperty('counties-layer', 'fill-opacity', paintExpression);
+          }
+        },
+        { deep: true }
+      );
     }
 
     // Helper functions for color scales
@@ -338,6 +353,67 @@ export default {
         
         // Trigger initial choropleth update
         updateChoropleth()
+
+        // Add a new layer for selected counties
+        map.value.addLayer({
+          id: 'selected-counties',
+          type: 'line',
+          source: 'counties',
+          paint: {
+            'line-color': '#FFD700', // Gold color for selection
+            'line-width': 3,
+            'line-opacity': 1
+          },
+          filter: ['in', ['get', 'FIPS'], ''], // Start with empty filter
+        });
+
+        // Update the filter whenever selected counties change
+        watch(
+          () => store.getters.getSelectedCountyFIPS,
+          (newSelectedFIPS) => {
+            if (map.value) {
+              if (newSelectedFIPS && newSelectedFIPS.length > 0) {
+                map.value.setFilter('selected-counties', [
+                  'in',
+                  ['get', 'FIPS'],
+                  ['literal', newSelectedFIPS] // Wrap the FIPS array in a literal expression
+                ]);
+              } else {
+                // When no counties are selected, set an impossible condition
+                map.value.setFilter('selected-counties', ['in', ['get', 'FIPS'], '']);
+              }
+            }
+          },
+          { deep: true, immediate: true }
+        );
+
+        // Also update the counties-layer paint property
+        map.value.setPaintProperty('counties-layer', 'fill-opacity', [
+          'case',
+          ['boolean', ['feature-state', 'hover'], false],
+          0.9,
+          ['in', ['get', 'FIPS'], ['literal', store.getters.getSelectedCountyFIPS.length ? store.getters.getSelectedCountyFIPS : ['']]],
+          0.8,
+          choroplethSettings.value.choroplethOpacity
+        ]);
+
+        // Update the paint property when selections change
+        watch(
+          () => store.getters.getSelectedCountyFIPS,
+          (newSelectedFIPS) => {
+            if (map.value) {
+              map.value.setPaintProperty('counties-layer', 'fill-opacity', [
+                'case',
+                ['boolean', ['feature-state', 'hover'], false],
+                0.9,
+                ['in', ['get', 'FIPS'], ['literal', newSelectedFIPS.length ? newSelectedFIPS : ['']]],
+                0.8,
+                choroplethSettings.value.choroplethOpacity
+              ]);
+            }
+          },
+          { deep: true }
+        );
       })
     })
 
@@ -391,7 +467,9 @@ export default {
               'case',
               ['boolean', ['feature-state', 'hover'], false],
               0.9, // Opacity when hovered
-              0.7  // Default opacity
+              ['in', ['get', 'FIPS'], ['literal', store.getters.getSelectedCountyFIPS]],
+              0.8,
+              0.7
             ],
             'fill-outline-color': [
               'case',

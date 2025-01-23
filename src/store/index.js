@@ -50,6 +50,7 @@ export default createStore({
       cachedPredictions: {}, // Add this line to store cached predictions
       currentPredictionType: 'end-of-season',
       currentDay: '188', // Default to day 188 (early July)
+      selectedCountyFIPS: [], // Add this line to track selected counties
     },
     mutations: {
       setMap(state, data) {
@@ -170,32 +171,47 @@ export default createStore({
           this.commit('updateMapTitle')
         },
         setPredictionDay(state, day) {
-          state.currentDay = day.toString().padStart(3, '0')
-          this.commit('updateMapTitle')
+          if (day === null) {
+            state.currentDay = null;
+          } else {
+            state.currentDay = day.toString().padStart(3, '0');
+          }
+          this.commit('updateMapTitle');
         },
         updateMapTitle(state) {
-          const crop = state.currentCrop.charAt(0).toUpperCase() + state.currentCrop.slice(1)
-          const year = state.currentYear
+          const crop = state.currentCrop.charAt(0).toUpperCase() + state.currentCrop.slice(1);
+          const year = state.currentYear;
           
-          // Date mapping
-          const dateMapping = {
-            "140": "May 20",
-            "156": "June 5",
-            "172": "June 21",
-            "188": "July 7",
-            "204": "July 23",
-            "220": "August 8",
-            "236": "August 24",
-            "252": "September 9",
-            "268": "September 25",
-            "284": "October 11"
+          // Only try to get date mapping if we have a currentDay
+          let type = 'End-of-Season Prediction';
+          if (state.currentPredictionType === 'in-season' && state.currentDay) {
+            const dateMapping = {
+              "140": "May 20",
+              "156": "June 5",
+              "172": "June 21",
+              "188": "July 7",
+              "204": "July 23",
+              "220": "August 8",
+              "236": "August 24",
+              "252": "September 9",
+              "268": "September 25",
+              "284": "October 11"
+            };
+            type = `${dateMapping[state.currentDay]} Prediction`;
           }
           
-          const type = state.currentPredictionType === 'end-of-season' 
-            ? 'End-of-Season Prediction'
-            : `${dateMapping[state.currentDay]} Prediction`
-          
-          state.mapTitle = `${crop} ${type} for US in ${year}`
+          state.mapTitle = `${crop} ${type} for US in ${year}`;
+        },
+        setSelectedCountyFIPS(state, fipsList) {
+          state.selectedCountyFIPS = fipsList;
+        },
+        addSelectedCountyFIPS(state, fips) {
+          if (!state.selectedCountyFIPS.includes(fips)) {
+            state.selectedCountyFIPS.push(fips);
+          }
+        },
+        removeSelectedCountyFIPS(state, fips) {
+          state.selectedCountyFIPS = state.selectedCountyFIPS.filter(f => f !== fips);
         },
     },
     actions: {
@@ -515,5 +531,6 @@ export default createStore({
           return null
         },
         getDrawnPolygons: (state) => state.drawnPolygons, // Getter to retrieve drawn polygons
+        getSelectedCountyFIPS: state => state.selectedCountyFIPS,
     },
 })
