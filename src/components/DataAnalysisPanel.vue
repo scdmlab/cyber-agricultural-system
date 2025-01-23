@@ -16,11 +16,20 @@
               class="flex-grow mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
             />
             <button 
+              v-if="selectedCounties.length > 1"
               @click="removeCounty(index)" 
-              v-if="selectedCounties.length > 1" 
               class="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition duration-300"
+              title="Remove county"
             >
               -
+            </button>
+            <button 
+              v-else-if="county.selected"
+              @click="clearCounty(index)" 
+              class="bg-gray-400 text-white p-2 rounded-md hover:bg-gray-500 transition duration-300"
+              title="Clear selection"
+            >
+              ×
             </button>
           </div>
           <ul v-if="county.showSuggestions" class="bg-white border border-gray-300 rounded-md shadow-sm mt-1">
@@ -228,6 +237,15 @@ export default {
       selectedCounties.value.splice(index, 1)
     }
 
+    function clearCounty(index) {
+      selectedCounties.value[index] = { 
+        input: '', 
+        showSuggestions: false, 
+        selected: null, 
+        filteredSuggestions: [] 
+      }
+    }
+
     const hasSelectedCounties = computed(() => {
       return selectedCounties.value.some(county => county.selected)
     })
@@ -240,6 +258,7 @@ export default {
       selectCounty,
       addCounty,
       removeCounty,
+      clearCounty,
       hasSelectedCounties,
       exportData
     }

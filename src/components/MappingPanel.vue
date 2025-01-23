@@ -5,8 +5,8 @@
     <div class="space-y-4">
       <div>
         <label for="title" class="block text-sm font-medium text-gray-700">Title:</label>
-        <input id="title" v-model="title" placeholder="Crop Property for US in Year" 
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50">
+        <input id="title" :value="title" readonly
+          class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm">
       </div>
       
       <div>
@@ -66,10 +66,7 @@ export default {
     const store = useStore()
     const showMapEditor = ref(false)
 
-    const title = computed({
-      get: () => store.state.mapTitle,
-      set: (value) => store.commit('setMapTitle', value)
-    })
+    const title = computed(() => store.state.mapTitle)
     const description = computed({
       get: () => store.state.mapDescription,
       set: (value) => store.commit('setMapDescription', value)

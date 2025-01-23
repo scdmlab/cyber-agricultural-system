@@ -63,9 +63,11 @@ export default createStore({
                     state.currentProperty = 'pred'
                 }
             }
+            this.commit('updateMapTitle')
         },
         setYear(state, year) {
             state.currentYear = year
+            this.commit('updateMapTitle')
         },
         setMonth(state, month) {
             state.currentMonth = month
@@ -165,9 +167,35 @@ export default createStore({
           } else if (!state.currentDay) {
             state.currentDay = '188' // Default day for in-season
           }
+          this.commit('updateMapTitle')
         },
         setPredictionDay(state, day) {
           state.currentDay = day.toString().padStart(3, '0')
+          this.commit('updateMapTitle')
+        },
+        updateMapTitle(state) {
+          const crop = state.currentCrop.charAt(0).toUpperCase() + state.currentCrop.slice(1)
+          const year = state.currentYear
+          
+          // Date mapping
+          const dateMapping = {
+            "140": "May 20",
+            "156": "June 5",
+            "172": "June 21",
+            "188": "July 7",
+            "204": "July 23",
+            "220": "August 8",
+            "236": "August 24",
+            "252": "September 9",
+            "268": "September 25",
+            "284": "October 11"
+          }
+          
+          const type = state.currentPredictionType === 'end-of-season' 
+            ? 'End-of-Season Prediction'
+            : `${dateMapping[state.currentDay]} Prediction`
+          
+          state.mapTitle = `${crop} ${type} for US in ${year}`
         },
     },
     actions: {
