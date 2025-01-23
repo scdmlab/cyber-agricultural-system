@@ -19,17 +19,16 @@
       </div>
       
       <div>
-        <label for="predictionType" class="block text-sm font-medium text-gray-700">Prediction Type:</label>
-        <select id="predictionType" v-model="localPredictionType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
-          <option value="end-of-season">End of Season</option>
-          <option value="in-season">In Season</option>
-        </select>
-      </div>
-      
-      <div v-if="localPredictionType === 'in-season'">
-        <label for="date" class="block text-sm font-medium text-gray-700">Prediction Date:</label>
-        <select id="date" v-model="localDay" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
-          <option v-for="{ day, date } in sortedDays" :key="day" :value="day">{{ date }}</option>
+        <label for="predictionType" class="block text-sm font-medium text-gray-700">Prediction Time:</label>
+        <select id="predictionType" v-model="localPredictionSelection" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+          <optgroup label="In Season">
+            <option v-for="{ day, date } in sortedDays" :key="day" :value="`in-season-${day}`">
+              {{ date }}
+            </option>
+          </optgroup>
+          <optgroup label="End of Season">
+            <option value="end-of-season">End of Season</option>
+          </optgroup>
         </select>
       </div>
       
@@ -68,27 +67,31 @@ export default {
       set: value => store.commit('setYear', value)
     })
     
-    const localDay = computed({
-      get: () => store.state.currentDay,
-      set: value => store.commit('setPredictionDay', value)
+    const localPredictionSelection = computed({
+      get: () => {
+        if (store.state.currentPredictionType === 'end-of-season') {
+          return 'end-of-season'
+        }
+        return `in-season-${store.state.currentDay}`
+      },
+      set: value => {
+        if (value === 'end-of-season') {
+          store.commit('setPredictionType', 'end-of-season')
+          store.commit('setPredictionDay', null)
+        } else {
+          const day = value.split('-')[2]
+          store.commit('setPredictionType', 'in-season')
+          store.commit('setPredictionDay', day)
+        }
+      }
     })
     
     const localProperty = computed({
       get: () => store.state.currentProperty,
       set: value => store.commit('setProperty', value)
     })
-    
-    const localPredictionType = computed({
-      get: () => store.state.currentPredictionType,
-      set: value => store.commit('setPredictionType', value)
-    })
 
     const dayMapping = {
-      "060": "March 1",
-      "076": "March 17",
-      "092": "April 2",
-      "108": "April 18",
-      "124": "May 4",
       "140": "May 20",
       "156": "June 5",
       "172": "June 21",
@@ -103,7 +106,7 @@ export default {
 
     const years = computed(() => {
       const startYear = 2015
-      const endYear = localPredictionType.value === 'end-of-season' ? 2023 : 2024
+      const endYear = localPredictionSelection.value === 'end-of-season' ? 2023 : 2024
       return Array.from(
         { length: endYear - startYear + 1 }, 
         (_, i) => (startYear + i).toString()
@@ -115,15 +118,6 @@ export default {
       return Object.entries(dayMapping)
         .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
         .map(([day, date]) => ({ day, date }))
-    })
-
-    // Watch for prediction type changes
-    watch(localPredictionType, (newType) => {
-      if (newType === 'end-of-season') {
-        localDay.value = null // Clear day selection for end-of-season
-      } else if (newType === 'in-season' && !localDay.value) {
-        localDay.value = '188' // Set default day for in-season
-      }
     })
 
     async function applyDataSelection() {
@@ -147,7 +141,7 @@ export default {
 
     // Watch for any changes in the selections
     watch(
-      [localCrop, localYear, localDay, localProperty, localPredictionType],
+      [localCrop, localYear, localProperty, localPredictionSelection],
       async () => {
         await applyDataSelection()
       }
@@ -156,9 +150,8 @@ export default {
     return {
       localCrop,
       localYear,
-      localDay,
+      localPredictionSelection,
       localProperty,
-      localPredictionType,
       years,
       sortedDays,
       applyDataSelection
