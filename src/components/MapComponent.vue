@@ -43,6 +43,7 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import stateBoundaries from '@/assets/gz_2010_us_040_00_20m.json'
 import countyBoundaries from '@/assets/gz_2010_us_050_00_20m.json'
+import { stateCodeMap } from '@/utils/stateCodeMap'
 
 import DataSelectionPanel from "@/components/DataSelectionPanel.vue";
 import ToolbarComponent from "@/components/ToolbarComponent.vue";
@@ -414,6 +415,38 @@ export default {
           },
           { deep: true }
         );
+
+        // Update the click handler for counties-layer
+        map.value.on('click', 'counties-layer', (e) => {
+          if (e.features.length > 0) {
+            const feature = e.features[0]
+            const fips = feature.properties.FIPS
+            // Get state code from FIPS and use stateCodeMap
+            const stateCode = fips.substring(0, 2)
+            const stateName = stateCodeMap[stateCode] || 'Unknown State'
+            const countyName = `${feature.properties.NAME} County, ${stateName}`
+            
+            if (feature.properties.value !== undefined) {
+              if (store.state.selectedCountyFIPS.includes(fips)) {
+                store.commit('removeSelectedCountyFIPS', fips)
+              } else {
+                store.commit('addSelectedCountyFIPS', { 
+                  fips, 
+                  name: countyName  // Now using the properly formatted county name
+                })
+              }
+            }
+          }
+        });
+
+        // Change cursor on hover
+        map.value.on('mouseenter', 'counties-layer', () => {
+          map.value.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.value.on('mouseleave', 'counties-layer', () => {
+          map.value.getCanvas().style.cursor = '';
+        });
       })
     })
 

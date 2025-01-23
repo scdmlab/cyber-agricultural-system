@@ -1,11 +1,11 @@
 <template>
   <div class="bg-white p-6 rounded-lg shadow-md h-full flex flex-col">
-    <h2 class="text-2xl font-bold text-green-600 mb-4">County Selection</h2>
+    <h2 class="text-2xl font-bold text-green-600 mb-4">Data Export </h2>
     
     <div class="flex-grow space-y-4">
       <div class="mt-4 space-y-4">
         <label class="block text-sm font-medium text-gray-700">Select Counties:</label>
-        <div v-for="(county, index) in selectedCounties" :key="index" class="space-y-2">
+        <div v-for="(county, index) in selectedCounties" :key="index" class="space-y-0.5">
           <div class="flex items-center space-x-2">
             <input
               :id="`county-input-${index}`"
@@ -13,12 +13,12 @@
               @input="updateSuggestions(index)"
               @keydown.enter="selectCounty(index)"
               placeholder="Type a county name"
-              class="flex-grow mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+              class="flex-grow block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50 py-0.5 text-sm"
             />
             <button 
               v-if="selectedCounties.length > 1"
               @click="removeCounty(index)" 
-              class="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition duration-300"
+              class="bg-red-500 text-white px-2 py-0.5 rounded-md hover:bg-red-600 transition duration-300 text-sm"
               title="Remove county"
             >
               -
@@ -26,7 +26,7 @@
             <button 
               v-else-if="county.selected"
               @click="clearCounty(index)" 
-              class="bg-gray-400 text-white p-2 rounded-md hover:bg-gray-500 transition duration-300"
+              class="bg-gray-400 text-white px-2 py-0.5 rounded-md hover:bg-gray-500 transition duration-300 text-sm"
               title="Clear selection"
             >
               ×
@@ -62,6 +62,62 @@
               <option value="soybean">Soybean Only</option>
             </select>
           </div>
+          
+          <div class="flex items-center space-x-4">
+            <label class="text-sm font-medium text-gray-700">Prediction Time:</label>
+            <select 
+              v-model="predictionTime" 
+              class="rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+            >
+              <option value="all">All Predictions</option>
+              <option value="eos">End of Season Only</option>
+              <option value="in-season">In Season Only</option>
+              <option value="custom">Custom Day</option>
+            </select>
+          </div>
+
+          <div v-if="predictionTime === 'custom'" class="flex items-center space-x-4">
+            <select 
+              v-model="selectedDay" 
+              class="rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+            >
+              <option v-for="{ day, date } in sortedDays" :key="day" :value="day">
+                {{ date }} (Day {{ day }})
+              </option>
+            </select>
+          </div>
+
+          <div class="flex items-center space-x-4">
+            <label class="text-sm font-medium text-gray-700">Year Range:</label>
+            <select 
+              v-model="yearRange" 
+              class="rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+            >
+              <option value="all">All Years</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+
+          <div v-if="yearRange === 'custom'" class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+              <input 
+                type="number"
+                v-model="startYear"
+                min="2015"
+                :max="endYear"
+                class="w-24 rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+              />
+              <span class="text-gray-500">to</span>
+              <input 
+                type="number"
+                v-model="endYear"
+                :min="startYear"
+                max="2024"
+                class="w-24 rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+              />
+            </div>
+          </div>
+
           <button 
             @click="exportData" 
             :disabled="!hasSelectedCounties"
@@ -76,7 +132,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { stateCodeMap } from '@/utils/stateCodeMap'
 import Papa from 'papaparse'
@@ -85,13 +141,76 @@ export default {
   name: 'DataAnalysisPanel',
   setup() {
     const store = useStore()
-    const selectedCounties = ref([{ 
-      input: '', 
-      showSuggestions: false, 
-      selected: null, 
-      filteredSuggestions: [] 
-    }])
+    
+    // Watch for changes in store's selectedCounties
+    watch(() => store.state.selectedCounties, (newCounties) => {
+      selectedCounties.value = newCounties;
+    }, { deep: true });
+
+    // Initialize selectedCounties from store
+    const selectedCounties = ref(store.state.selectedCounties.length > 0 
+      ? store.state.selectedCounties 
+      : [{
+          input: '',
+          selected: null,
+          showSuggestions: false,
+          filteredSuggestions: []
+        }]
+    );
+
+    // Watch for changes in store's selectedCountyFIPS
+    watch(() => store.state.selectedCountyFIPS, (newFIPS) => {
+      // Sync selectedCounties with store if they don't match
+      const currentFIPS = selectedCounties.value
+        .filter(c => c.selected)
+        .map(c => c.selected.fips)
+      
+      if (!arraysEqual(currentFIPS, newFIPS)) {
+        store.commit('setSelectedCounties', selectedCounties.value);
+      }
+    })
+
+    // Watch for changes in local selectedCounties
+    watch(selectedCounties, (newCounties) => {
+      const newFIPS = newCounties
+        .filter(c => c.selected)
+        .map(c => c.selected.fips)
+      
+      store.commit('setSelectedCountyFIPS', newFIPS);
+    }, { deep: true })
+
+    // Helper function to compare arrays
+    function arraysEqual(a, b) {
+      if (a.length !== b.length) return false;
+      return a.every((val, idx) => val === b[idx]);
+    }
+
     const exportCrop = ref('all')
+    const yearRange = ref('all')
+    const startYear = ref(2015)
+    const endYear = ref(2024)
+    const predictionTime = ref('all')
+    const selectedDay = ref('188')
+    
+    const dayMapping = {
+      "140": "May 20",
+      "156": "June 5",
+      "172": "June 21",
+      "188": "July 7",
+      "204": "July 23",
+      "220": "August 8",
+      "236": "August 24",
+      "252": "September 9",
+      "268": "September 25",
+      "284": "October 11"
+    }
+
+    const sortedDays = computed(() => {
+      return Object.entries(dayMapping)
+        .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
+        .map(([day, date]) => ({ day, date }))
+    })
+
     const csvData = computed(() => store.state.csvData || [])
     const baseUrl = import.meta.env.BASE_URL
 
@@ -101,29 +220,38 @@ export default {
         csvData.value.forEach(row => {
           const stateCode = row.FIPS.substring(0, 2)
           const stateName = stateCodeMap[stateCode] || 'Unknown State'
-          const name = `${row.NAME}, ${stateName}`
-          uniqueCounties.set(row.FIPS, { name, fips: row.FIPS })
+          const countyName = `${row.NAME} County, ${stateName}`
+          uniqueCounties.set(row.FIPS, {
+            fips: row.FIPS,
+            name: countyName
+          })
         })
       }
       return Array.from(uniqueCounties.values())
     })
 
     function updateSuggestions(index) {
-      const county = selectedCounties.value[index]
-      county.showSuggestions = county.input.length > 0
-      county.filteredSuggestions = county.input ? 
-        countySuggestions.value.filter(c => 
-          c.name.toLowerCase().includes(county.input.toLowerCase())
-        ).slice(0, 5) : []
+      const input = selectedCounties.value[index].input.toLowerCase()
+      if (input) {
+        selectedCounties.value[index].filteredSuggestions = countySuggestions.value
+          .filter(county => county.name.toLowerCase().includes(input))
+        selectedCounties.value[index].showSuggestions = true
+      } else {
+        selectedCounties.value[index].filteredSuggestions = []
+        selectedCounties.value[index].showSuggestions = false
+      }
     }
 
     function selectSuggestion(suggestion, index) {
-      const county = selectedCounties.value[index]
-      county.selected = suggestion
-      county.input = suggestion.name
-      county.showSuggestions = false
-      
-      // Update the store with all selected FIPS codes
+      selectedCounties.value[index] = {
+        input: suggestion.name,
+        selected: {
+          fips: suggestion.fips,
+          name: suggestion.name
+        },
+        showSuggestions: false,
+        filteredSuggestions: []
+      }
       updateSelectedFIPS()
     }
 
@@ -149,11 +277,14 @@ export default {
 
     async function exportData() {
       console.log('Starting export process...')
-      const selectedFips = selectedCounties.value
+      const selectedCountyData = selectedCounties.value
         .filter(c => c.selected)
-        .map(c => c.selected.fips)
+        .map(c => ({
+          fips: c.selected.fips,
+          name: c.selected.name
+        }))
       
-      if (selectedFips.length === 0) {
+      if (selectedCountyData.length === 0) {
         console.log('No counties selected')
         return
       }
@@ -162,48 +293,76 @@ export default {
         ? ['corn', 'soybean'] 
         : [exportCrop.value]
 
-      const allData = []
-      for (const crop of crops) {
-        // End of season predictions (2015-2024)
-        for (let year = 2015; year <= 2024; year++) {
-          const data = await fetchPredictionData(crop, year)
-          if (data) {
-            data.forEach(row => {
-              if (selectedFips.includes(row.FIPS)) {
-                allData.push({
-                  FIPS: row.FIPS,
-                  crop,
-                  year,
-                  date: 'eos',
-                  predicted: row.y_test_pred,
-                  actual: row.y_test,
-                  uncertainty: row.y_test_pred_uncertainty,
-                  error: row.y_test_pred - row.y_test
-                })
-              }
-            })
-          }
-        }
+      const yearStart = yearRange.value === 'all' ? 2015 : parseInt(startYear.value)
+      const yearEnd = yearRange.value === 'all' ? 2024 : parseInt(endYear.value)
 
-        // In-season predictions for 2024
-        const days = ['060', '076', '092', '108', '124', '140', '156', '172', '188', '204', '220', '236', '252', '268', '284'] // Add more days if needed
-        for (const day of days) {
-          const data = await fetchPredictionData(crop, 2024, day)
-          if (data) {
-            data.forEach(row => {
-              if (selectedFips.includes(row.FIPS)) {
-                allData.push({
-                  FIPS: row.FIPS,
-                  crop,
-                  year: 2024,
-                  date: parseInt(day),
-                  predicted: row.y_test_pred,
-                  actual: row.y_test,
-                  uncertainty: row.y_test_pred_uncertainty,
-                  error: row.y_test_pred - row.y_test
+      const allData = []
+      let daysToFetch = []
+      
+      // Determine which days to fetch based on predictionTime
+      switch (predictionTime.value) {
+        case 'all':
+          daysToFetch = Object.keys(dayMapping)
+          break
+        case 'eos':
+          daysToFetch = []
+          break
+        case 'in-season':
+          daysToFetch = Object.keys(dayMapping)
+          break
+        case 'custom':
+          daysToFetch = [selectedDay.value]
+          break
+      }
+
+      for (const crop of crops) {
+        for (let year = yearStart; year <= yearEnd; year++) {
+          // Fetch end of season data if needed
+          if (predictionTime.value === 'all' || predictionTime.value === 'eos') {
+            const eosData = await fetchPredictionData(crop, year)
+            if (eosData) {
+              eosData.forEach(row => {
+                const countyData = selectedCountyData.find(c => c.fips === row.FIPS)
+                if (countyData) {
+                  allData.push({
+                    FIPS: row.FIPS,
+                    county: countyData.name,
+                    crop,
+                    year,
+                    date: 'eos',
+                    predicted: row.y_test_pred,
+                    actual: row.y_test,
+                    uncertainty: row.y_test_pred_uncertainty,
+                    error: row.y_test_pred - row.y_test
+                  })
+                }
+              })
+            }
+          }
+
+          // Fetch in-season predictions if needed
+          if (daysToFetch.length > 0) {
+            for (const day of daysToFetch) {
+              const data = await fetchPredictionData(crop, year, day)
+              if (data) {
+                data.forEach(row => {
+                  const countyData = selectedCountyData.find(c => c.fips === row.FIPS)
+                  if (countyData) {
+                    allData.push({
+                      FIPS: row.FIPS,
+                      county: countyData.name,
+                      crop,
+                      year,
+                      date: parseInt(day),
+                      predicted: row.y_test_pred,
+                      actual: row.y_test,
+                      uncertainty: row.y_test_pred_uncertainty,
+                      error: row.y_test_pred - row.y_test
+                    })
+                  }
                 })
               }
-            })
+            }
           }
         }
       }
@@ -236,17 +395,21 @@ export default {
     }
 
     function removeCounty(index) {
-      selectedCounties.value.splice(index, 1)
-      // If no counties left, add an empty one
-      if (selectedCounties.value.length === 0) {
-        selectedCounties.value.push({ 
-          input: '', 
-          showSuggestions: false, 
-          selected: null, 
-          filteredSuggestions: [] 
-        })
+      const county = selectedCounties.value[index];
+      if (county.selected) {
+        store.commit('removeSelectedCountyFIPS', county.selected.fips);
+      } else {
+        // If it's just an empty input, remove it directly
+        selectedCounties.value.splice(index, 1);
+        if (selectedCounties.value.length === 0) {
+          selectedCounties.value.push({
+            input: '',
+            selected: null,
+            showSuggestions: false,
+            filteredSuggestions: []
+          });
+        }
       }
-      updateSelectedFIPS()
     }
 
     function clearCounty(index) {
@@ -274,6 +437,12 @@ export default {
     return {
       selectedCounties,
       exportCrop,
+      yearRange,
+      startYear,
+      endYear,
+      predictionTime,
+      selectedDay,
+      sortedDays,
       updateSuggestions,
       selectSuggestion,
       selectCounty,

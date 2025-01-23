@@ -51,6 +51,7 @@ export default createStore({
       currentPredictionType: 'end-of-season',
       currentDay: '188', // Default to day 188 (early July)
       selectedCountyFIPS: [], // Add this line to track selected counties
+      selectedCounties: [], // Add this line to store selected counties
     },
     mutations: {
       setMap(state, data) {
@@ -205,13 +206,34 @@ export default createStore({
         setSelectedCountyFIPS(state, fipsList) {
           state.selectedCountyFIPS = fipsList;
         },
-        addSelectedCountyFIPS(state, fips) {
+        addSelectedCountyFIPS(state, { fips, name }) {
           if (!state.selectedCountyFIPS.includes(fips)) {
             state.selectedCountyFIPS.push(fips);
+            // Also update the selectedCounties array
+            state.selectedCounties.push({
+              input: name,
+              selected: { fips, name },
+              showSuggestions: false,
+              filteredSuggestions: []
+            });
           }
         },
         removeSelectedCountyFIPS(state, fips) {
+          // Remove from selectedCountyFIPS array
           state.selectedCountyFIPS = state.selectedCountyFIPS.filter(f => f !== fips);
+          
+          // Remove from selectedCounties array
+          state.selectedCounties = state.selectedCounties.filter(c => c.selected?.fips !== fips);
+          
+          // If selectedCounties is empty, initialize with an empty input
+          if (state.selectedCounties.length === 0) {
+            state.selectedCounties = [{
+              input: '',
+              selected: null,
+              showSuggestions: false,
+              filteredSuggestions: []
+            }];
+          }
         },
     },
     actions: {
