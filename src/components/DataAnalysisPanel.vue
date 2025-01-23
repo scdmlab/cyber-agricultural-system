@@ -120,10 +120,16 @@
 
           <button 
             @click="exportData" 
-            :disabled="!hasSelectedCounties"
-            class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300 disabled:opacity-50"
+            :disabled="!hasSelectedCounties || isExporting"
+            class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300 disabled:opacity-50 flex items-center justify-center"
           >
-            Export Data
+            <span v-if="isExporting" class="mr-2">
+              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </span>
+            {{ isExporting ? 'Downloading...' : 'Export Data' }}
           </button>
         </div>
       </div>
@@ -275,77 +281,57 @@ export default {
       }
     }
 
+    const isExporting = ref(false)
+
     async function exportData() {
-      console.log('Starting export process...')
-      const selectedCountyData = selectedCounties.value
-        .filter(c => c.selected)
-        .map(c => ({
-          fips: c.selected.fips,
-          name: c.selected.name
-        }))
-      
-      if (selectedCountyData.length === 0) {
-        console.log('No counties selected')
-        return
-      }
+      isExporting.value = true
+      try {
+        console.log('Starting export process...')
+        const selectedCountyData = selectedCounties.value
+          .filter(c => c.selected)
+          .map(c => ({
+            fips: c.selected.fips,
+            name: c.selected.name
+          }))
+        
+        if (selectedCountyData.length === 0) {
+          console.log('No counties selected')
+          return
+        }
 
-      const crops = exportCrop.value === 'all' 
-        ? ['corn', 'soybean'] 
-        : [exportCrop.value]
+        const crops = exportCrop.value === 'all' 
+          ? ['corn', 'soybean'] 
+          : [exportCrop.value]
 
-      const yearStart = yearRange.value === 'all' ? 2015 : parseInt(startYear.value)
-      const yearEnd = yearRange.value === 'all' ? 2024 : parseInt(endYear.value)
+        const yearStart = yearRange.value === 'all' ? 2015 : parseInt(startYear.value)
+        const yearEnd = yearRange.value === 'all' ? 2024 : parseInt(endYear.value)
 
-      const allData = []
-      let daysToFetch = []
-      
-      // Determine which days to fetch based on predictionTime
-      switch (predictionTime.value) {
-        case 'all':
-          daysToFetch = Object.keys(dayMapping)
-          break
-        case 'eos':
-          daysToFetch = []
-          break
-        case 'in-season':
-          daysToFetch = Object.keys(dayMapping)
-          break
-        case 'custom':
-          daysToFetch = [selectedDay.value]
-          break
-      }
+        const allData = []
+        let daysToFetch = []
+        
+        // Determine which days to fetch based on predictionTime
+        switch (predictionTime.value) {
+          case 'all':
+            daysToFetch = Object.keys(dayMapping)
+            break
+          case 'eos':
+            daysToFetch = []
+            break
+          case 'in-season':
+            daysToFetch = Object.keys(dayMapping)
+            break
+          case 'custom':
+            daysToFetch = [selectedDay.value]
+            break
+        }
 
-      for (const crop of crops) {
-        for (let year = yearStart; year <= yearEnd; year++) {
-          // Fetch end of season data if needed
-          if (predictionTime.value === 'all' || predictionTime.value === 'eos') {
-            const eosData = await fetchPredictionData(crop, year)
-            if (eosData) {
-              eosData.forEach(row => {
-                const countyData = selectedCountyData.find(c => c.fips === row.FIPS)
-                if (countyData) {
-                  allData.push({
-                    FIPS: row.FIPS,
-                    county: countyData.name,
-                    crop,
-                    year,
-                    date: 'eos',
-                    predicted: row.y_test_pred,
-                    actual: row.y_test,
-                    uncertainty: row.y_test_pred_uncertainty,
-                    error: row.y_test_pred - row.y_test
-                  })
-                }
-              })
-            }
-          }
-
-          // Fetch in-season predictions if needed
-          if (daysToFetch.length > 0) {
-            for (const day of daysToFetch) {
-              const data = await fetchPredictionData(crop, year, day)
-              if (data) {
-                data.forEach(row => {
+        for (const crop of crops) {
+          for (let year = yearStart; year <= yearEnd; year++) {
+            // Fetch end of season data if needed
+            if (predictionTime.value === 'all' || predictionTime.value === 'eos') {
+              const eosData = await fetchPredictionData(crop, year)
+              if (eosData) {
+                eosData.forEach(row => {
                   const countyData = selectedCountyData.find(c => c.fips === row.FIPS)
                   if (countyData) {
                     allData.push({
@@ -353,7 +339,7 @@ export default {
                       county: countyData.name,
                       crop,
                       year,
-                      date: parseInt(day),
+                      date: 'eos',
                       predicted: row.y_test_pred,
                       actual: row.y_test,
                       uncertainty: row.y_test_pred_uncertainty,
@@ -363,19 +349,48 @@ export default {
                 })
               }
             }
+
+            // Fetch in-season predictions if needed
+            if (daysToFetch.length > 0) {
+              for (const day of daysToFetch) {
+                const data = await fetchPredictionData(crop, year, day)
+                if (data) {
+                  data.forEach(row => {
+                    const countyData = selectedCountyData.find(c => c.fips === row.FIPS)
+                    if (countyData) {
+                      allData.push({
+                        FIPS: row.FIPS,
+                        county: countyData.name,
+                        crop,
+                        year,
+                        date: parseInt(day),
+                        predicted: row.y_test_pred,
+                        actual: row.y_test,
+                        uncertainty: row.y_test_pred_uncertainty,
+                        error: row.y_test_pred - row.y_test
+                      })
+                    }
+                  })
+                }
+              }
+            }
           }
         }
-      }
 
-      console.log(`Exporting ${allData.length} records`)
-      const csv = Papa.unparse(allData)
-      const blob = new Blob([csv], { type: 'text/csv' })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'prediction_data.csv'
-      a.click()
-      window.URL.revokeObjectURL(url)
+        console.log(`Exporting ${allData.length} records`)
+        const csv = Papa.unparse(allData)
+        const blob = new Blob([csv], { type: 'text/csv' })
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'prediction_data.csv'
+        a.click()
+        window.URL.revokeObjectURL(url)
+      } catch (error) {
+        console.error('Export failed:', error)
+      } finally {
+        isExporting.value = false
+      }
     }
 
     function selectCounty(index) {
@@ -450,7 +465,8 @@ export default {
       removeCounty,
       clearCounty,
       hasSelectedCounties,
-      exportData
+      exportData,
+      isExporting,
     }
   }
 }
