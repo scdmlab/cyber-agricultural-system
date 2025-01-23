@@ -387,8 +387,34 @@ export default {
           source: 'counties',
           paint: {
             'fill-color': 'rgba(0, 0, 0, 0)', // Start with transparent fill
-            'fill-opacity': 0.7,
-            'fill-outline-color': '#000000'
+            'fill-opacity': [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              0.9, // Opacity when hovered
+              0.7  // Default opacity
+            ],
+            'fill-outline-color': [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              '#000', // Outline color when hovered
+              '#000'  // Default outline color
+            ]
+          }
+        })
+
+        // Add a second layer for the hover effect
+        map.value.addLayer({
+          id: 'counties-hover',
+          type: 'line',
+          source: 'counties',
+          paint: {
+            'line-color': [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              '#fff', // Bright border color when hovered
+              'transparent'  // Invisible when not hovered
+            ],
+            'line-width': 2
           }
         })
 

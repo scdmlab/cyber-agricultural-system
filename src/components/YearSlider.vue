@@ -73,12 +73,39 @@ export default {
   name: 'YearSlider',
   setup() {
     const store = useStore()
-    const selectedCrop = ref(store.state.currentCrop)
-    const selectedPredictionType = ref(store.state.currentPredictionType)
-    const selectedProperty = ref(store.state.currentProperty)
-    const selectedDayIndex = ref(0)
     const isPlaying = ref(false)
     const intervalId = ref(null)
+
+    // Use computed properties with two-way binding
+    const selectedCrop = computed({
+      get: () => store.state.currentCrop,
+      set: value => store.commit('setCrop', value)
+    })
+
+    const selectedProperty = computed({
+      get: () => store.state.currentProperty,
+      set: value => store.commit('setProperty', value)
+    })
+
+    const selectedPredictionType = computed({
+      get: () => store.state.currentPredictionType,
+      set: value => store.commit('setPredictionType', value)
+    })
+
+    const currentYear = computed({
+      get: () => store.state.currentYear,
+      set: value => store.commit('setYear', value)
+    })
+
+    const selectedDayIndex = computed({
+      get: () => {
+        const currentDay = store.state.currentDay
+        return sortedDays.value.findIndex(d => d.day === currentDay)
+      },
+      set: value => {
+        store.commit('setPredictionDay', sortedDays.value[value].day)
+      }
+    })
 
     const propertyLabels = {
       pred: 'Predicted Yield',
@@ -129,21 +156,31 @@ export default {
         : 2023
     })
 
-    const currentYear = computed({
-      get: () => store.state.currentYear,
-      set: value => store.commit('setYear', value)
-    })
-
     const isVisible = computed(() => store.state.yearSliderVisible)
 
-    async function updatePredictions() {
-      store.commit('setCrop', selectedCrop.value)
-      store.commit('setProperty', selectedProperty.value)
-      store.commit('setPredictionType', selectedPredictionType.value)
-      if (selectedPredictionType.value === 'in-season') {
-        store.commit('setPredictionDay', sortedDays.value[selectedDayIndex.value].day)
+    // Update predictions whenever any selection changes
+    watch(
+      [selectedCrop, selectedProperty, selectedPredictionType, currentYear, selectedDayIndex],
+      async () => {
+        await updatePredictions()
       }
-      await store.dispatch('fetchPredictionData')
+    )
+
+    async function updatePredictions() {
+      // Fetch new prediction data
+      const predictions = await store.dispatch('fetchPredictionData')
+
+      // Update choropleth with new data
+      if (predictions && predictions.length > 0) {
+        const values = predictions.map(p => p[selectedProperty.value]).filter(v => !isNaN(v))
+        if (values.length > 0) {
+          store.commit('setChoroplethSettings', {
+            ...store.state.choroplethSettings,
+            minValue: Math.min(...values),
+            maxValue: Math.max(...values)
+          })
+        }
+      }
     }
 
     const handleCropChange = async () => {
@@ -158,19 +195,11 @@ export default {
       const value = parseInt(event.target.value)
       if (selectedPredictionType.value === 'in-season') {
         selectedDayIndex.value = value
-        store.commit('setPredictionDay', sortedDays.value[value].day)
       } else {
         store.commit('setYear', value.toString())
       }
       await updatePredictions()
     }
-
-    watch([selectedPredictionType], async (newVal) => {
-      if (newVal === 'in-season') {
-        selectedDayIndex.value = sortedDays.value.findIndex(d => d.day === store.state.currentDay) || 0
-      }
-      await updatePredictions()
-    })
 
     const togglePlay = () => {
       isPlaying.value = !isPlaying.value
@@ -190,7 +219,6 @@ export default {
             nextIndex = 0
           }
           selectedDayIndex.value = nextIndex
-          store.commit('setPredictionDay', sortedDays.value[nextIndex].day)
         } else {
           // Animate through years
           let nextYear = parseInt(currentYear.value) + 1
@@ -209,16 +237,16 @@ export default {
 
     return {
       selectedCrop,
-      selectedPredictionType,
       selectedProperty,
+      selectedPredictionType,
+      currentYear,
       selectedDayIndex,
+      isPlaying,
       dayMapping,
       sortedDays,
       years,
       sliderMin,
       sliderMax,
-      isPlaying,
-      currentYear,
       isVisible,
       propertyLabels,
       handleCropChange,

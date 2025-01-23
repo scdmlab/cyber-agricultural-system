@@ -159,10 +159,15 @@ export default createStore({
           state.cachedPredictions[key] = data;
         },
         setPredictionType(state, type) {
-          state.currentPredictionType = type;
+          state.currentPredictionType = type
+          if (type === 'end-of-season') {
+            state.currentDay = null
+          } else if (!state.currentDay) {
+            state.currentDay = '188' // Default day for in-season
+          }
         },
         setPredictionDay(state, day) {
-          state.currentDay = day.toString().padStart(3, '0'); // Ensure 3-digit format (e.g., '060', '188')
+          state.currentDay = day.toString().padStart(3, '0')
         },
     },
     actions: {

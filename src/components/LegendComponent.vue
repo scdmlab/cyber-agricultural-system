@@ -23,9 +23,9 @@ import { scaleLinear } from 'd3-scale';
 import { interpolateRgb } from 'd3-interpolate';
 
 const propertyTitleMap = {
-  pred: 'Prediction',
-  yield: 'Crop Yield',
-  error: 'Error',
+  pred: 'Predicted Yield (bu/acre)',
+  yield: 'Actual Yield (bu/acre)',
+  error: 'Prediction Error (bu/acre)',
   uncertainty: 'Uncertainty'
 };
 

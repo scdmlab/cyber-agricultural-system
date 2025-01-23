@@ -56,11 +56,32 @@ export default {
   name: 'DataSelectionPanel',
   setup() {
     const store = useStore()
-    const localCrop = ref(store.state.currentCrop)
-    const localYear = ref(store.state.currentYear)
-    const localDay = ref(store.state.currentDay)
-    const localProperty = ref(store.state.currentProperty)
-    const localPredictionType = ref(store.state.currentPredictionType)
+    
+    // Use computed properties with two-way binding for all selections
+    const localCrop = computed({
+      get: () => store.state.currentCrop,
+      set: value => store.commit('setCrop', value)
+    })
+    
+    const localYear = computed({
+      get: () => store.state.currentYear,
+      set: value => store.commit('setYear', value)
+    })
+    
+    const localDay = computed({
+      get: () => store.state.currentDay,
+      set: value => store.commit('setPredictionDay', value)
+    })
+    
+    const localProperty = computed({
+      get: () => store.state.currentProperty,
+      set: value => store.commit('setProperty', value)
+    })
+    
+    const localPredictionType = computed({
+      get: () => store.state.currentPredictionType,
+      set: value => store.commit('setPredictionType', value)
+    })
 
     const dayMapping = {
       "060": "March 1",
@@ -106,15 +127,6 @@ export default {
     })
 
     async function applyDataSelection() {
-      // Update store state
-      store.commit('setCrop', localCrop.value)
-      store.commit('setYear', localYear.value)
-      store.commit('setProperty', localProperty.value)
-      store.commit('setPredictionType', localPredictionType.value)
-      if (localPredictionType.value === 'in-season') {
-        store.commit('setPredictionDay', parseInt(localDay.value))
-      }
-
       // Fetch new prediction data
       const predictions = await store.dispatch('fetchPredictionData')
 
@@ -132,6 +144,14 @@ export default {
         }
       }
     }
+
+    // Watch for any changes in the selections
+    watch(
+      [localCrop, localYear, localDay, localProperty, localPredictionType],
+      async () => {
+        await applyDataSelection()
+      }
+    )
 
     return {
       localCrop,
