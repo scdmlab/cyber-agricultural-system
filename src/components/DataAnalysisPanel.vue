@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white p-6 rounded-lg shadow-md h-full flex flex-col">
+  <div class="bg-white p-6 rounded-lg shadow-md h-full flex flex-col overflow-y-auto">
     <h2 class="text-2xl font-bold text-green-600 mb-4">County Selection</h2>
     
     <div class="flex-grow space-y-4">
@@ -69,7 +69,7 @@
               v-model="predictionTime" 
               class="rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
             >
-              <option value="all">All Predictions</option>
+              <option value="all">All Time</option>
               <option value="eos">End of Season Only</option>
             </select>
           </div>
@@ -108,7 +108,7 @@
           <button 
             @click="exportData" 
             :disabled="!hasSelectedCounties || isExporting"
-            class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300 disabled:opacity-50 flex items-center justify-center"
+            class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300 disabled:opacity-50 flex items-center justify-center mb-4"
           >
             <span v-if="isExporting" class="mr-2">
               <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -118,6 +118,18 @@
             </span>
             {{ isExporting ? 'Downloading...' : 'Export Data' }}
           </button>
+
+          <button 
+            @click="displayPlot" 
+            :disabled="!hasSelectedCounties"
+            class="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300 disabled:opacity-50"
+          >
+            Display Historical Yields
+          </button>
+
+          <div v-if="showPlot" class="mt-4 h-[400px]">
+            <ScatterPlot :datasets="plotData" />
+          </div>
         </div>
       </div>
     </div>
@@ -129,9 +141,13 @@ import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { stateCodeMap } from '@/utils/stateCodeMap'
 import Papa from 'papaparse'
+import ScatterPlot from './ScatterPlot.vue'
 
 export default {
   name: 'DataAnalysisPanel',
+  components: {
+    ScatterPlot
+  },
   setup() {
     const store = useStore()
     
@@ -394,6 +410,58 @@ export default {
       return selectedCounties.value.some(county => county.selected)
     })
 
+    const showPlot = ref(false)
+    const plotData = ref([])
+
+    async function displayPlot() {
+      showPlot.value = true
+      plotData.value = []
+
+      const selectedCountyData = selectedCounties.value
+        .filter(c => c.selected)
+        .map(c => ({
+          fips: c.selected.fips,
+          name: c.selected.name
+        }))
+
+      // Fetch end-of-season data for each selected county
+      for (const county of selectedCountyData) {
+        const countyData = {
+          countyName: county.name,
+          actualData: [],    // Changed from data to actualData
+          predictedData: [], // Added predictedData array
+          uncertainties: []  // Added uncertainties array
+        }
+
+        for (let year = 2015; year <= 2024; year++) {
+          const data = await fetchPredictionData('corn', year, '284')
+          if (data) {
+            const countyYield = data.find(row => row.FIPS === county.fips)
+            if (countyYield) {
+              // Add actual yield data
+              countyData.actualData.push({
+                x: year,
+                y: parseFloat(countyYield.y_test)
+              })
+              
+              // Add predicted yield data
+              countyData.predictedData.push({
+                x: year,
+                y: parseFloat(countyYield.y_test_pred)
+              })
+              
+              // Add uncertainty as percentage
+              const uncertainty = parseFloat(countyYield.y_test_pred_uncertainty)
+              const uncertaintyPercent = (uncertainty / parseFloat(countyYield.y_test_pred)) * 100
+              countyData.uncertainties.push(uncertaintyPercent)
+            }
+          }
+        }
+
+        plotData.value.push(countyData)
+      }
+    }
+
     return {
       selectedCounties,
       exportCrop,
@@ -410,6 +478,9 @@ export default {
       hasSelectedCounties,
       exportData,
       isExporting,
+      showPlot,
+      plotData,
+      displayPlot,
     }
   }
 }

@@ -945,16 +945,27 @@ export default {
   box-shadow: var(--shadow-light);
   z-index: 10;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0 10px;
 }
 
 .resize-handle {
   width: 5px;
   height: 100%;
-  background-color: var(--color-border);
+  background-color: transparent;
   position: absolute;
   right: 0;
   top: 0;
   cursor: ew-resize;
+  z-index: 11;
+  transition: background-color 0.2s;
+  border-left: none;
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+}
+
+.resize-handle:hover {
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-enter-active,
@@ -1146,6 +1157,33 @@ export default {
 /* Style for active draw buttons */
 .mapboxgl-ctrl-group button.active {
   background-color: var(--color-button-active);
+}
+
+/* Update chart container styles */
+.chart-container {
+  position: relative;
+  width: calc(100% - 20px); /* Account for padding */
+  height: 300px;
+  margin: 0 auto;
+  z-index: 9;
+  padding: 10px;
+  /* Remove right padding since we're using calc for width */
+}
+
+/* Ensure proper scrolling in sidebar */
+.sidebar {
+  position: absolute;
+  top: 36px;
+  left: 0;
+  height: calc(100vh - 36px);
+  background-color: var(--color-background);
+  box-shadow: var(--shadow-light);
+  z-index: 10;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  /* Add padding to prevent content from touching edges */
+  padding: 0 10px;
 }
 
 </style>
