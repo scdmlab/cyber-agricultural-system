@@ -38,18 +38,32 @@
       </div>
     </div>
     
-    <button @click="applyDataSelection" class="mt-6 w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300">Apply</button>
+    <button 
+      @click="exportData" 
+      :disabled="isExporting"
+      class="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300 disabled:opacity-50 flex items-center justify-center"
+    >
+      <span v-if="isExporting" class="mr-2">
+        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </span>
+      {{ isExporting ? 'Downloading...' : 'Export Data' }}
+    </button>
   </div>
 </template>
 
 <script>
-import { computed, watch } from 'vue'
+import { computed, watch, ref } from 'vue'
 import { useStore } from 'vuex'
+import Papa from 'papaparse'
 
 export default {
   name: 'DataSelectionPanel',
   setup() {
     const store = useStore()
+    const isExporting = ref(false)
     
     // Use computed properties with two-way binding for all selections
     const localCrop = computed({
@@ -101,22 +115,62 @@ export default {
         .map(([day, date]) => ({ day, date }))
     })
 
-    async function applyDataSelection() {
-      // Fetch new prediction data
-      const predictions = await store.dispatch('fetchPredictionData')
+    async function fetchPredictionData(crop, year, day) {
+      const baseUrl = import.meta.env.BASE_URL
+      const csvPath = `${baseUrl}result_${crop}/bnn/result${year}_${day.toString().padStart(3, '0')}.csv`
 
-      // Update choropleth with new data
-      if (predictions && predictions.length > 0) {
-        const values = predictions.map(p => p[localProperty.value]).filter(v => !isNaN(v))
-        if (values.length > 0) {
-          const minValue = Math.min(...values)
-          const maxValue = Math.max(...values)
-          store.commit('setChoroplethSettings', {
-            ...store.state.choroplethSettings,
-            minValue,
-            maxValue
-          })
+      try {
+        const response = await fetch(csvPath)
+        if (!response.ok) {
+          console.log(`No data found for ${csvPath}`)
+          return null
         }
+        const csvText = await response.text()
+        return Papa.parse(csvText, { header: true, skipEmptyLines: true }).data
+      } catch (error) {
+        console.error(`Error fetching ${csvPath}:`, error)
+        return null
+      }
+    }
+
+    async function exportData() {
+      isExporting.value = true
+      try {
+        const data = await fetchPredictionData(
+          store.state.currentCrop,
+          store.state.currentYear,
+          store.state.currentDay
+        )
+
+        if (data && data.length > 0) {
+          // Convert data to metric tons per hectare
+          const buToTha = store.state.currentCrop === 'corn' ? 0.06277 : 0.0673
+          const formattedData = data.map(row => ({
+            'FIPS': row.FIPS,
+            'Crop type': store.state.currentCrop,
+            'Year': store.state.currentYear,
+            'Day of Year': store.state.currentDay,
+            'Predicted Yield (t/ha)': (parseFloat(row.y_test_pred) * buToTha).toFixed(3),
+            'NASS Reported Yield (t/ha)': (parseFloat(row.y_test) * buToTha).toFixed(3),
+            'Prediction Error (t/ha)': ((parseFloat(row.y_test_pred) - parseFloat(row.y_test)) * buToTha).toFixed(3),
+            'Model Uncertainty': (parseFloat(row.y_test_pred_uncertainty) * buToTha).toFixed(3)
+          }))
+
+          const csv = Papa.unparse(formattedData)
+          const blob = new Blob([csv], { type: 'text/csv' })
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          const cropName = store.state.currentCrop.charAt(0).toUpperCase() + store.state.currentCrop.slice(1)
+          const fileName = `${cropName}_Yield_Prediction_${store.state.currentYear}_Day${store.state.currentDay}.csv`
+          a.download = fileName
+          a.click()
+          window.URL.revokeObjectURL(url)
+        }
+      } catch (error) {
+        console.error('Export failed:', error)
+      } finally {
+        isExporting.value = false
       }
     }
 
@@ -124,7 +178,7 @@ export default {
     watch(
       [localCrop, localYear, localProperty, localDay],
       async () => {
-        await applyDataSelection()
+        await exportData()
       }
     )
 
@@ -135,7 +189,8 @@ export default {
       localProperty,
       years,
       sortedDays,
-      applyDataSelection
+      isExporting,
+      exportData
     }
   }
 }
