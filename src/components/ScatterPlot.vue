@@ -20,6 +20,10 @@
       default: 'actual', // 'actual', 'predicted', or 'both'
       validator: value => ['actual', 'predicted', 'both'].includes(value)
     },
+    offsetStep: {
+      type: Number,
+      default: 0.1
+    },
     width: {
       type: Number,
       default: null
@@ -45,7 +49,7 @@
         const ctx = chartRef.value.getContext('2d')
         
         // Calculate x-offset for each county (dataset)
-        const offsetStep = 0.08 // Adjust this value to control spread
+        const offsetStep = props.offsetStep
         const totalDatasets = props.datasets.length
         const offsetStart = -((totalDatasets - 1) * offsetStep) / 2
 
@@ -72,25 +76,32 @@
                 label: `${dataset.countyName} (Actual)`,
                 data: addOffset(dataset.actualData),
                 backgroundColor: getColor(index),
+                pointStyle: 'circle',
+                pointRadius: 4,
               },
               {
                 ...baseConfig,
                 label: `${dataset.countyName} (Predicted)`,
                 data: addOffset(dataset.predictedData),
-                backgroundColor: getColor(index),
-                errorBars: dataset.uncertainties,
+                backgroundColor: `${getColor(index)}88`,
                 borderColor: getColor(index),
                 borderWidth: 1,
-                pointStyle: 'circle',
+                pointStyle: 'triangle',
                 pointRadius: 4,
+                errorBars: dataset.uncertainties,
               }
             ]
           }
 
+          // For prediction only mode
           return [{
             ...baseConfig,
-            data: addOffset(props.displayMode === 'actual' ? dataset.actualData : dataset.predictedData),
-            errorBars: props.displayMode === 'predicted' ? dataset.uncertainties : undefined,
+            data: addOffset(dataset.predictedData),
+            errorBars: dataset.uncertainties,
+            borderColor: getColor(index),
+            borderWidth: 1,
+            pointStyle: 'triangle',
+            pointRadius: 4,
           }]
         })
 
@@ -127,9 +138,20 @@
                   text: 'Yield (BU/ACRE)',
                   padding: { bottom: 10 }
                 },
-                min: 100,
                 ticks: {
                   padding: 8
+                },
+                suggestedMin: function(context) {
+                  const values = context.chart.data.datasets.flatMap(dataset => 
+                    dataset.data.map(point => point.y)
+                  ).filter(y => y !== null && y !== undefined);
+                  return values.length ? Math.min(...values) * 0.9 : 0;
+                },
+                suggestedMax: function(context) {
+                  const values = context.chart.data.datasets.flatMap(dataset => 
+                    dataset.data.map(point => point.y)
+                  ).filter(y => y !== null && y !== undefined);
+                  return values.length ? Math.max(...values) * 1.1 : 100;
                 }
               }
             },
@@ -174,6 +196,7 @@
             afterDraw: (chart) => {
               const ctx = chart.ctx;
               chart.data.datasets.forEach((dataset, i) => {
+                // Draw error bars
                 if (dataset.errorBars) {
                   const meta = chart.getDatasetMeta(i);
                   meta.data.forEach((element, index) => {
@@ -181,13 +204,37 @@
                     if (uncertainty) {
                       const x = element.x;
                       const y = element.y;
-                      // Convert percentage to actual yield value
                       const uncertaintyValue = (y * uncertainty) / 100;
                       ctx.save();
                       ctx.beginPath();
                       ctx.moveTo(x, y - uncertaintyValue);
                       ctx.lineTo(x, y + uncertaintyValue);
+                      // Add horizontal caps to error bars
+                      ctx.moveTo(x - 3, y - uncertaintyValue);
+                      ctx.lineTo(x + 3, y - uncertaintyValue);
+                      ctx.moveTo(x - 3, y + uncertaintyValue);
+                      ctx.lineTo(x + 3, y + uncertaintyValue);
                       ctx.strokeStyle = dataset.borderColor;
+                      ctx.stroke();
+                      ctx.restore();
+                    }
+                  });
+                }
+
+                // Draw connecting lines between actual and predicted points
+                if (props.displayMode === 'both' && i % 2 === 1) {
+                  const predictedMeta = chart.getDatasetMeta(i);
+                  const actualMeta = chart.getDatasetMeta(i - 1);
+                  
+                  predictedMeta.data.forEach((predPoint, index) => {
+                    const actualPoint = actualMeta.data[index];
+                    if (actualPoint && predPoint) {
+                      ctx.save();
+                      ctx.beginPath();
+                      ctx.moveTo(predPoint.x, predPoint.y);
+                      ctx.lineTo(actualPoint.x, actualPoint.y);
+                      ctx.strokeStyle = dataset.borderColor;
+                      ctx.setLineDash([2, 2]);
                       ctx.stroke();
                       ctx.restore();
                     }

@@ -127,8 +127,49 @@
             Display Historical Yields
           </button>
 
+          <div class="mt-4 space-y-4">
+            <div class="flex items-center space-x-4">
+              <label class="text-sm font-medium text-gray-700">Display Mode:</label>
+              <select 
+                v-model="plotDisplayMode" 
+                class="flex-1 rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+              >
+                <option value="predicted">Predictions Only (with uncertainty)</option>
+                <option value="both">Predictions & Actual Yields</option>
+              </select>
+            </div>
+
+            <div class="flex items-center space-x-4">
+              <label class="text-sm font-medium text-gray-700">Crop Type:</label>
+              <select 
+                v-model="plotCropType" 
+                class="flex-1 rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+              >
+                <option value="corn">Corn</option>
+                <option value="soybean">Soybean</option>
+              </select>
+            </div>
+
+            <div class="flex items-center space-x-4">
+              <label class="text-sm font-medium text-gray-700">County Offset:</label>
+              <input 
+                type="range"
+                v-model="plotOffset"
+                min="0"
+                max="0.3"
+                step="0.01"
+                class="flex-1"
+              />
+              <span class="text-sm text-gray-600 w-12">{{ plotOffset }}</span>
+            </div>
+          </div>
+
           <div v-if="showPlot" class="mt-4 h-[400px]">
-            <ScatterPlot :datasets="plotData" />
+            <ScatterPlot 
+              :datasets="plotData" 
+              :display-mode="plotDisplayMode"
+              :offset-step="parseFloat(plotOffset)"
+            />
           </div>
         </div>
       </div>
@@ -412,6 +453,9 @@ export default {
 
     const showPlot = ref(false)
     const plotData = ref([])
+    const plotDisplayMode = ref('both')
+    const plotCropType = ref('corn')
+    const plotOffset = ref('0.1')
 
     async function displayPlot() {
       showPlot.value = true
@@ -424,36 +468,41 @@ export default {
           name: c.selected.name
         }))
 
-      // Fetch end-of-season data for each selected county
       for (const county of selectedCountyData) {
         const countyData = {
           countyName: county.name,
-          actualData: [],    // Changed from data to actualData
-          predictedData: [], // Added predictedData array
-          uncertainties: []  // Added uncertainties array
+          actualData: [],
+          predictedData: [],
+          uncertainties: []
         }
 
         for (let year = 2015; year <= 2024; year++) {
-          const data = await fetchPredictionData('corn', year, '284')
+          const data = await fetchPredictionData(plotCropType.value, year, '284')
           if (data) {
             const countyYield = data.find(row => row.FIPS === county.fips)
             if (countyYield) {
               // Add actual yield data
-              countyData.actualData.push({
-                x: year,
-                y: parseFloat(countyYield.y_test)
-              })
+              if (countyYield.y_test) {
+                countyData.actualData.push({
+                  x: year,
+                  y: parseFloat(countyYield.y_test)
+                })
+              }
               
               // Add predicted yield data
-              countyData.predictedData.push({
-                x: year,
-                y: parseFloat(countyYield.y_test_pred)
-              })
-              
-              // Add uncertainty as percentage
-              const uncertainty = parseFloat(countyYield.y_test_pred_uncertainty)
-              const uncertaintyPercent = (uncertainty / parseFloat(countyYield.y_test_pred)) * 100
-              countyData.uncertainties.push(uncertaintyPercent)
+              if (countyYield.y_test_pred) {
+                countyData.predictedData.push({
+                  x: year,
+                  y: parseFloat(countyYield.y_test_pred)
+                })
+                
+                // Add uncertainty as percentage
+                if (countyYield.y_test_pred_uncertainty) {
+                  const uncertainty = parseFloat(countyYield.y_test_pred_uncertainty)
+                  const uncertaintyPercent = (uncertainty / parseFloat(countyYield.y_test_pred)) * 100
+                  countyData.uncertainties.push(uncertaintyPercent)
+                }
+              }
             }
           }
         }
@@ -461,6 +510,13 @@ export default {
         plotData.value.push(countyData)
       }
     }
+
+    // Watch for changes in plot settings to trigger refresh
+    watch([plotDisplayMode, plotCropType], () => {
+      if (showPlot.value) {
+        displayPlot()
+      }
+    })
 
     return {
       selectedCounties,
@@ -480,7 +536,10 @@ export default {
       isExporting,
       showPlot,
       plotData,
+      plotDisplayMode,
       displayPlot,
+      plotCropType,
+      plotOffset,
     }
   }
 }
