@@ -7,15 +7,15 @@
         <div class="flex items-center space-x-2">
           <button @click="toggleSidebar('data')" aria-label="Data" class="toolbar-button">
             <Icon icon="mdi:database" class="text-gray-600" />
-            <span class="tooltip">Data Selection</span>
+            <span class="tooltip">Time Selection</span>
           </button>
           <button @click="toggleSidebar('analysis')" aria-label="Analysis" class="toolbar-button">
             <Icon icon="mdi:chart-bar" class="text-gray-600" />
-            <span class="tooltip">Analysis</span>
+            <span class="tooltip">County Selection</span>
           </button>
           <button @click="toggleSidebar('mapping')" aria-label="Mapping" class="toolbar-button">
             <Icon icon="mdi:map" class="text-gray-600" />
-            <span class="tooltip">Mapping</span>
+            <span class="tooltip">Mapping Settings</span>
           </button>
         </div>
 

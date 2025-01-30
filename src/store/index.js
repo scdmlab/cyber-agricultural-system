@@ -48,10 +48,10 @@ export default createStore({
       drawnPolygons: [], // Add this line to store drawn polygons
       yearSliderVisible: true,
       cachedPredictions: {}, // Add this line to store cached predictions
-      currentPredictionType: 'end-of-season',
-      currentDay: '188', // Default to day 188 (early July)
+      currentDay: '284', // Default to day 284 (end of season)
       selectedCountyFIPS: [], // Add this line to track selected counties
       selectedCounties: [], // Add this line to store selected counties
+      currentPredictionData: null, // Add this line to store current prediction data
     },
     mutations: {
       setMap(state, data) {
@@ -84,12 +84,13 @@ export default createStore({
             state.selectedLocation = location
         },
         setCsvData(state, data) {
+            console.warn('Deprecated: setCsvData is no longer used')
             state.csvData = data
-          },
-          setAllPredictions(state, data) {
+        },
+        setAllPredictions(state, data) {
             state.allPredictions = data
-          },
-          setHoveredCounty(state, county) {
+        },
+        setHoveredCounty(state, county) {
             state.hoveredCounty = county
             state.hoveredCountyId = county ? county.id : null
         },
@@ -104,136 +105,122 @@ export default createStore({
             state.availableStates = Object.keys(data)
         },
         setChoroplethSettings(state, settings) {
-          state.choroplethSettings = settings
+            state.choroplethSettings = settings
         },
         setSelectedBasemap(state, basemapId) {
-          state.selectedBasemap = basemapId
+            state.selectedBasemap = basemapId
         },
         addMarker(state, marker) {
-          state.markers.push(marker)
+            state.markers.push(marker)
         },
         removeMarkers(state) {
-          state.markers = [];
+            state.markers = [];
         },
         setCountyInfo(state, data) {
-          state.countyInfo = data;
+            state.countyInfo = data;
         },
         setModelQueue(state, queue) {
-          state.modelQueue = queue;
-          localStorage.setItem('modelQueue', JSON.stringify(queue)); // Save to localStorage
+            state.modelQueue = queue;
+            localStorage.setItem('modelQueue', JSON.stringify(queue)); // Save to localStorage
         },
         addModelQueueJob(state, job) {
-          state.modelQueue.push(job);
-          localStorage.setItem('modelQueue', JSON.stringify(state.modelQueue)); // Save to localStorage
+            state.modelQueue.push(job);
+            localStorage.setItem('modelQueue', JSON.stringify(state.modelQueue)); // Save to localStorage
         },
         updateModelQueueJob(state, updatedJob) {
-          const index = state.modelQueue.findIndex(job => job.id === updatedJob.id);
-          if (index !== -1) {
-            state.modelQueue.splice(index, 1, updatedJob);
-            localStorage.setItem('modelQueue', JSON.stringify(state.modelQueue)); // Save to localStorage
-          }
+            const index = state.modelQueue.findIndex(job => job.id === updatedJob.id);
+            if (index !== -1) {
+                state.modelQueue.splice(index, 1, updatedJob);
+                localStorage.setItem('modelQueue', JSON.stringify(state.modelQueue)); // Save to localStorage
+            }
         },
         clearModelQueue(state) {
-          state.modelQueue = [];
-          state.markers = [];
-          localStorage.removeItem('modelQueue'); // Clear from localStorage
+            state.modelQueue = [];
+            state.markers = [];
+            localStorage.removeItem('modelQueue'); // Clear from localStorage
         },
         setDrawnPolygons(state, polygons) {
-          state.drawnPolygons = polygons; // Mutation to set drawn polygons
+            state.drawnPolygons = polygons; // Mutation to set drawn polygons
         },
         clearDrawnPolygons(state) {
-          state.drawnPolygons = []; // Mutation to clear drawn polygons
+            state.drawnPolygons = []; // Mutation to clear drawn polygons
         },
         setCurrentYear(state, year) {
-          state.currentYear = year;
+            state.currentYear = year;
         },
         toggleYearSlider(state) {
-          state.yearSliderVisible = !state.yearSliderVisible
+            state.yearSliderVisible = !state.yearSliderVisible
         },
         setMapTitle(state, title) {
-          state.mapTitle = title;
+            state.mapTitle = title;
         },
         setMapDescription(state, description) {
-          state.mapDescription = description;
+            state.mapDescription = description;
         },
         setMapFont(state, font) {
-          state.mapFont = font;
+            state.mapFont = font;
         },
         setCachedPrediction(state, { key, data }) {
-          state.cachedPredictions[key] = data;
-        },
-        setPredictionType(state, type) {
-          state.currentPredictionType = type
-          if (type === 'end-of-season') {
-            state.currentDay = null
-          } else if (!state.currentDay) {
-            state.currentDay = '188' // Default day for in-season
-          }
-          this.commit('updateMapTitle')
+            state.cachedPredictions[key] = data;
         },
         setPredictionDay(state, day) {
-          if (day === null) {
-            state.currentDay = null;
-          } else {
             state.currentDay = day.toString().padStart(3, '0');
-          }
-          this.commit('updateMapTitle');
+            this.commit('updateMapTitle');
         },
         updateMapTitle(state) {
-          const crop = state.currentCrop.charAt(0).toUpperCase() + state.currentCrop.slice(1);
-          const year = state.currentYear;
-          
-          // Only try to get date mapping if we have a currentDay
-          let type = 'End-of-Season Prediction';
-          if (state.currentPredictionType === 'in-season' && state.currentDay) {
+            const crop = state.currentCrop.charAt(0).toUpperCase() + state.currentCrop.slice(1);
+            const year = state.currentYear;
+            
             const dateMapping = {
-              "140": "May 20",
-              "156": "June 5",
-              "172": "June 21",
-              "188": "July 7",
-              "204": "July 23",
-              "220": "August 8",
-              "236": "August 24",
-              "252": "September 9",
-              "268": "September 25",
-              "284": "October 11"
+                "140": "May 20 (In Season)",
+                "156": "June 5 (In Season)",
+                "172": "June 21 (In Season)",
+                "188": "July 7 (In Season)",
+                "204": "July 23 (In Season)",
+                "220": "August 8 (In Season)",
+                "236": "August 24 (In Season)",
+                "252": "September 9 (In Season)",
+                "268": "September 25 (In Season)",
+                "284": "October 11 (End of Season)"
             };
-            type = `${dateMapping[state.currentDay]} Prediction`;
-          }
-          
-          state.mapTitle = `${crop} ${type} for US in ${year}`;
+            
+            const predictionDate = dateMapping[state.currentDay];
+            state.mapTitle = `${crop} ${predictionDate} Prediction for US in ${year}`;
         },
         setSelectedCountyFIPS(state, fipsList) {
-          state.selectedCountyFIPS = fipsList;
+            state.selectedCountyFIPS = fipsList;
         },
         addSelectedCountyFIPS(state, { fips, name }) {
-          if (!state.selectedCountyFIPS.includes(fips)) {
-            state.selectedCountyFIPS.push(fips);
-            // Also update the selectedCounties array
-            state.selectedCounties.push({
-              input: name,
-              selected: { fips, name },
-              showSuggestions: false,
-              filteredSuggestions: []
-            });
-          }
+            if (!state.selectedCountyFIPS.includes(fips)) {
+                state.selectedCountyFIPS.push(fips);
+                // Also update the selectedCounties array
+                state.selectedCounties.push({
+                    input: name,
+                    selected: { fips, name },
+                    showSuggestions: false,
+                    filteredSuggestions: []
+                });
+            }
         },
         removeSelectedCountyFIPS(state, fips) {
-          // Remove from selectedCountyFIPS array
-          state.selectedCountyFIPS = state.selectedCountyFIPS.filter(f => f !== fips);
-          
-          // Remove from selectedCounties array
-          state.selectedCounties = state.selectedCounties.filter(c => c.selected?.fips !== fips);
-          
-          // If selectedCounties is empty, initialize with an empty input
-          if (state.selectedCounties.length === 0) {
-            state.selectedCounties = [{
-              input: '',
-              selected: null,
-              showSuggestions: false,
-              filteredSuggestions: []
-            }];
-          }
+            // Remove from selectedCountyFIPS array
+            state.selectedCountyFIPS = state.selectedCountyFIPS.filter(f => f !== fips);
+            
+            // Remove from selectedCounties array
+            state.selectedCounties = state.selectedCounties.filter(c => c.selected?.fips !== fips);
+            
+            // If selectedCounties is empty, initialize with an empty input
+            if (state.selectedCounties.length === 0) {
+                state.selectedCounties = [{
+                    input: '',
+                    selected: null,
+                    showSuggestions: false,
+                    filteredSuggestions: []
+                }];
+            }
+        },
+        setCurrentPredictionData(state, data) {
+            state.currentPredictionData = data
         },
     },
     actions: {
@@ -285,28 +272,19 @@ export default createStore({
         },
 
         async fetchPredictionData({ commit, state }) {
-          const { currentCrop, currentYear, currentDay, currentPredictionType } = state
+          const { currentCrop, currentYear, currentDay } = state
           
           // Create a cache key
-          const cacheKey = currentPredictionType === 'end-of-season' 
-            ? `${currentCrop}_${currentYear}_eos`
-            : `${currentCrop}_${currentYear}_${currentDay}`
-
-          console.log("Fetching prediction data:", { currentPredictionType, currentDay, csvPath: cacheKey })
+          const cacheKey = `${currentCrop}_${currentYear}_${currentDay}`
           
           // Check cache first
           if (state.cachedPredictions[cacheKey]) {
+            commit('setCurrentPredictionData', state.cachedPredictions[cacheKey])
             return state.cachedPredictions[cacheKey]
           }
 
-          let csvPath = ''
-          if (currentPredictionType === 'end-of-season') {
-            csvPath = `${baseUrl}result_${currentCrop}/bnn/result${currentYear}.csv`
-          } else {
-            // Ensure day is padded to 3 digits
-            const paddedDay = currentDay.toString().padStart(3, '0')
-            csvPath = `${baseUrl}result_${currentCrop}/bnn/result${currentYear}_${paddedDay}.csv`
-          }
+          const paddedDay = currentDay.toString().padStart(3, '0')
+          const csvPath = `${baseUrl}result_${currentCrop}/bnn/result${currentYear}_${paddedDay}.csv`
 
           try {
             console.log("Attempting to fetch from:", csvPath)
@@ -326,15 +304,16 @@ export default createStore({
             const predictions = parsedData
               .filter(row => row.FIPS)
               .map(row => ({
-                FIPS: row.FIPS.toString(),
+                FIPS: row.FIPS.toString().padStart(5, '0'),
                 pred: parseFloat(row.y_test_pred),
                 yield: parseFloat(row.y_test),
                 uncertainty: parseFloat(row.y_test_pred_uncertainty),
                 error: parseFloat(row.y_test_pred) - parseFloat(row.y_test)
               }))
 
-            // Cache the processed data
+            // Cache and set the current prediction data
             commit('setCachedPrediction', { key: cacheKey, data: predictions })
+            commit('setCurrentPredictionData', predictions)
             return predictions
 
           } catch (error) {

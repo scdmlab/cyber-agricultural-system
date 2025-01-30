@@ -20,17 +20,12 @@
       </select>
 
       <select 
-        v-model="predictionSelection"
-        class="p-1 bg-white border border-gray-300 rounded w-32"
+        v-model="selectedDay"
+        class="p-1 bg-white border border-gray-300 rounded w-48"
       >
-        <optgroup label="In Season">
-          <option v-for="{ day, date } in sortedDays" :key="day" :value="`in-season-${day}`">
-            {{ date }}
-          </option>
-        </optgroup>
-        <optgroup label="End of Season">
-          <option value="end-of-season">End of Season</option>
-        </optgroup>
+        <option v-for="{ day, date } in sortedDays" :key="day" :value="day">
+          {{ date }}
+        </option>
       </select>
 
       <select 
@@ -86,7 +81,7 @@
     <!-- Status display -->
     <div class="text-xs font-bold mt-2">
       Year: {{ currentYear }} | 
-      {{ predictionSelection === 'end-of-season' ? 'End of Season' : dayMapping[predictionSelection.split('-')[2]] }} |
+      {{ dayMapping[selectedDay] }} |
       Property: {{ propertyLabels[selectedProperty] }}
     </div>
   </div>
@@ -119,23 +114,9 @@ export default {
       set: value => store.commit('setYear', value)
     })
 
-    const predictionSelection = computed({
-      get: () => {
-        if (store.state.currentPredictionType === 'end-of-season') {
-          return 'end-of-season'
-        }
-        return `in-season-${store.state.currentDay}`
-      },
-      set: value => {
-        if (value === 'end-of-season') {
-          store.commit('setPredictionType', 'end-of-season')
-          store.commit('setPredictionDay', null)
-        } else {
-          const day = value.split('-')[2]
-          store.commit('setPredictionType', 'in-season')
-          store.commit('setPredictionDay', day)
-        }
-      }
+    const selectedDay = computed({
+      get: () => store.state.currentDay,
+      set: value => store.commit('setPredictionDay', value)
     })
 
     const propertyLabels = {
@@ -145,16 +126,16 @@ export default {
     }
 
     const dayMapping = {
-      "140": "May 20",
-      "156": "June 5",
-      "172": "June 21",
-      "188": "July 7",
-      "204": "July 23",
-      "220": "August 8",
-      "236": "August 24",
-      "252": "September 9",
-      "268": "September 25",
-      "284": "October 11"
+      "140": "May 20 (In Season)",
+      "156": "June 5 (In Season)",
+      "172": "June 21 (In Season)",
+      "188": "July 7 (In Season)",
+      "204": "July 23 (In Season)",
+      "220": "August 8 (In Season)",
+      "236": "August 24 (In Season)",
+      "252": "September 9 (In Season)",
+      "268": "September 25 (In Season)",
+      "284": "October 11 (End of Season)"
     }
 
     const sortedDays = computed(() => {
@@ -165,7 +146,7 @@ export default {
 
     const years = computed(() => {
       const startYear = 2015
-      const endYear = predictionSelection.value === 'end-of-season' ? 2023 : 2024
+      const endYear = 2024
       return Array.from(
         { length: endYear - startYear + 1 }, 
         (_, i) => (startYear + i).toString()
@@ -194,18 +175,15 @@ export default {
       if (animationType.value === 'year') {
         return parseInt(currentYear.value)
       } else { // by month
-        if (predictionSelection.value === 'end-of-season') {
-          return 0 // default to first month when switching to month mode
-        }
         return sortedDays.value.findIndex(
-          d => d.day === predictionSelection.value.split('-')[2]
+          d => d.day === selectedDay.value
         )
       }
     })
 
     // Update predictions whenever any selection changes
     watch(
-      [selectedCrop, selectedProperty, currentYear, predictionSelection],
+      [selectedCrop, selectedProperty, currentYear, selectedDay],
       async () => {
         await updatePredictions()
       }
@@ -239,13 +217,8 @@ export default {
     const handleSliderChange = (event) => {
       const value = parseInt(event.target.value)
       if (animationType.value === 'year') {
-        // Year mode - slide through years with end-of-season
         store.commit('setYear', value.toString())
-        store.commit('setPredictionType', 'end-of-season')
-        store.commit('setPredictionDay', null)
       } else {
-        // Month mode - slide through months
-        store.commit('setPredictionType', 'in-season')
         store.commit('setPredictionDay', sortedDays.value[value].day)
       }
       updatePredictions()
@@ -269,18 +242,16 @@ export default {
             nextYear = 2015
           }
           store.commit('setYear', nextYear.toString())
-          store.commit('setPredictionType', 'end-of-season')
-          store.commit('setPredictionDay', null)
+          store.commit('setPredictionDay', sortedDays.value[0].day)
         } else {
           // Animate through months for the current year
-          if (predictionSelection.value === 'end-of-season') {
+          if (selectedDay.value === '284') {
             // Start from the first month if currently at end-of-season
-            store.commit('setPredictionType', 'in-season')
             store.commit('setPredictionDay', sortedDays.value[0].day)
           } else {
             // Move to next month
             const currentDayIndex = sortedDays.value.findIndex(
-              d => d.day === predictionSelection.value.split('-')[2]
+              d => d.day === selectedDay.value
             )
             const nextIndex = (currentDayIndex + 1) % sortedDays.value.length
             if (nextIndex === 0) {
@@ -306,7 +277,7 @@ export default {
       selectedCrop,
       selectedProperty,
       currentYear,
-      predictionSelection,
+      selectedDay,
       isPlaying,
       dayMapping,
       sortedDays,

@@ -1,6 +1,6 @@
 <template>
   <div class="bg-white p-6 rounded-lg shadow-md h-full flex flex-col">
-    <h2 class="text-2xl font-bold text-green-600 mb-4">Data Export </h2>
+    <h2 class="text-2xl font-bold text-green-600 mb-4">County Selection</h2>
     
     <div class="flex-grow space-y-4">
       <div class="mt-4 space-y-4">
@@ -71,19 +71,6 @@
             >
               <option value="all">All Predictions</option>
               <option value="eos">End of Season Only</option>
-              <option value="in-season">In Season Only</option>
-              <option value="custom">Custom Day</option>
-            </select>
-          </div>
-
-          <div v-if="predictionTime === 'custom'" class="flex items-center space-x-4">
-            <select 
-              v-model="selectedDay" 
-              class="rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
-            >
-              <option v-for="{ day, date } in sortedDays" :key="day" :value="day">
-                {{ date }} (Day {{ day }})
-              </option>
             </select>
           </div>
 
@@ -196,33 +183,14 @@ export default {
     const startYear = ref(2015)
     const endYear = ref(2024)
     const predictionTime = ref('all')
-    const selectedDay = ref('188')
     
-    const dayMapping = {
-      "140": "May 20",
-      "156": "June 5",
-      "172": "June 21",
-      "188": "July 7",
-      "204": "July 23",
-      "220": "August 8",
-      "236": "August 24",
-      "252": "September 9",
-      "268": "September 25",
-      "284": "October 11"
-    }
-
-    const sortedDays = computed(() => {
-      return Object.entries(dayMapping)
-        .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
-        .map(([day, date]) => ({ day, date }))
-    })
-
     const csvData = computed(() => store.state.csvData || [])
     const baseUrl = import.meta.env.BASE_URL
 
     const countySuggestions = computed(() => {
       const uniqueCounties = new Map()
       if (csvData.value) {
+        console.log(csvData.value)
         csvData.value.forEach(row => {
           const stateCode = row.FIPS.substring(0, 2)
           const stateName = stateCodeMap[stateCode] || 'Unknown State'
@@ -286,7 +254,6 @@ export default {
     async function exportData() {
       isExporting.value = true
       try {
-        console.log('Starting export process...')
         const selectedCountyData = selectedCounties.value
           .filter(c => c.selected)
           .map(c => ({
@@ -295,7 +262,7 @@ export default {
           }))
         
         if (selectedCountyData.length === 0) {
-          console.log('No counties selected')
+          console.error('No counties selected')
           return
         }
 
@@ -306,86 +273,64 @@ export default {
         const yearStart = yearRange.value === 'all' ? 2015 : parseInt(startYear.value)
         const yearEnd = yearRange.value === 'all' ? 2024 : parseInt(endYear.value)
 
-        const allData = []
-        let daysToFetch = []
-        
-        // Determine which days to fetch based on predictionTime
-        switch (predictionTime.value) {
-          case 'all':
-            daysToFetch = Object.keys(dayMapping)
-            break
-          case 'eos':
-            daysToFetch = []
-            break
-          case 'in-season':
-            daysToFetch = Object.keys(dayMapping)
-            break
-          case 'custom':
-            daysToFetch = [selectedDay.value]
-            break
-        }
-
+        // Process each crop separately
         for (const crop of crops) {
+          const allData = []
+          let daysToFetch = []
+          
+          switch (predictionTime.value) {
+            case 'all':
+              daysToFetch = ['140', '156', '172', '188', '204', '220', '236', '252', '268', '284']
+              break
+            case 'eos':
+              daysToFetch = ['284']
+              break
+          }
+
           for (let year = yearStart; year <= yearEnd; year++) {
-            // Fetch end of season data if needed
-            if (predictionTime.value === 'all' || predictionTime.value === 'eos') {
-              const eosData = await fetchPredictionData(crop, year)
-              if (eosData) {
-                eosData.forEach(row => {
+            for (const day of daysToFetch) {
+              const data = await fetchPredictionData(crop, year, day)
+              if (data) {
+                data.forEach(row => {
                   const countyData = selectedCountyData.find(c => c.fips === row.FIPS)
                   if (countyData) {
+                    // Convert bushels/acre to metric tons/hectare
+                    const buToTha = crop === 'corn' ? 0.06277 : 0.0673
+                    const predicted = row.y_test_pred * buToTha
+                    const actual = row.y_test * buToTha
+                    const uncertainty = row.y_test_pred_uncertainty * buToTha
+                    const error = predicted - actual
+
                     allData.push({
-                      FIPS: row.FIPS,
-                      county: countyData.name,
-                      crop,
-                      year,
-                      date: 'eos',
-                      predicted: row.y_test_pred,
-                      actual: row.y_test,
-                      uncertainty: row.y_test_pred_uncertainty,
-                      error: row.y_test_pred - row.y_test
+                      'FIPS': row.FIPS,
+                      'County': countyData.name,
+                      'Crop type': crop,
+                      'Year': year,
+                      'Day of Year': day,
+                      'Predicted Yield (t/ha)': predicted.toFixed(3),
+                      'NASS Reported Yield (t/ha)': actual.toFixed(3),
+                      'Prediction Error (t/ha)': error.toFixed(3),
+                      'Model Uncertainty': uncertainty.toFixed(3)
                     })
                   }
                 })
               }
             }
+          }
 
-            // Fetch in-season predictions if needed
-            if (daysToFetch.length > 0) {
-              for (const day of daysToFetch) {
-                const data = await fetchPredictionData(crop, year, day)
-                if (data) {
-                  data.forEach(row => {
-                    const countyData = selectedCountyData.find(c => c.fips === row.FIPS)
-                    if (countyData) {
-                      allData.push({
-                        FIPS: row.FIPS,
-                        county: countyData.name,
-                        crop,
-                        year,
-                        date: parseInt(day),
-                        predicted: row.y_test_pred,
-                        actual: row.y_test,
-                        uncertainty: row.y_test_pred_uncertainty,
-                        error: row.y_test_pred - row.y_test
-                      })
-                    }
-                  })
-                }
-              }
-            }
+          if (allData.length > 0) {
+            const csv = Papa.unparse(allData)
+            const blob = new Blob([csv], { type: 'text/csv' })
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            // Capitalize crop name in filename
+            const cropName = crop.charAt(0).toUpperCase() + crop.slice(1)
+            a.download = `${cropName}_Yield_Prediction_Results.csv`
+            a.click()
+            window.URL.revokeObjectURL(url)
           }
         }
-
-        console.log(`Exporting ${allData.length} records`)
-        const csv = Papa.unparse(allData)
-        const blob = new Blob([csv], { type: 'text/csv' })
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'prediction_data.csv'
-        a.click()
-        window.URL.revokeObjectURL(url)
       } catch (error) {
         console.error('Export failed:', error)
       } finally {
@@ -456,8 +401,6 @@ export default {
       startYear,
       endYear,
       predictionTime,
-      selectedDay,
-      sortedDays,
       updateSuggestions,
       selectSuggestion,
       selectCounty,

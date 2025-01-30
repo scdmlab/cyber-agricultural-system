@@ -19,16 +19,11 @@
       </div>
       
       <div>
-        <label for="predictionType" class="block text-sm font-medium text-gray-700">Prediction Time:</label>
-        <select id="predictionType" v-model="localPredictionSelection" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
-          <optgroup label="In Season">
-            <option v-for="{ day, date } in sortedDays" :key="day" :value="`in-season-${day}`">
-              {{ date }}
-            </option>
-          </optgroup>
-          <optgroup label="End of Season">
-            <option value="end-of-season">End of Season</option>
-          </optgroup>
+        <label for="predictionDay" class="block text-sm font-medium text-gray-700">Prediction Time:</label>
+        <select id="predictionDay" v-model="localDay" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+          <option v-for="{ day, date } in sortedDays" :key="day" :value="day">
+            {{ date }}
+          </option>
         </select>
       </div>
       
@@ -48,7 +43,7 @@
 </template>
 
 <script>
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useStore } from 'vuex'
 
 export default {
@@ -67,23 +62,9 @@ export default {
       set: value => store.commit('setYear', value)
     })
     
-    const localPredictionSelection = computed({
-      get: () => {
-        if (store.state.currentPredictionType === 'end-of-season') {
-          return 'end-of-season'
-        }
-        return `in-season-${store.state.currentDay}`
-      },
-      set: value => {
-        if (value === 'end-of-season') {
-          store.commit('setPredictionType', 'end-of-season')
-          store.commit('setPredictionDay', null)
-        } else {
-          const day = value.split('-')[2]
-          store.commit('setPredictionType', 'in-season')
-          store.commit('setPredictionDay', day)
-        }
-      }
+    const localDay = computed({
+      get: () => store.state.currentDay,
+      set: value => store.commit('setPredictionDay', value)
     })
     
     const localProperty = computed({
@@ -92,21 +73,21 @@ export default {
     })
 
     const dayMapping = {
-      "140": "May 20",
-      "156": "June 5",
-      "172": "June 21",
-      "188": "July 7",
-      "204": "July 23",
-      "220": "August 8",
-      "236": "August 24",
-      "252": "September 9",
-      "268": "September 25",
-      "284": "October 11"
+      "140": "May 20 (In Season)",
+      "156": "June 5 (In Season)",
+      "172": "June 21 (In Season)",
+      "188": "July 7 (In Season)",
+      "204": "July 23 (In Season)",
+      "220": "August 8 (In Season)",
+      "236": "August 24 (In Season)",
+      "252": "September 9 (In Season)",
+      "268": "September 25 (In Season)",
+      "284": "October 11 (End of Season)"
     }
 
     const years = computed(() => {
       const startYear = 2015
-      const endYear = localPredictionSelection.value === 'end-of-season' ? 2023 : 2024
+      const endYear = localDay.value === '284' ? 2023 : 2024
       return Array.from(
         { length: endYear - startYear + 1 }, 
         (_, i) => (startYear + i).toString()
@@ -141,7 +122,7 @@ export default {
 
     // Watch for any changes in the selections
     watch(
-      [localCrop, localYear, localProperty, localPredictionSelection],
+      [localCrop, localYear, localProperty, localDay],
       async () => {
         await applyDataSelection()
       }
@@ -150,7 +131,7 @@ export default {
     return {
       localCrop,
       localYear,
-      localPredictionSelection,
+      localDay,
       localProperty,
       years,
       sortedDays,
