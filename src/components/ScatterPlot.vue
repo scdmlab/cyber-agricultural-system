@@ -170,9 +170,60 @@
                 labels: {
                   boxWidth: 12,
                   padding: 15,
-                  usePointStyle: true
+                  usePointStyle: true,
+                  generateLabels: (chart) => {
+                    const datasets = chart.data.datasets;
+                    const labels = [];
+                    
+                    if (props.displayMode === 'both') {
+                      for (let i = 0; i < datasets.length; i += 2) {
+                        const countyName = datasets[i].label.replace(' (Actual)', '');
+                        labels.push({
+                          text: countyName,
+                          fillStyle: datasets[i].backgroundColor,
+                          strokeStyle: datasets[i].borderColor || datasets[i].backgroundColor,
+                          lineWidth: 1,
+                          hidden: false,
+                          index: i,
+                          datasetIndex: [i, i + 1],
+                          points: [
+                            { pointStyle: 'circle', fillStyle: datasets[i].backgroundColor },
+                            { pointStyle: 'triangle', fillStyle: datasets[i + 1].backgroundColor }
+                          ]
+                        });
+                      }
+                    } else {
+                      datasets.forEach((dataset, i) => {
+                        labels.push({
+                          text: dataset.label,
+                          fillStyle: dataset.backgroundColor,
+                          strokeStyle: dataset.borderColor || dataset.backgroundColor,
+                          lineWidth: 1,
+                          hidden: false,
+                          index: i,
+                          datasetIndex: i,
+                          pointStyle: dataset.pointStyle
+                        });
+                      });
+                    }
+                    return labels;
+                  },
+                  font: {
+                    size: 12
+                  }
                 },
-                maxHeight: 80 // Limit legend height
+                onClick: (e, legendItem, legend) => {
+                  if (Array.isArray(legendItem.datasetIndex)) {
+                    legendItem.datasetIndex.forEach(index => {
+                      const meta = legend.chart.getDatasetMeta(index);
+                      meta.hidden = !meta.hidden;
+                    });
+                  } else {
+                    const meta = legend.chart.getDatasetMeta(legendItem.datasetIndex);
+                    meta.hidden = !meta.hidden;
+                  }
+                  legend.chart.update();
+                }
               },
               tooltip: {
                 callbacks: {
