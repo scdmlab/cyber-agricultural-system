@@ -56,7 +56,7 @@
           'both': 'Predicted vs Actual'
         }[props.displayMode]
         
-        return `${props.cropType} Yield - ${mode} Values`
+        return `End of Season ${props.cropType} Yield - ${mode} Values`
       }
 
       const renderScatterPlot = () => {

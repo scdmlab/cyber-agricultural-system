@@ -1,103 +1,118 @@
 <template>
-  <div v-if="isVisible" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-white bg-opacity-80 p-4 rounded shadow-md flex flex-col items-center w-3/8 max-w-4xl">
-    <!-- Add close button -->
-    <button 
-      @click="closeSlider" 
-      class="absolute top-0 right-2 text-gray-500 hover:text-black focus:outline-none"
-      aria-label="Close year slider"
+  <div 
+    v-if="isVisible" 
+    class="absolute z-50 bg-white bg-opacity-80 p-4 rounded shadow-md flex flex-col items-center w-3/8 max-w-4xl"
+    :style="{ left: position.x + 'px', top: position.y + 'px', transform: 'none' }"
+    ref="sliderContainer"
+  >
+    <!-- Add drag handle -->
+    <div 
+      class="absolute top-0 left-0 w-full h-6 bg-gray-100 rounded-t cursor-move flex items-center px-2"
+      @mousedown="startDrag"
     >
-      <span class="text-xl">×</span>
-    </button>
-    
-    <div class="flex items-center w-full gap-2">
-      <!-- Main controls in a single row -->
-      <select 
-        v-model="selectedCrop"
-        class="p-1 bg-white border border-gray-300 rounded w-16"
-      >
-        <option value="corn">Corn</option>
-        <option value="soybean">Soybean</option>
-      </select>
-
-      <select 
-        v-model="selectedProperty"
-        class="p-1 bg-white border border-gray-300 rounded w-48"
-      >
-        <option value="pred">Predicted Yield (bu/acre)</option>
-        <option value="error">Prediction Error (bu/acre)</option>
-        <option value="uncertainty">Model Uncertainty</option>
-      </select>
-
-      <select 
-        v-model="selectedDay"
-        class="p-1 bg-white border border-gray-300 rounded w-48"
-      >
-        <option v-for="{ day, date } in sortedDays" :key="day" :value="day">
-          {{ date }}
-        </option>
-      </select>
-
-      <select 
-        v-model="currentYear"
-        class="p-1 bg-white border border-gray-300 rounded w-16"
-      >
-        <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
-      </select>
-
-      <!-- Play button -->
+      <span class="text-gray-500 text-sm">⋮⋮ Drag to move</span>
+      <!-- Existing close button -->
       <button 
-        @click="togglePlay" 
-        class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 w-10 h-10 flex items-center justify-center ml-2"
+        @click="closeSlider" 
+        class="absolute top-0 right-2 text-gray-500 hover:text-black focus:outline-none"
+        aria-label="Close year slider"
       >
-        {{ isPlaying ? '⏸' : '▶' }}
+        <span class="text-xl">×</span>
       </button>
+    </div>
 
-      <!-- Animation type radio buttons -->
-      <div class="flex items-center gap-2 ml-2">
-        <label class="inline-flex items-center">
-          <input
-            type="radio"
-            v-model="animationType"
-            value="year"
-            class="form-radio text-blue-500"
-          >
-          <span class="ml-1 text-sm whitespace-nowrap">By Year</span>
-        </label>
-        <label class="inline-flex items-center ml-2">
-          <input
-            type="radio"
-            v-model="animationType"
-            value="month"
-            class="form-radio text-blue-500"
-          >
-          <span class="ml-1 text-sm whitespace-nowrap">By Month</span>
-        </label>
+    <!-- Add h-fit to contain the height -->
+    <div class="flex flex-col w-full h-fit">
+      <div class="flex items-center w-full gap-2 mt-6">
+        <!-- Main controls in a single row -->
+        <select 
+          v-model="selectedCrop"
+          class="p-1 bg-white border border-gray-300 rounded w-16"
+        >
+          <option value="corn">Corn</option>
+          <option value="soybean">Soybean</option>
+        </select>
+
+        <select 
+          v-model="selectedProperty"
+          class="p-1 bg-white border border-gray-300 rounded w-48"
+        >
+          <option value="pred">Predicted Yield (bu/acre)</option>
+          <option value="error">Prediction Error (bu/acre)</option>
+          <option value="uncertainty">Model Uncertainty</option>
+        </select>
+
+        <select 
+          v-model="selectedDay"
+          class="p-1 bg-white border border-gray-300 rounded w-48"
+        >
+          <option v-for="{ day, date } in sortedDays" :key="day" :value="day">
+            {{ date }}
+          </option>
+        </select>
+
+        <select 
+          v-model="currentYear"
+          class="p-1 bg-white border border-gray-300 rounded w-16"
+        >
+          <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+        </select>
+
+        <!-- Play button -->
+        <button 
+          @click="togglePlay" 
+          class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 w-10 h-10 flex items-center justify-center ml-2"
+        >
+          {{ isPlaying ? '⏸' : '▶' }}
+        </button>
+
+        <!-- Animation type radio buttons -->
+        <div class="flex items-center gap-2 ml-2">
+          <label class="inline-flex items-center">
+            <input
+              type="radio"
+              v-model="animationType"
+              value="year"
+              class="form-radio text-blue-500"
+            >
+            <span class="ml-1 text-sm whitespace-nowrap">By Year</span>
+          </label>
+          <label class="inline-flex items-center ml-2">
+            <input
+              type="radio"
+              v-model="animationType"
+              value="month"
+              class="form-radio text-blue-500"
+            >
+            <span class="ml-1 text-sm whitespace-nowrap">By Month</span>
+          </label>
+        </div>
       </div>
-    </div>
 
-    <!-- Time slider -->
-    <div class="w-full mt-3 flex items-center gap-2">
-      <input
-        type="range"
-        :min="sliderMin"
-        :max="sliderMax"
-        :value="sliderValue"
-        @input="handleSliderChange"
-        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
-      >
-    </div>
+      <!-- Time slider -->
+      <div class="w-full mt-3 flex items-center gap-2">
+        <input
+          type="range"
+          :min="sliderMin"
+          :max="sliderMax"
+          :value="sliderValue"
+          @input="handleSliderChange"
+          class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
+        >
+      </div>
 
-    <!-- Status display -->
-    <div class="text-xs font-bold mt-2">
-      Year: {{ currentYear }} | 
-      {{ dayMapping[selectedDay] }} |
-      Property: {{ propertyLabels[selectedProperty] }}
+      <!-- Status display -->
+      <div class="text-xs font-bold mt-2 mb-1">
+        Year: {{ currentYear }} | 
+        {{ dayMapping[selectedDay] }} |
+        Property: {{ propertyLabels[selectedProperty] }}
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 
 export default {
@@ -286,6 +301,66 @@ export default {
       store.commit('toggleYearSlider')
     }
 
+    // Add dragging functionality
+    const position = ref({ x: 0, y: 0 })
+    const isDragging = ref(false)
+    const dragOffset = ref({ x: 0, y: 0 })
+    const sliderContainer = ref(null)
+
+    onMounted(() => {
+      // Initialize position to bottom center
+      const windowWidth = window.innerWidth
+      const windowHeight = window.innerHeight
+      position.value = {
+        x: (windowWidth / 2) - 400, // Assuming width is roughly 800px
+        y: windowHeight - 200
+      }
+    })
+
+    const startDrag = (event) => {
+      isDragging.value = true
+      dragOffset.value = {
+        x: event.clientX - position.value.x,
+        y: event.clientY - position.value.y
+      }
+
+      // Add event listeners
+      document.addEventListener('mousemove', handleDrag)
+      document.addEventListener('mouseup', stopDrag)
+    }
+
+    const handleDrag = (event) => {
+      if (isDragging.value) {
+        // Calculate new position
+        const newX = event.clientX - dragOffset.value.x
+        const newY = event.clientY - dragOffset.value.y
+
+        // Get window boundaries
+        const windowWidth = window.innerWidth
+        const windowHeight = window.innerHeight
+        const elementWidth = sliderContainer.value?.offsetWidth || 800
+        const elementHeight = sliderContainer.value?.offsetHeight || 200
+
+        // Constrain to window boundaries
+        position.value = {
+          x: Math.min(Math.max(0, newX), windowWidth - elementWidth),
+          y: Math.min(Math.max(0, newY), windowHeight - elementHeight)
+        }
+      }
+    }
+
+    const stopDrag = () => {
+      isDragging.value = false
+      document.removeEventListener('mousemove', handleDrag)
+      document.removeEventListener('mouseup', stopDrag)
+    }
+
+    // Clean up event listeners
+    onUnmounted(() => {
+      document.removeEventListener('mousemove', handleDrag)
+      document.removeEventListener('mouseup', stopDrag)
+    })
+
     return {
       selectedCrop,
       selectedProperty,
@@ -306,6 +381,9 @@ export default {
       animationType,
       sliderValue,
       closeSlider,
+      position,
+      startDrag,
+      sliderContainer,
     }
   }
 }
@@ -335,5 +413,10 @@ export default {
 
 .form-radio:focus {
   @apply ring-2 ring-offset-2 ring-blue-500;
+}
+
+/* Add styles for drag handle */
+.cursor-move {
+  cursor: move;
 }
 </style>
