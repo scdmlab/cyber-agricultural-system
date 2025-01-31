@@ -1,10 +1,19 @@
 <template>
-  <div v-if="isVisible" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-white bg-opacity-80 p-4 rounded shadow-md flex flex-col items-center w-3/4 max-w-4xl">
+  <div v-if="isVisible" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-white bg-opacity-80 p-4 rounded shadow-md flex flex-col items-center w-3/8 max-w-4xl">
+    <!-- Add close button -->
+    <button 
+      @click="closeSlider" 
+      class="absolute top-0 right-2 text-gray-500 hover:text-black focus:outline-none"
+      aria-label="Close year slider"
+    >
+      <span class="text-xl">×</span>
+    </button>
+    
     <div class="flex items-center w-full gap-2">
       <!-- Main controls in a single row -->
       <select 
         v-model="selectedCrop"
-        class="p-1 bg-white border border-gray-300 rounded w-24"
+        class="p-1 bg-white border border-gray-300 rounded w-16"
       >
         <option value="corn">Corn</option>
         <option value="soybean">Soybean</option>
@@ -30,7 +39,7 @@
 
       <select 
         v-model="currentYear"
-        class="p-1 bg-white border border-gray-300 rounded w-20"
+        class="p-1 bg-white border border-gray-300 rounded w-16"
       >
         <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
       </select>
@@ -140,7 +149,6 @@ export default {
 
     const sortedDays = computed(() => {
       return Object.entries(dayMapping)
-        .filter(([day]) => store.state.availableDays.includes(day))
         .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
         .map(([day, date]) => ({ day, date }))
     })
@@ -163,7 +171,7 @@ export default {
 
     const sliderMax = computed(() => {
       if (animationType.value === 'year') {
-        return 2023
+        return 2024
       }
       return sortedDays.value.length - 1 // Last month index
     })
@@ -188,15 +196,6 @@ export default {
       async () => {
         await updatePredictions()
       }
-    )
-
-    // Watch for changes that require updating available days
-    watch(
-      [selectedCrop, currentYear],
-      async () => {
-        await store.dispatch('updateAvailableDays')
-      },
-      { immediate: true }
     )
 
     async function updatePredictions() {
@@ -248,7 +247,7 @@ export default {
         if (animationType.value === 'year') {
           // Always animate through years with end-of-season predictions
           let nextYear = parseInt(currentYear.value) + 1
-          if (nextYear > 2023) {
+          if (nextYear > 2024) {
             nextYear = 2015
           }
           store.commit('setYear', nextYear.toString())
@@ -283,6 +282,10 @@ export default {
       clearInterval(intervalId.value)
     }
 
+    const closeSlider = () => {
+      store.commit('toggleYearSlider')
+    }
+
     return {
       selectedCrop,
       selectedProperty,
@@ -302,6 +305,7 @@ export default {
       togglePlay,
       animationType,
       sliderValue,
+      closeSlider,
     }
   }
 }
