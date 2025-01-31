@@ -140,6 +140,7 @@ export default {
 
     const sortedDays = computed(() => {
       return Object.entries(dayMapping)
+        .filter(([day]) => store.state.availableDays.includes(day))
         .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
         .map(([day, date]) => ({ day, date }))
     })
@@ -187,6 +188,15 @@ export default {
       async () => {
         await updatePredictions()
       }
+    )
+
+    // Watch for changes that require updating available days
+    watch(
+      [selectedCrop, currentYear],
+      async () => {
+        await store.dispatch('updateAvailableDays')
+      },
+      { immediate: true }
     )
 
     async function updatePredictions() {

@@ -55,7 +55,7 @@
 </template>
 
 <script>
-import { computed, watch, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import Papa from 'papaparse'
 
@@ -99,21 +99,30 @@ export default {
       "284": "October 11 (End of Season)"
     }
 
+    const sortedDays = computed(() => {
+      return Object.entries(dayMapping)
+        .filter(([day]) => store.state.availableDays.includes(day))
+        .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
+        .map(([day, date]) => ({ day, date }))
+    })
+
     const years = computed(() => {
       const startYear = 2015
-      const endYear = localDay.value === '284' ? 2023 : 2024
+      const endYear = 2024
       return Array.from(
         { length: endYear - startYear + 1 }, 
         (_, i) => (startYear + i).toString()
       )
     })
 
-    // Create a sorted entries array for the template
-    const sortedDays = computed(() => {
-      return Object.entries(dayMapping)
-        .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
-        .map(([day, date]) => ({ day, date }))
-    })
+    // Watch for changes that require updating available days
+    watch(
+      [localCrop, localYear],
+      async () => {
+        await store.dispatch('updateAvailableDays')
+      },
+      { immediate: true }
+    )
 
     async function fetchPredictionData(crop, year, day) {
       const baseUrl = import.meta.env.BASE_URL
@@ -173,14 +182,6 @@ export default {
         isExporting.value = false
       }
     }
-
-    // Watch for any changes in the selections
-    watch(
-      [localCrop, localYear, localProperty, localDay],
-      async () => {
-        await exportData()
-      }
-    )
 
     return {
       localCrop,

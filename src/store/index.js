@@ -6,6 +6,25 @@ import { getBasemapUrl } from '@/utils/basemaps'
 
 const baseUrl = import.meta.env.BASE_URL
 
+async function getAvailableFiles(crop, year) {
+  const days = ["140", "156", "172", "188", "204", "220", "236", "252", "268", "284"]
+  const availableDays = []
+
+  for (const day of days) {
+    const paddedDay = day.padStart(3, '0')
+    const csvPath = `${baseUrl}result_${crop}/bnn/result${year}_${paddedDay}.csv`
+    try {
+      const response = await fetch(csvPath, { method: 'HEAD' })
+      if (response.ok) {
+        availableDays.push(day)
+      }
+    } catch {
+      console.debug(`File not found: ${csvPath}`)
+    }
+  }
+  return availableDays
+}
+
 export default createStore({
     state: {
       map: null,
@@ -52,6 +71,7 @@ export default createStore({
       selectedCountyFIPS: [], // Add this line to track selected counties
       selectedCounties: [], // Add this line to store selected counties
       currentPredictionData: null, // Add this line to store current prediction data
+      availableDays: [], // Add this line
     },
     mutations: {
       setMap(state, data) {
@@ -221,6 +241,9 @@ export default createStore({
         },
         setCurrentPredictionData(state, data) {
             state.currentPredictionData = data
+        },
+        setAvailableDays(state, days) {
+            state.availableDays = days
         },
     },
     actions: {
@@ -509,7 +532,11 @@ export default createStore({
       await dispatch('initializeData')
       commit('setProperty', 'pred')
       commit('setYear', state.currentCrop === 'soybean' ? 2024 : state.currentYear)
-    }
+    },
+    async updateAvailableDays({ commit, state }) {
+      const days = await getAvailableFiles(state.currentCrop, state.currentYear)
+      commit('setAvailableDays', days)
+    },
     },
     getters: {
         getMap: (state) => state.map,
