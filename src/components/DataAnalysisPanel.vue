@@ -164,11 +164,13 @@
             </div>
           </div>
 
-          <div v-if="showPlot" class="mt-4 h-[400px]">
+          <div v-if="showPlot" class="mt-4">
             <ScatterPlot 
               :datasets="plotData" 
               :display-mode="plotDisplayMode"
               :offset-step="parseFloat(plotOffset)"
+              :crop-type="plotCropType.charAt(0).toUpperCase() + plotCropType.slice(1)"
+              height="500px"
             />
           </div>
         </div>

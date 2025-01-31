@@ -1,11 +1,11 @@
 <template>
-    <div class="chart-container">
+    <div class="chart-container" :style="{ height: computedHeight }">
       <canvas ref="chartRef"></canvas>
     </div>
   </template>
   
   <script>
-  import { ref, onMounted, watch, onUnmounted } from 'vue'
+  import { ref, onMounted, watch, onUnmounted, computed } from 'vue'
   import Chart from 'chart.js/auto'
   
   export default {
@@ -14,6 +14,11 @@
     datasets: {
       type: Array,
       required: true
+    },
+    cropType: {
+      type: String,
+      required: true,
+      validator: value => ['Corn', 'Soybean'].includes(value)
     },
     displayMode: {
       type: String,
@@ -29,13 +34,30 @@
       default: null
     },
     height: {
-      type: Number,
-      default: null
+      type: [String, Number],
+      default: '400px'
     }
   },
     setup(props) {
       const chartRef = ref(null)
       let chart = null
+
+      const computedHeight = computed(() => {
+        if (typeof props.height === 'number') {
+          return `${props.height}px`
+        }
+        return props.height
+      })
+
+      const generateTitle = () => {
+        const mode = {
+          'actual': 'Actual',
+          'predicted': 'Predicted',
+          'both': 'Predicted vs Actual'
+        }[props.displayMode]
+        
+        return `${props.cropType} Yield - ${mode} Values`
+      }
 
       const renderScatterPlot = () => {
         console.log('Rendering scatter plot with data:', props.datasets)
@@ -113,6 +135,14 @@
           options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+              padding: {
+                top: 20,
+                right: 20,
+                bottom: 40,
+                left: 20
+              }
+            },
             scales: {
               x: {
                 type: 'linear',
@@ -120,7 +150,7 @@
                 title: {
                   display: true,
                   text: 'Year',
-                  padding: { top: 10 }
+                  padding: { top: 10, bottom: 15 }
                 },
                 ticks: {
                   stepSize: 1,
@@ -172,15 +202,19 @@
                 }
               }
             },
-            layout: {
-              padding: {
-                top: 20,
-                right: 20,
-                bottom: 20,
-                left: 20
-              }
-            },
             plugins: {
+              title: {
+                display: true,
+                text: generateTitle(),
+                font: {
+                  size: 16,
+                  weight: 'bold'
+                },
+                padding: {
+                  top: 10,
+                  bottom: 30
+                }
+              },
               legend: {
                 position: 'top',
                 align: 'start',
@@ -335,7 +369,7 @@
         }
       })
   
-      return { chartRef }
+      return { chartRef, computedHeight }
     }
   }
   </script>
@@ -344,9 +378,8 @@
   .chart-container {
   position: relative;
   width: 100%;
-  height: 100%;
+  min-height: 500px;
   padding: 10px;
-  /* Ensure proper spacing at bottom */
-  margin-bottom: 20px;
+  /* Remove fixed height */
 }
   </style>
