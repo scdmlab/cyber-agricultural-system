@@ -21,11 +21,13 @@
 
         <!-- Right group -->
         <div class="flex items-center space-x-2">
+          <!-- Commented out data table button
           <button @click="toggleDataPopup" class="toolbar-button">
             <Icon icon="mdi:table-filter" class="text-gray-600" />
             <span class="tooltip">Data Table</span>
           </button>
           <div class="h-6 w-px bg-gray-600 mx-2"></div>
+          -->
           <button @click="toggleBasemapPopup" aria-label="Change Basemap" class="toolbar-button">
             <Icon icon="tdesign:map-double" class="text-gray-600" />
             <span class="tooltip">Change Basemap</span>
@@ -73,13 +75,6 @@
       @apply="applySettings"
     />
 
-    <DataTablePopup
-      v-if="showDataPopup"
-      :data="csvData"
-      :headers="dataHeaders"
-      @close="toggleDataPopup"
-    />
-
     <BasemapPopup
       v-if="showBasemapPopup"
       @close="toggleBasemapPopup"
@@ -92,7 +87,6 @@ import { Icon } from '@iconify/vue'
 import { ref, computed } from 'vue'
 import { useStore } from 'vuex'
 import MapSettingsPopup from '@/components/MapSettingsPopup.vue'
-import DataTablePopup from '@/components/DataTablePopup.vue'
 import BasemapPopup from '@/components/BasemapPopup.vue'
 
 export default {
@@ -100,7 +94,6 @@ export default {
   components: {
     Icon,
     MapSettingsPopup,
-    DataTablePopup,
     BasemapPopup
   },
   emits: [
@@ -115,7 +108,6 @@ export default {
   setup(props, { emit }) {
     const store = useStore() // Use Vuex store if needed
     const showSettings = ref(false)
-    const showDataPopup = ref(false)
     const showBasemapPopup = ref(false)
 
     const toggleBasemapPopup = () => {
@@ -127,18 +119,6 @@ export default {
     const colorScheme = computed(() => store.state.colorScheme || ['#FFEDA0', '#FEB24C', '#F03B20'])
     const choroplethOpacity = computed(() => store.state.choroplethOpacity || 0.7)
     const basemapOpacity = computed(() => store.state.basemapOpacity || 1)
-
-    const csvData = computed(() => store.state.csvData || [])
-    const dataHeaders = computed(() => {
-      if (csvData.value.length > 0) {
-        return Object.keys(csvData.value[0])
-      }
-      return []
-    })
-
-    function toggleDataPopup() {
-      showDataPopup.value = !showDataPopup.value
-    }
 
     function toggleSidebar(panel) {
       emit('toggle-sidebar', panel)
@@ -173,10 +153,6 @@ export default {
       toggleSettings,
       closeSettings,
       applySettings,
-      toggleDataPopup,
-      showDataPopup,
-      csvData,
-      dataHeaders,
       toggleBasemapPopup,
       showBasemapPopup,
       toggleYearSlider

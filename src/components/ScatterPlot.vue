@@ -228,32 +228,49 @@
                     
                     if (props.displayMode === 'both') {
                       for (let i = 0; i < datasets.length; i += 2) {
+                        const meta1 = chart.getDatasetMeta(i);
+                        const meta2 = chart.getDatasetMeta(i + 1);
+                        const isHidden = meta1.hidden || meta2.hidden;
                         const countyName = datasets[i].label.replace(' (Actual)', '');
+                        
                         labels.push({
                           text: countyName,
-                          fillStyle: datasets[i].backgroundColor,
+                          fillStyle: isHidden ? '#ddd' : datasets[i].backgroundColor,
                           strokeStyle: datasets[i].borderColor || datasets[i].backgroundColor,
                           lineWidth: 1,
-                          hidden: false,
+                          hidden: isHidden,
                           index: i,
                           datasetIndex: [i, i + 1],
                           points: [
-                            { pointStyle: 'circle', fillStyle: datasets[i].backgroundColor },
-                            { pointStyle: 'triangle', fillStyle: datasets[i + 1].backgroundColor }
-                          ]
+                            { 
+                              pointStyle: 'circle', 
+                              fillStyle: isHidden ? '#ddd' : datasets[i].backgroundColor 
+                            },
+                            { 
+                              pointStyle: 'triangle', 
+                              fillStyle: isHidden ? '#ddd' : datasets[i + 1].backgroundColor 
+                            }
+                          ],
+                          font: {
+                            color: isHidden ? '#999' : '#666'
+                          }
                         });
                       }
                     } else {
                       datasets.forEach((dataset, i) => {
+                        const meta = chart.getDatasetMeta(i);
                         labels.push({
                           text: dataset.label,
-                          fillStyle: dataset.backgroundColor,
+                          fillStyle: meta.hidden ? '#ddd' : dataset.backgroundColor,
                           strokeStyle: dataset.borderColor || dataset.backgroundColor,
                           lineWidth: 1,
-                          hidden: false,
+                          hidden: meta.hidden,
                           index: i,
                           datasetIndex: i,
-                          pointStyle: dataset.pointStyle
+                          pointStyle: dataset.pointStyle,
+                          font: {
+                            color: meta.hidden ? '#999' : '#666'
+                          }
                         });
                       });
                     }
@@ -300,9 +317,11 @@
             afterDraw: (chart) => {
               const ctx = chart.ctx;
               chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                if (meta.hidden) return; // Skip hidden datasets
+
                 // Draw error bars
                 if (dataset.errorBars) {
-                  const meta = chart.getDatasetMeta(i);
                   meta.data.forEach((element, index) => {
                     const uncertainty = dataset.errorBars[index];
                     if (uncertainty) {
@@ -313,7 +332,6 @@
                       ctx.beginPath();
                       ctx.moveTo(x, y - uncertaintyValue);
                       ctx.lineTo(x, y + uncertaintyValue);
-                      // Add horizontal caps to error bars
                       ctx.moveTo(x - 3, y - uncertaintyValue);
                       ctx.lineTo(x + 3, y - uncertaintyValue);
                       ctx.moveTo(x - 3, y + uncertaintyValue);
@@ -329,6 +347,9 @@
                 if (props.displayMode === 'both' && i % 2 === 1) {
                   const predictedMeta = chart.getDatasetMeta(i);
                   const actualMeta = chart.getDatasetMeta(i - 1);
+                  
+                  // Only draw if both datasets are visible
+                  if (actualMeta.hidden || predictedMeta.hidden) return;
                   
                   predictedMeta.data.forEach((predPoint, index) => {
                     const actualPoint = actualMeta.data[index];
