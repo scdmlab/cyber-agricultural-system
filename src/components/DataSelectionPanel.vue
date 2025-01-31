@@ -38,10 +38,19 @@
       </div>
     </div>
     
+    <!-- Add Apply button -->
+    <button 
+      @click="applyChanges"
+      class="mt-6 w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300"
+    >
+      Apply Changes
+    </button>
+    
+    <!-- Export button with added margin top -->
     <button 
       @click="exportData" 
       :disabled="isExporting"
-      class="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300 disabled:opacity-50 flex items-center justify-center"
+      class="mt-2 w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300 disabled:opacity-50 flex items-center justify-center"
     >
       <span v-if="isExporting" class="mr-2">
         <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -65,25 +74,33 @@ export default {
     const store = useStore()
     const isExporting = ref(false)
     
-    // Use computed properties with two-way binding for all selections
+    // Create local refs for temporary storage
+    const localSelections = ref({
+      crop: store.state.currentCrop,
+      year: store.state.currentYear,
+      day: store.state.currentDay,
+      property: store.state.currentProperty
+    })
+    
+    // Update computed properties to use local refs
     const localCrop = computed({
-      get: () => store.state.currentCrop,
-      set: value => store.commit('setCrop', value)
+      get: () => localSelections.value.crop,
+      set: value => localSelections.value.crop = value
     })
     
     const localYear = computed({
-      get: () => store.state.currentYear,
-      set: value => store.commit('setYear', value)
+      get: () => localSelections.value.year,
+      set: value => localSelections.value.year = value
     })
     
     const localDay = computed({
-      get: () => store.state.currentDay,
-      set: value => store.commit('setPredictionDay', value)
+      get: () => localSelections.value.day,
+      set: value => localSelections.value.day = value
     })
     
     const localProperty = computed({
-      get: () => store.state.currentProperty,
-      set: value => store.commit('setProperty', value)
+      get: () => localSelections.value.property,
+      set: value => localSelections.value.property = value
     })
 
     const dayMapping = {
@@ -123,6 +140,18 @@ export default {
       },
       { immediate: true }
     )
+
+    // New function to apply changes
+    async function applyChanges() {
+      // Update store with local values
+      store.commit('setCrop', localSelections.value.crop)
+      store.commit('setYear', localSelections.value.year)
+      store.commit('setPredictionDay', localSelections.value.day)
+      store.commit('setProperty', localSelections.value.property)
+      
+      // Fetch and update prediction data
+      await store.dispatch('fetchPredictionData')
+    }
 
     async function fetchPredictionData(crop, year, day) {
       const baseUrl = import.meta.env.BASE_URL
@@ -191,7 +220,8 @@ export default {
       years,
       sortedDays,
       isExporting,
-      exportData
+      exportData,
+      applyChanges
     }
   }
 }

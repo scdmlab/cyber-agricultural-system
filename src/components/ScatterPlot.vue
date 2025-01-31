@@ -126,6 +126,7 @@
                   stepSize: 1,
                   padding: 8,
                   callback: function(value) {
+                    // Round to nearest year instead of floor
                     return Math.round(value)
                   }
                 },
@@ -142,16 +143,32 @@
                   padding: 8
                 },
                 suggestedMin: function(context) {
-                  const values = context.chart.data.datasets.flatMap(dataset => 
-                    dataset.data.map(point => point.y)
-                  ).filter(y => y !== null && y !== undefined);
-                  return values.length ? Math.min(...values) * 0.9 : 0;
+                  const values = context.chart.data.datasets.flatMap(dataset => {
+                    const baseValues = dataset.data.map(point => point.y);
+                    // Include lower bounds of error bars if they exist
+                    if (dataset.errorBars) {
+                      const lowerBounds = dataset.data.map((point, i) => 
+                        point.y - (point.y * dataset.errorBars[i] / 100)
+                      );
+                      return [...baseValues, ...lowerBounds];
+                    }
+                    return baseValues;
+                  }).filter(y => y !== null && y !== undefined);
+                  return values.length ? Math.min(...values) * 0.95 : 0;
                 },
                 suggestedMax: function(context) {
-                  const values = context.chart.data.datasets.flatMap(dataset => 
-                    dataset.data.map(point => point.y)
-                  ).filter(y => y !== null && y !== undefined);
-                  return values.length ? Math.max(...values) * 1.1 : 100;
+                  const values = context.chart.data.datasets.flatMap(dataset => {
+                    const baseValues = dataset.data.map(point => point.y);
+                    // Include upper bounds of error bars if they exist
+                    if (dataset.errorBars) {
+                      const upperBounds = dataset.data.map((point, i) => 
+                        point.y + (point.y * dataset.errorBars[i] / 100)
+                      );
+                      return [...baseValues, ...upperBounds];
+                    }
+                    return baseValues;
+                  }).filter(y => y !== null && y !== undefined);
+                  return values.length ? Math.max(...values) * 1.05 : 100;
                 }
               }
             },
@@ -228,7 +245,9 @@
               tooltip: {
                 callbacks: {
                   label: function(context) {
-                    let label = `${context.dataset.label} - ${context.parsed.x}: ${context.parsed.y.toFixed(1)} bu/acre`;
+                    // Round to nearest year instead of floor
+                    const year = Math.round(context.parsed.x);
+                    let label = `${context.dataset.label} - ${year}: ${context.parsed.y.toFixed(1)} bu/acre`;
                     if (props.displayMode === 'predicted' || 
                        (props.displayMode === 'both' && context.dataset.label.includes('Predicted'))) {
                       const uncertainty = context.dataset.errorBars?.[context.dataIndex];
