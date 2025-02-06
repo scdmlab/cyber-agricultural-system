@@ -55,7 +55,6 @@ export default createStore({
             error: ['#3B4992', '#FFFFFF', '#EE7733'],      // Divergent blue-orange
             uncertainty: ['#ffffff', '#916C07']  // Sequential brown
           },
-          colorScheme: ['#ebf8b3', '#074359'], // Default scheme
           choroplethOpacity: 0.7,
           basemapOpacity: 1.0,
           selectedBasemap: 'osm',
@@ -125,7 +124,10 @@ export default createStore({
             state.availableStates = Object.keys(data)
         },
         setChoroplethSettings(state, settings) {
-            state.choroplethSettings = settings
+            state.choroplethSettings = {
+                ...settings,
+                colorSchemes: state.choroplethSettings.colorSchemes
+            }
         },
         setSelectedBasemap(state, basemapId) {
             state.selectedBasemap = basemapId
@@ -245,6 +247,9 @@ export default createStore({
         setAvailableDays(state, days) {
             state.availableDays = days
         },
+        updateColorScheme(state, { property, colors }) {
+            state.choroplethSettings.colorSchemes[property] = colors
+        }
     },
     actions: {
         async fetchMapData({ commit, state }) {
