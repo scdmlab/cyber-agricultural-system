@@ -858,10 +858,26 @@ export default {
 
     const updateSettings = (newSettings) => {
       store.commit('setChoroplethSettings', newSettings)
-      updateChoropleth(newSettings)
+      
+      // Update choropleth opacity
+      if (map.value && map.value.getLayer('counties-layer')) {
+        map.value.setPaintProperty('counties-layer', 'fill-opacity', [
+          'case',
+          ['boolean', ['feature-state', 'hover'], false],
+          0.9, // hover opacity
+          ['in', ['get', 'FIPS'], ['literal', store.getters.getSelectedCountyFIPS.length ? store.getters.getSelectedCountyFIPS : ['']]],
+          0.8, // selected opacity
+          newSettings.choroplethOpacity // default opacity from settings
+        ]);
+      }
+      
+      // Update basemap opacity if needed
       if (newSettings.basemapOpacity !== undefined) {
         updateBasemapOpacity(newSettings.basemapOpacity)
       }
+      
+      // Update choropleth if needed
+      updateChoropleth()
     }
 
     function updateBasemapOpacity(newOpacity) {
