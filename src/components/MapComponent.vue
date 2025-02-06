@@ -634,7 +634,7 @@ export default {
         // Remove this line as we don't want default choropleth
         // updateChoropleth()
         
-        initializeDrawControl()
+        // initializeDrawControl()
       })
 
     }

@@ -15,7 +15,7 @@
           </button>
           <button @click="toggleSidebar('mapping')" aria-label="Mapping" class="toolbar-button">
             <Icon icon="mdi:map" class="text-gray-600" />
-            <span class="tooltip">Mapping Settings</span>
+            <span class="tooltip">Yield Map</span>
           </button>
         </div>
 
