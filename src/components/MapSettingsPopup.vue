@@ -14,12 +14,19 @@
       </div>
     </div>
     <div class="setting">
-    <label>Color Scheme:</label>
+      <label>Color Scheme:</label>
       <div class="color-scheme-container">
-        <div class="color-preview" :style="{ background: `linear-gradient(to right, ${localColorScheme.join(', ')})` }"></div>
+        <div class="color-preview" :style="{ background: getColorPreviewStyle }"></div>
         <div class="color-pickers">
-          <input type="color" v-model="localColorScheme[0]" />
-          <input type="color" v-model="localColorScheme[1]" />
+          <template v-if="isErrorProperty">
+            <input type="color" v-model="localColorScheme[0]" title="Negative values" />
+            <input type="color" v-model="localColorScheme[1]" title="Zero" />
+            <input type="color" v-model="localColorScheme[2]" title="Positive values" />
+          </template>
+          <template v-else>
+            <input type="color" v-model="localColorScheme[0]" title="Min value" />
+            <input type="color" v-model="localColorScheme[1]" title="Max value" />
+          </template>
         </div>
       </div>
     </div>
@@ -63,20 +70,33 @@ export default {
   setup(props, { emit }) {
     const store = useStore()
     const choroplethSettings = store.state.choroplethSettings
+    const currentProperty = computed(() => store.state.currentProperty)
+
+    const isErrorProperty = computed(() => currentProperty.value === 'error')
 
     const localMinValue = ref(choroplethSettings.minValue)
     const localMaxValue = ref(choroplethSettings.maxValue)
-    const localColorScheme = ref([...choroplethSettings.colorScheme])
+    const localColorScheme = ref([...choroplethSettings.colorSchemes[currentProperty.value]])
     const localChoroplethOpacity = ref(choroplethSettings.choroplethOpacity)
     const localBasemapOpacity = ref(choroplethSettings.basemapOpacity)
 
     const defaultMinValue = computed(() => choroplethSettings.minValue)
     const defaultMaxValue = computed(() => choroplethSettings.maxValue)
 
+    const getColorPreviewStyle = computed(() => {
+      if (isErrorProperty.value) {
+        return `linear-gradient(to right, ${localColorScheme.value.join(', ')})`
+      }
+      return `linear-gradient(to right, ${localColorScheme.value[0]}, ${localColorScheme.value[1]})`
+    })
+
+    watch(() => currentProperty.value, (newProperty) => {
+      localColorScheme.value = [...choroplethSettings.colorSchemes[newProperty]]
+    })
+
     watch(() => choroplethSettings, (newSettings) => {
       localMinValue.value = newSettings.minValue
       localMaxValue.value = newSettings.maxValue
-      localColorScheme.value = [...newSettings.colorScheme]
       localChoroplethOpacity.value = newSettings.choroplethOpacity
       localBasemapOpacity.value = newSettings.basemapOpacity
     }, { deep: true })
@@ -85,10 +105,15 @@ export default {
       const newSettings = {
         minValue: localMinValue.value,
         maxValue: localMaxValue.value,
-        colorScheme: localColorScheme.value,
         choroplethOpacity: localChoroplethOpacity.value,
         basemapOpacity: localBasemapOpacity.value,
       }
+      
+      store.commit('updateColorScheme', {
+        property: currentProperty.value,
+        colors: localColorScheme.value
+      })
+      
       store.commit('setChoroplethSettings', newSettings)
       emit('apply', newSettings)
       emit('close')
@@ -108,6 +133,8 @@ export default {
       close,
       defaultMinValue,
       defaultMaxValue,
+      isErrorProperty,
+      getColorPreviewStyle,
     }
   }
 }
@@ -137,9 +164,9 @@ export default {
 }
 
 .color-scheme-container {
-display: flex;
-flex-direction: column;
-align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .color-preview {
@@ -151,13 +178,16 @@ align-items: stretch;
 .color-pickers {
   display: flex;
   justify-content: space-between;
+  gap: 10px;
 }
 
 .color-pickers input[type="color"] {
-  width: 30px;
+  flex: 1;
+  min-width: 30px;
   height: 30px;
   padding: 0;
-  border: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
   cursor: pointer;
 }
 
