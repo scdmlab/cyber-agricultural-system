@@ -133,6 +133,9 @@
             datasets: transformedDatasets
           },
           options: {
+            animation: {
+              duration: 0 // Disable animation
+            },
             responsive: true,
             maintainAspectRatio: false,
             layout: {
@@ -309,65 +312,124 @@
                     return label;
                   }
                 }
+              },
+              markerLegend: {
+                display: true,
+                position: { x: 10, y: 20 }
               }
             },
           },
-          plugins: [{
-            id: 'errorBars',
-            afterDraw: (chart) => {
-              const ctx = chart.ctx;
-              chart.data.datasets.forEach((dataset, i) => {
-                const meta = chart.getDatasetMeta(i);
-                if (meta.hidden) return; // Skip hidden datasets
+          plugins: [
+            {
+              id: 'errorBars',
+              afterDraw: (chart) => {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach((dataset, i) => {
+                  const meta = chart.getDatasetMeta(i);
+                  if (meta.hidden) return; // Skip hidden datasets
 
-                // Draw error bars
-                if (dataset.errorBars) {
-                  meta.data.forEach((element, index) => {
-                    const uncertainty = dataset.errorBars[index];
-                    if (uncertainty) {
-                      const x = element.x;
-                      const y = element.y;
-                      const uncertaintyValue = (y * uncertainty) / 100;
-                      ctx.save();
-                      ctx.beginPath();
-                      ctx.moveTo(x, y - uncertaintyValue);
-                      ctx.lineTo(x, y + uncertaintyValue);
-                      ctx.moveTo(x - 3, y - uncertaintyValue);
-                      ctx.lineTo(x + 3, y - uncertaintyValue);
-                      ctx.moveTo(x - 3, y + uncertaintyValue);
-                      ctx.lineTo(x + 3, y + uncertaintyValue);
-                      ctx.strokeStyle = dataset.borderColor;
-                      ctx.stroke();
-                      ctx.restore();
-                    }
-                  });
-                }
+                  // Draw error bars
+                  if (dataset.errorBars) {
+                    meta.data.forEach((element, index) => {
+                      const uncertainty = dataset.errorBars[index];
+                      if (uncertainty) {
+                        const x = element.x;
+                        const y = element.y;
+                        const uncertaintyValue = (y * uncertainty) / 100;
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.moveTo(x, y - uncertaintyValue);
+                        ctx.lineTo(x, y + uncertaintyValue);
+                        ctx.moveTo(x - 3, y - uncertaintyValue);
+                        ctx.lineTo(x + 3, y - uncertaintyValue);
+                        ctx.moveTo(x - 3, y + uncertaintyValue);
+                        ctx.lineTo(x + 3, y + uncertaintyValue);
+                        ctx.strokeStyle = dataset.borderColor;
+                        ctx.stroke();
+                        ctx.restore();
+                      }
+                    });
+                  }
 
-                // Draw connecting lines between actual and predicted points
-                if (props.displayMode === 'both' && i % 2 === 1) {
-                  const predictedMeta = chart.getDatasetMeta(i);
-                  const actualMeta = chart.getDatasetMeta(i - 1);
-                  
-                  // Only draw if both datasets are visible
-                  if (actualMeta.hidden || predictedMeta.hidden) return;
-                  
-                  predictedMeta.data.forEach((predPoint, index) => {
-                    const actualPoint = actualMeta.data[index];
-                    if (actualPoint && predPoint) {
-                      ctx.save();
-                      ctx.beginPath();
-                      ctx.moveTo(predPoint.x, predPoint.y);
-                      ctx.lineTo(actualPoint.x, actualPoint.y);
-                      ctx.strokeStyle = dataset.borderColor;
-                      ctx.setLineDash([2, 2]);
-                      ctx.stroke();
-                      ctx.restore();
-                    }
-                  });
-                }
-              });
+                  // Draw connecting lines between actual and predicted points
+                  if (props.displayMode === 'both' && i % 2 === 1) {
+                    const predictedMeta = chart.getDatasetMeta(i);
+                    const actualMeta = chart.getDatasetMeta(i - 1);
+                    
+                    // Only draw if both datasets are visible
+                    if (actualMeta.hidden || predictedMeta.hidden) return;
+                    
+                    predictedMeta.data.forEach((predPoint, index) => {
+                      const actualPoint = actualMeta.data[index];
+                      if (actualPoint && predPoint) {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.moveTo(predPoint.x, predPoint.y);
+                        ctx.lineTo(actualPoint.x, actualPoint.y);
+                        ctx.strokeStyle = dataset.borderColor;
+                        ctx.setLineDash([2, 2]);
+                        ctx.stroke();
+                        ctx.restore();
+                      }
+                    });
+                  }
+                });
+              }
+            },
+            {
+              id: 'markerLegend',
+              beforeDraw: (chart) => {
+                const ctx = chart.ctx;
+                const { top, left } = chart.chartArea;
+                const position = chart.options.plugins.markerLegend.position;
+                
+                ctx.save();
+                
+                // Set styles for the legend
+                ctx.font = '12px Arial';
+                ctx.fillStyle = '#666';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                
+                const startY = top + position.y;
+                const spacing = 120; // Horizontal spacing between items
+                
+                // Draw actual yield marker (circle)
+                let startX = left + position.x;
+                ctx.beginPath();
+                ctx.arc(startX, startY, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = '#666';
+                ctx.fill();
+                ctx.fillText('Actual Yield', startX + 10, startY);
+                
+                // Draw predicted yield marker (triangle)
+                startX += spacing;
+                ctx.beginPath();
+                ctx.moveTo(startX, startY - 4);
+                ctx.lineTo(startX - 4, startY + 4);
+                ctx.lineTo(startX + 4, startY + 4);
+                ctx.closePath();
+                ctx.fillStyle = '#666';
+                ctx.fill();
+                ctx.fillText('Predicted Yield', startX + 10, startY);
+                
+                // Draw uncertainty bar
+                startX += spacing;
+                ctx.beginPath();
+                ctx.moveTo(startX, startY - 6);
+                ctx.lineTo(startX, startY + 6);
+                ctx.moveTo(startX - 3, startY - 6);
+                ctx.lineTo(startX + 3, startY - 6);
+                ctx.moveTo(startX - 3, startY + 6);
+                ctx.lineTo(startX + 3, startY + 6);
+                ctx.strokeStyle = '#666';
+                ctx.stroke();
+                ctx.fillText('Prediction Uncertainty', startX + 10, startY);
+                
+                ctx.restore();
+              }
             }
-          }]
+          ]
         })
       }
   
@@ -380,9 +442,13 @@
         renderScatterPlot()
       })
   
-      watch(() => props.datasets, () => {
-        renderScatterPlot()
-      }, { deep: true })
+      watch(
+        () => [props.datasets, props.offsetStep],
+        () => {
+          renderScatterPlot()
+        },
+        { deep: true }
+      )
 
       onUnmounted(() => {
         if (chart) {
