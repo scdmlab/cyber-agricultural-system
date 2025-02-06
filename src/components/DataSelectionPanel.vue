@@ -5,7 +5,11 @@
     <div class="space-y-4">
       <div>
         <label for="crop" class="block text-sm font-medium text-gray-700">Crop:</label>
-        <select id="crop" v-model="localCrop" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+        <select
+          id="crop"
+          v-model="localCrop"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+        >
           <option value="corn">Corn</option>
           <option value="soybean">Soybean</option>
         </select>
@@ -13,14 +17,22 @@
       
       <div>
         <label for="year" class="block text-sm font-medium text-gray-700">Year:</label>
-        <select id="year" v-model="localYear" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+        <select
+          id="year"
+          v-model="localYear"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+        >
           <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
         </select>
       </div>
       
       <div>
         <label for="predictionDay" class="block text-sm font-medium text-gray-700">Prediction Time:</label>
-        <select id="predictionDay" v-model="localDay" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+        <select
+          id="predictionDay"
+          v-model="localDay"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+        >
           <option v-for="{ day, date } in sortedDays" :key="day" :value="day">
             {{ date }}
           </option>
@@ -29,26 +41,40 @@
       
       <div>
         <label for="results" class="block text-sm font-medium text-gray-700">Results:</label>
-        <select id="results" v-model="localProperty" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50">
+        <select
+          id="results"
+          v-model="localProperty"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+        >
           <option value="pred">Predicted Yield (bu/acre)</option>
-          <!-- <option value="yield">Actual Yield: Unit: bu/acre</option> -->
           <option value="error">Prediction Error (bu/acre)</option>
           <option value="uncertainty">Model Uncertainty</option>
         </select>
       </div>
+      
+      <!-- New unit selection -->
+      <div>
+        <label for="unit" class="block text-sm font-medium text-gray-700">Units:</label>
+        <select
+          id="unit"
+          v-model="localUnit"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+        >
+          <option value="bu/acre">bu/acre</option>
+          <option value="t/ha">t/ha</option>
+        </select>
+      </div>
     </div>
     
-    <!-- Add Apply button -->
-    <button 
+    <button
       @click="applyChanges"
       class="mt-6 w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300"
     >
       Apply Changes
     </button>
     
-    <!-- Export button with added margin top -->
-    <button 
-      @click="exportData" 
+    <button
+      @click="exportData"
       :disabled="isExporting"
       class="mt-2 w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300 disabled:opacity-50 flex items-center justify-center"
     >
@@ -74,15 +100,15 @@ export default {
     const store = useStore()
     const isExporting = ref(false)
     
-    // Create local refs for temporary storage
+    // Local selections including unit
     const localSelections = ref({
       crop: store.state.currentCrop,
       year: store.state.currentYear,
       day: store.state.currentDay,
-      property: store.state.currentProperty
+      property: store.state.currentProperty,
+      unit: store.state.currentUnit, // <-- added unit
     })
     
-    // Update computed properties to use local refs
     const localCrop = computed({
       get: () => localSelections.value.crop,
       set: value => localSelections.value.crop = value
@@ -101,6 +127,11 @@ export default {
     const localProperty = computed({
       get: () => localSelections.value.property,
       set: value => localSelections.value.property = value
+    })
+    
+    const localUnit = computed({
+      get: () => localSelections.value.unit,
+      set: value => localSelections.value.unit = value
     })
 
     const dayMapping = {
@@ -126,13 +157,9 @@ export default {
     const years = computed(() => {
       const startYear = 2016
       const endYear = 2024
-      return Array.from(
-        { length: endYear - startYear + 1 }, 
-        (_, i) => (startYear + i).toString()
-      )
+      return Array.from({ length: endYear - startYear + 1 }, (_, i) => (startYear + i).toString())
     })
 
-    // Watch for changes that require updating available days
     watch(
       [localCrop, localYear],
       async () => {
@@ -141,15 +168,13 @@ export default {
       { immediate: true }
     )
 
-    // New function to apply changes
     async function applyChanges() {
-      // Update store with local values
       store.commit('setCrop', localSelections.value.crop)
       store.commit('setYear', localSelections.value.year)
       store.commit('setPredictionDay', localSelections.value.day)
       store.commit('setProperty', localSelections.value.property)
+      store.commit('setUnit', localSelections.value.unit) // commit unit selection
       
-      // Fetch and update prediction data
       await store.dispatch('fetchPredictionData')
     }
 
@@ -181,17 +206,20 @@ export default {
         )
 
         if (data && data.length > 0) {
-          // Convert data to metric tons per hectare
-          const buToTha = store.state.currentCrop === 'corn' ? 0.06277 : 0.0673
+          const conversionFactor = store.state.currentUnit === 't/ha'
+            ? (store.state.currentCrop === 'corn' ? 0.06277 : 0.0673)
+            : 1
+          const unitLabel = store.state.currentUnit === 't/ha' ? ' (t/ha)' : ' (bu/acre)'
+
           const formattedData = data.map(row => ({
             'FIPS': row.FIPS,
             'Crop type': store.state.currentCrop,
             'Year': store.state.currentYear,
             'Day of Year': store.state.currentDay,
-            'Predicted Yield (t/ha)': (parseFloat(row.y_test_pred) * buToTha).toFixed(3),
-            'NASS Reported Yield (t/ha)': (parseFloat(row.y_test) * buToTha).toFixed(3),
-            'Prediction Error (t/ha)': ((parseFloat(row.y_test_pred) - parseFloat(row.y_test)) * buToTha).toFixed(3),
-            'Model Uncertainty': (parseFloat(row.y_test_pred_uncertainty) * buToTha).toFixed(3)
+            ['Predicted Yield' + unitLabel]: (parseFloat(row.y_test_pred) * conversionFactor).toFixed(3),
+            ['NASS Reported Yield' + unitLabel]: (parseFloat(row.y_test) * conversionFactor).toFixed(3),
+            ['Prediction Error' + unitLabel]: ((parseFloat(row.y_test_pred) - parseFloat(row.y_test)) * conversionFactor).toFixed(3),
+            'Model Uncertainty': (parseFloat(row.y_test_pred_uncertainty) * conversionFactor).toFixed(3)
           }))
 
           const csv = Papa.unparse(formattedData)
@@ -200,7 +228,7 @@ export default {
           const a = document.createElement('a')
           a.href = url
           const cropName = store.state.currentCrop.charAt(0).toUpperCase() + store.state.currentCrop.slice(1)
-          const fileName = `${cropName}_Yield_Prediction_${store.state.currentYear}_Day${store.state.currentDay}.csv`
+          const fileName = `${cropName}_Yield_Prediction_${store.state.currentYear}_Day${store.state.currentDay}_${store.state.currentUnit}.csv`
           a.download = fileName
           a.click()
           window.URL.revokeObjectURL(url)
@@ -217,6 +245,7 @@ export default {
       localYear,
       localDay,
       localProperty,
+      localUnit,
       years,
       sortedDays,
       isExporting,

@@ -26,12 +26,6 @@
           <option value="Courier">Courier</option>
         </select>
       </div>
-      
-      <div>
-        <label for="backgroundColor" class="block text-sm font-medium text-gray-700">Background Color:</label>
-        <input type="color" id="backgroundColor" v-model="backgroundColor" 
-          class="mt-1 block w-full h-10 rounded-md border-gray-300 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50">
-      </div>
 
       <div class="flex space-x-4">
         <button @click="openMapEditor" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
@@ -45,7 +39,6 @@
       :title="title"
       :description="description"
       :font="font"
-      :backgroundColor="backgroundColor"
       @close="closeMapEditor"
       @save="handleMapSave"
     />
@@ -75,10 +68,6 @@ export default {
       get: () => store.state.mapFont,
       set: (value) => store.commit('setMapFont', value)
     })
-    const backgroundColor = computed({
-      get: () => store.state.mapBackgroundColor,
-      set: (value) => store.commit('setMapBackgroundColor', value)
-    })
 
     const openMapEditor = () => {
       showMapEditor.value = true;
@@ -97,7 +86,6 @@ export default {
       title,
       description,
       font,
-      backgroundColor,
       showMapEditor,
       openMapEditor,
       closeMapEditor,

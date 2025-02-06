@@ -37,8 +37,8 @@
           v-model="selectedProperty"
           class="p-1 bg-white border border-gray-300 rounded w-52"
         >
-          <option value="pred">Predicted Yield (bu/acre)</option>
-          <option value="error">Prediction Error (bu/acre)</option>
+          <option value="pred">Predicted Yield</option>
+          <option value="error">Prediction Error</option>
           <option value="uncertainty">Model Uncertainty</option>
         </select>
 
@@ -56,6 +56,15 @@
           class="p-1 bg-white border border-gray-300 rounded w-16"
         >
           <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+        </select>
+
+        <!-- Unit selection -->
+        <select
+          v-model="selectedUnit"
+          class="p-1 bg-white border border-gray-300 rounded w-24"
+        >
+          <option value="bu/acre">bu/acre</option>
+          <option value="t/ha">t/ha</option>
         </select>
 
         <!-- Play button -->
@@ -143,11 +152,20 @@ export default {
       set: value => store.commit('setPredictionDay', value)
     })
 
-    const propertyLabels = {
-      pred: 'Predicted Yield',
-      error: 'Prediction Error',
-      uncertainty: 'Model Uncertainty'
-    }
+    // New computed for unit selection
+    const selectedUnit = computed({
+      get: () => store.state.currentUnit,
+      set: value => store.commit('setUnit', value)
+    })
+
+    const propertyLabels = computed(() => {
+      const suffix = store.state.currentUnit === 't/ha' ? ' (t/ha)' : ' (bu/acre)'
+      return {
+        pred: 'Predicted Yield' + suffix,
+        error: 'Prediction Error' + suffix,
+        uncertainty: 'Model Uncertainty'
+      }
+    })
 
     const dayMapping = {
       "140": "May 20 (In Season)",
@@ -366,6 +384,7 @@ export default {
       selectedProperty,
       currentYear,
       selectedDay,
+      selectedUnit,
       isPlaying,
       dayMapping,
       sortedDays,

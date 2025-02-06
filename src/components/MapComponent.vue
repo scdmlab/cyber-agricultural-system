@@ -128,13 +128,7 @@ export default {
         drawnPolygons.value = draw.value.getAll().features;
         store.dispatch('saveDrawnPolygons', drawnPolygons.value);
       });
-
-
-
-
-
     }
-
 
     const addMarker = (marker) => {
     const el = document.createElement('div');
@@ -173,59 +167,66 @@ export default {
       { deep: true }
     );
 
-
     const updateChoropleth = async () => {
       if (!map.value || !map.value.getSource('counties')) {
-        return
+        return;
       }
 
       // Fetch prediction data using the store action
-      const predictions = await store.dispatch('fetchPredictionData')
+      const predictions = await store.dispatch('fetchPredictionData');
       if (!predictions || predictions.length === 0) {
-        console.warn('No prediction data available')
-        return
+        console.warn('No prediction data available');
+        return;
       }
 
-      // Create data lookup by FIPS
-      const dataById = {}
+      // Determine the conversion factor based on the selected unit
+      // (Original data is in bu/acre; if 't/ha' is selected, convert accordingly)
+      const conversionFactor =
+        store.state.currentUnit === 't/ha'
+          ? (store.state.currentCrop === 'corn' ? 0.06277 : 0.0673)
+          : 1;
+
+      // Create data lookup by FIPS with unit conversion applied
+      const dataById = {};
       predictions.forEach(row => {
-        let val
+        let val;
         if (store.state.currentProperty === 'uncertainty') {
-          val = row.uncertainty
+          val = row.uncertainty;
         } else if (store.state.currentProperty === 'error') {
-          val = row.error
+          val = row.error;
         } else {
-          val = row[store.state.currentProperty]
+          val = row[store.state.currentProperty];
         }
         if (!isNaN(val)) {
-          dataById[row.FIPS] = val
+          dataById[row.FIPS] = parseFloat(val) * conversionFactor;
         }
-      })
+      });
 
       // Get min and max values for color scaling
-      const values = Object.values(dataById).filter(v => !isNaN(v))
-      let minValue = Math.min(...values)
-      let maxValue = Math.max(...values)
+      const values = Object.values(dataById).filter(v => !isNaN(v));
+      let minValue = Math.min(...values);
+      let maxValue = Math.max(...values);
 
-      // Handle different properties
+      // Adjust for error if needed
       if (store.state.currentProperty === 'error') {
-        const absMax = Math.max(Math.abs(minValue), Math.abs(maxValue))
-        minValue = -absMax
-        maxValue = absMax
+        const absMax = Math.max(Math.abs(minValue), Math.abs(maxValue));
+        minValue = -absMax;
+        maxValue = absMax;
       } else if (store.state.currentProperty === 'uncertainty') {
-        minValue = 0
-        maxValue = Math.max(...values)
+        minValue = 0;
+        maxValue = Math.max(...values);
       }
 
       // Get color scheme from settings
-      const colors = choroplethSettings.value.colorSchemes[store.state.currentProperty] || 
-                     choroplethSettings.value.colorSchemes.pred
+      const colors =
+        choroplethSettings.value.colorSchemes[store.state.currentProperty] ||
+        choroplethSettings.value.colorSchemes.pred;
 
       // Create appropriate color scale
       if (store.state.currentProperty === 'error') {
-        colorScale.value = createDivergingColorScale(minValue, maxValue, colors)
+        colorScale.value = createDivergingColorScale(minValue, maxValue, colors);
       } else {
-        colorScale.value = createSequentialColorScale(minValue, maxValue, colors)
+        colorScale.value = createSequentialColorScale(minValue, maxValue, colors);
       }
 
       // Update store with new min/max values
@@ -233,9 +234,9 @@ export default {
         ...choroplethSettings.value,
         minValue,
         maxValue
-      })
+      });
 
-      // Update features with colors
+      // Update features with the converted values and computed colors
       const updatedFeatures = countiesWithFIPS.value.features.map(feature => ({
         ...feature,
         properties: {
@@ -243,21 +244,29 @@ export default {
           value: dataById[feature.properties.FIPS],
           color: getColor(dataById[feature.properties.FIPS])
         }
-      }))
+      }));
 
-      // Update the source data
+      // Update the source data and paint properties
       map.value.getSource('counties').setData({
         type: 'FeatureCollection',
         features: updatedFeatures
-      })
-
-      // Update the paint property for the counties layer
+      });
       map.value.setPaintProperty('counties-layer', 'fill-color', [
         'case',
         ['has', 'value'],
         ['get', 'color'],
-        'rgba(0, 0, 0, 0)' // transparent for counties with no data
-      ])
+        'rgba(0, 0, 0, 0)' // Transparent for counties with no data
+      ]);
+
+      // Update the paint property for the counties layer
+      map.value.setPaintProperty('counties-layer', 'fill-opacity', [
+        'case',
+        ['boolean', ['feature-state', 'hover'], false],
+        0.9, // hover opacity
+        ['in', ['get', 'FIPS'], ['literal', store.getters.getSelectedCountyFIPS.length ? store.getters.getSelectedCountyFIPS : ['']]], // check if FIPS is in selected array
+        0.8, // selected opacity
+        choroplethSettings.value.choroplethOpacity // default opacity
+      ]);
 
       // Update the counties-layer paint property
       watch(
@@ -327,6 +336,14 @@ export default {
       },
       { deep: true }
     )
+
+    // Add a watcher to re-run the choropleth update whenever the unit changes.
+    watch(
+      () => store.state.currentUnit,
+      (newUnit, oldUnit) => {
+        updateChoropleth();
+      }
+    );
 
     watch(currentBasemapUrl, (newUrl) => {
       if (map.value) {
@@ -449,7 +466,6 @@ export default {
         });
       })
     })
-
 
     function initializeMap() {
       map.value = new maplibregl.Map({
@@ -726,8 +742,6 @@ export default {
       }
     }
 
-
-
     function zoomIn() {
       if (map.value) {
         map.value.zoomIn()
@@ -892,7 +906,6 @@ export default {
         }
     }
 
-
     onBeforeUnmount(() => {
       if (map.value) {
         if (scaleControl.value) {
@@ -913,7 +926,6 @@ export default {
       draw,
       zoomIn,
       zoomOut,
-
       resetViewToCONUS,
       currentUnit,
       toggleSidebar,
@@ -1078,8 +1090,6 @@ export default {
 .map-controls button:hover {
   background-color: var(--color-button-hover);
 }
-
-
 
 /* Add these styles for the zoom control */
 .maplibregl-ctrl-group {

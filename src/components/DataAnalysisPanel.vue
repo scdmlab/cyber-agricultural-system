@@ -50,11 +50,22 @@
           Add County
         </button>
 
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700">Units:</label>
+          <select
+            v-model="selectedUnit"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+          >
+            <option value="bu/acre">bu/acre</option>
+            <option value="t/ha">t/ha</option>
+          </select>
+        </div>
+
         <div class="mt-6 space-y-4">
           <div class="flex items-center space-x-4">
             <label class="text-sm font-medium text-gray-700">Export Data For:</label>
-            <select 
-              v-model="exportCrop" 
+            <select
+              v-model="exportCrop"
               class="rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
             >
               <option value="all">All Crops</option>
@@ -65,8 +76,8 @@
           
           <div class="flex items-center space-x-4">
             <label class="text-sm font-medium text-gray-700">Prediction Time:</label>
-            <select 
-              v-model="predictionTime" 
+            <select
+              v-model="predictionTime"
               class="rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
             >
               <option value="all">All Time</option>
@@ -76,8 +87,8 @@
 
           <div class="flex items-center space-x-4">
             <label class="text-sm font-medium text-gray-700">Year Range:</label>
-            <select 
-              v-model="yearRange" 
+            <select
+              v-model="yearRange"
               class="rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
             >
               <option value="all">All Years</option>
@@ -87,7 +98,7 @@
 
           <div v-if="yearRange === 'custom'" class="flex items-center space-x-4">
             <div class="flex items-center space-x-2">
-              <input 
+              <input
                 type="number"
                 v-model="startYear"
                 min="2016"
@@ -95,7 +106,7 @@
                 class="w-24 rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
               />
               <span class="text-gray-500">to</span>
-              <input 
+              <input
                 type="number"
                 v-model="endYear"
                 :min="startYear"
@@ -105,8 +116,8 @@
             </div>
           </div>
 
-          <button 
-            @click="exportData" 
+          <button
+            @click="exportData"
             :disabled="!hasSelectedCounties || isExporting"
             class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300 disabled:opacity-50 flex items-center justify-center mb-4"
           >
@@ -119,8 +130,8 @@
             {{ isExporting ? 'Downloading...' : 'Export Data' }}
           </button>
 
-          <button 
-            @click="displayPlot" 
+          <button
+            @click="displayPlot"
             :disabled="!hasSelectedCounties"
             class="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300 disabled:opacity-50"
           >
@@ -130,8 +141,8 @@
           <div class="mt-4 space-y-4">
             <div class="flex items-center space-x-4">
               <label class="text-sm font-medium text-gray-700">Display Mode:</label>
-              <select 
-                v-model="plotDisplayMode" 
+              <select
+                v-model="plotDisplayMode"
                 class="flex-1 rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
               >
                 <option value="predicted">Predictions Only (with uncertainty)</option>
@@ -141,8 +152,8 @@
 
             <div class="flex items-center space-x-4">
               <label class="text-sm font-medium text-gray-700">Crop Type:</label>
-              <select 
-                v-model="plotCropType" 
+              <select
+                v-model="plotCropType"
                 class="flex-1 rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
               >
                 <option value="corn">Corn</option>
@@ -152,7 +163,7 @@
 
             <div class="flex items-center space-x-4">
               <label class="text-sm font-medium text-gray-700">County Offset:</label>
-              <input 
+              <input
                 type="range"
                 v-model="plotOffset"
                 min="0"
@@ -165,8 +176,8 @@
           </div>
 
           <div v-if="showPlot" class="mt-4">
-            <ScatterPlot 
-              :datasets="plotData" 
+            <ScatterPlot
+              :datasets="plotData"
               :display-mode="plotDisplayMode"
               :offset-step="parseFloat(plotOffset)"
               :crop-type="plotCropType.charAt(0).toUpperCase() + plotCropType.slice(1)"
@@ -194,14 +205,12 @@ export default {
   setup() {
     const store = useStore()
     
-    // Watch for changes in store's selectedCounties
     watch(() => store.state.selectedCounties, (newCounties) => {
       selectedCounties.value = newCounties;
     }, { deep: true });
 
-    // Initialize selectedCounties from store
-    const selectedCounties = ref(store.state.selectedCounties.length > 0 
-      ? store.state.selectedCounties 
+    const selectedCounties = ref(store.state.selectedCounties.length > 0
+      ? store.state.selectedCounties
       : [{
           input: '',
           selected: null,
@@ -210,9 +219,7 @@ export default {
         }]
     );
 
-    // Watch for changes in store's selectedCountyFIPS
     watch(() => store.state.selectedCountyFIPS, (newFIPS) => {
-      // Sync selectedCounties with store if they don't match
       const currentFIPS = selectedCounties.value
         .filter(c => c.selected)
         .map(c => c.selected.fips)
@@ -222,7 +229,6 @@ export default {
       }
     })
 
-    // Watch for changes in local selectedCounties
     watch(selectedCounties, (newCounties) => {
       const newFIPS = newCounties
         .filter(c => c.selected)
@@ -231,7 +237,6 @@ export default {
       store.commit('setSelectedCountyFIPS', newFIPS);
     }, { deep: true })
 
-    // Helper function to compare arrays
     function arraysEqual(a, b) {
       if (a.length !== b.length) return false;
       return a.every((val, idx) => val === b[idx]);
@@ -249,7 +254,6 @@ export default {
     const countySuggestions = computed(() => {
       const uniqueCounties = new Map()
       if (csvData.value) {
-        console.log(csvData.value)
         csvData.value.forEach(row => {
           const stateCode = row.FIPS.substring(0, 2)
           const stateName = stateCodeMap[stateCode] || 'Unknown State'
@@ -293,7 +297,6 @@ export default {
         ? `${baseUrl}result_${crop}/bnn/result${year}_${day.toString().padStart(3, '0')}.csv`
         : `${baseUrl}result_${crop}/bnn/result${year}.csv`
 
-      console.log(`Fetching data from: ${csvPath}`)
       try {
         const response = await fetch(csvPath)
         if (!response.ok) {
@@ -325,14 +328,19 @@ export default {
           return
         }
 
-        const crops = exportCrop.value === 'all' 
-          ? ['corn', 'soybean'] 
+        const crops = exportCrop.value === 'all'
+          ? ['corn', 'soybean']
           : [exportCrop.value]
 
         const yearStart = yearRange.value === 'all' ? 2016 : parseInt(startYear.value)
         const yearEnd = yearRange.value === 'all' ? 2024 : parseInt(endYear.value)
 
-        // Process each crop separately
+        const unit = store.state.currentUnit
+        const conversionFactor = unit === 't/ha'
+          ? (store.state.currentCrop === 'corn' ? 0.06277 : 0.0673)
+          : 1
+        const unitLabel = unit === 't/ha' ? ' (t/ha)' : ' (bu/acre)'
+
         for (const crop of crops) {
           const allData = []
           let daysToFetch = []
@@ -353,11 +361,9 @@ export default {
                 data.forEach(row => {
                   const countyData = selectedCountyData.find(c => c.fips === row.FIPS)
                   if (countyData) {
-                    // Convert bushels/acre to metric tons/hectare
-                    const buToTha = crop === 'corn' ? 0.06277 : 0.0673
-                    const predicted = row.y_test_pred * buToTha
-                    const actual = row.y_test * buToTha
-                    const uncertainty = row.y_test_pred_uncertainty * buToTha
+                    const predicted = row.y_test_pred * conversionFactor
+                    const actual = row.y_test * conversionFactor
+                    const uncertainty = row.y_test_pred_uncertainty * conversionFactor
                     const error = predicted - actual
 
                     allData.push({
@@ -366,9 +372,9 @@ export default {
                       'Crop type': crop,
                       'Year': year,
                       'Day of Year': day,
-                      'Predicted Yield (t/ha)': predicted.toFixed(3),
-                      'NASS Reported Yield (t/ha)': actual.toFixed(3),
-                      'Prediction Error (t/ha)': error.toFixed(3),
+                      ['Predicted Yield' + unitLabel]: predicted.toFixed(3),
+                      ['NASS Reported Yield' + unitLabel]: actual.toFixed(3),
+                      ['Prediction Error' + unitLabel]: error.toFixed(3),
                       'Model Uncertainty': uncertainty.toFixed(3)
                     })
                   }
@@ -383,9 +389,8 @@ export default {
             const url = window.URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url
-            // Capitalize crop name in filename
             const cropName = crop.charAt(0).toUpperCase() + crop.slice(1)
-            a.download = `${cropName}_Yield_Prediction_Results.csv`
+            a.download = `${cropName}_Yield_Prediction_Results_${unit}.csv`
             a.click()
             window.URL.revokeObjectURL(url)
           }
@@ -405,43 +410,41 @@ export default {
     }
 
     function addCounty() {
-      selectedCounties.value.push({ 
-        input: '', 
-        showSuggestions: false, 
-        selected: null, 
-        filteredSuggestions: [] 
+      selectedCounties.value.push({
+        input: '',
+        showSuggestions: false,
+        selected: null,
+        filteredSuggestions: []
       })
     }
 
     function removeCounty(index) {
-      const county = selectedCounties.value[index];
+      const county = selectedCounties.value[index]
       if (county.selected) {
-        store.commit('removeSelectedCountyFIPS', county.selected.fips);
+        store.commit('removeSelectedCountyFIPS', county.selected.fips)
       } else {
-        // If it's just an empty input, remove it directly
-        selectedCounties.value.splice(index, 1);
+        selectedCounties.value.splice(index, 1)
         if (selectedCounties.value.length === 0) {
           selectedCounties.value.push({
             input: '',
             selected: null,
             showSuggestions: false,
             filteredSuggestions: []
-          });
+          })
         }
       }
     }
 
     function clearCounty(index) {
-      selectedCounties.value[index] = { 
-        input: '', 
-        showSuggestions: false, 
-        selected: null, 
-        filteredSuggestions: [] 
+      selectedCounties.value[index] = {
+        input: '',
+        showSuggestions: false,
+        selected: null,
+        filteredSuggestions: []
       }
       updateSelectedFIPS()
     }
 
-    // Helper function to update store with current selections
     function updateSelectedFIPS() {
       const selectedFIPS = selectedCounties.value
         .filter(c => c.selected)
@@ -459,6 +462,11 @@ export default {
     const plotCropType = ref('corn')
     const plotOffset = ref('0.1')
 
+    const selectedUnit = computed({
+      get: () => store.state.currentUnit,
+      set: value => store.commit('setUnit', value)
+    })
+
     async function displayPlot() {
       showPlot.value = true
       plotData.value = []
@@ -469,6 +477,11 @@ export default {
           fips: c.selected.fips,
           name: c.selected.name
         }))
+
+      const unit = store.state.currentUnit
+      const conversionFactor = unit === 't/ha'
+        ? (plotCropType.value === 'corn' ? 0.06277 : 0.0673)
+        : 1
 
       for (const county of selectedCountyData) {
         const countyData = {
@@ -483,25 +496,22 @@ export default {
           if (data) {
             const countyYield = data.find(row => row.FIPS === county.fips)
             if (countyYield) {
-              // Add actual yield data
               if (countyYield.y_test) {
                 countyData.actualData.push({
                   x: year,
-                  y: parseFloat(countyYield.y_test)
+                  y: parseFloat(countyYield.y_test) * conversionFactor
                 })
               }
               
-              // Add predicted yield data
               if (countyYield.y_test_pred) {
                 countyData.predictedData.push({
                   x: year,
-                  y: parseFloat(countyYield.y_test_pred)
+                  y: parseFloat(countyYield.y_test_pred) * conversionFactor
                 })
                 
-                // Add uncertainty as percentage
                 if (countyYield.y_test_pred_uncertainty) {
-                  const uncertainty = parseFloat(countyYield.y_test_pred_uncertainty)
-                  const uncertaintyPercent = (uncertainty / parseFloat(countyYield.y_test_pred)) * 100
+                  const uncertainty = parseFloat(countyYield.y_test_pred_uncertainty) * conversionFactor
+                  const uncertaintyPercent = (uncertainty / (parseFloat(countyYield.y_test_pred) * conversionFactor)) * 100
                   countyData.uncertainties.push(uncertaintyPercent)
                 }
               }
@@ -513,7 +523,6 @@ export default {
       }
     }
 
-    // Watch for changes in plot settings to trigger refresh
     watch([plotDisplayMode, plotCropType], () => {
       if (showPlot.value) {
         displayPlot()
@@ -542,6 +551,7 @@ export default {
       displayPlot,
       plotCropType,
       plotOffset,
+      selectedUnit
     }
   }
 }

@@ -9,8 +9,8 @@
         <div v-for="(color, index) in interpolatedColorScale" :key="index" :style="{ backgroundColor: color }" class="color-bar"></div>
       </div>
       <div class="scale-labels">
-        <span>{{ currentMinValue.toFixed(2) }}</span>
-        <span>{{ currentMaxValue.toFixed(2) }}</span>
+        <span>{{ displayMinValue.toFixed(2) }}</span>
+        <span>{{ displayMaxValue.toFixed(2) }}</span>
       </div>
     </div>
   </div>
@@ -41,8 +41,17 @@ export default {
     const store = useStore();
     const currentProperty = computed(() => store.state.currentProperty);
     const choroplethSettings = computed(() => store.state.choroplethSettings);
+    const currentUnit = computed(() => store.state.currentUnit);
+    const currentCrop = computed(() => store.state.currentCrop);
     
-    // Add validation for min/max values
+    // Conversion factor: if unit is t/ha then convert; else factor is 1
+    const conversionFactor = computed(() => {
+      return currentUnit.value === 't/ha'
+        ? (currentCrop.value === 'corn' ? 0.06277 : 0.0673)
+        : 1
+    });
+
+    // We now use the converted values for display
     const currentMinValue = computed(() => {
       const min = choroplethSettings.value.minValue;
       return isFinite(min) ? min : 0;
@@ -53,8 +62,18 @@ export default {
       return isFinite(max) ? max : 100;
     });
 
+    const displayMinValue = computed(() => currentMinValue.value * conversionFactor.value);
+    const displayMaxValue = computed(() => currentMaxValue.value * conversionFactor.value);
+
     const mappedPropertyTitle = computed(() => {
-      return propertyTitleMap[currentProperty.value] || currentProperty.value;
+      const suffix = currentUnit.value === 't/ha' ? ' (t/ha)' : ' (bu/acre)';
+      const titles = {
+        pred: 'Predicted Yield' + suffix,
+        yield: 'Actual Yield' + suffix,
+        error: 'Prediction Error' + suffix,
+        uncertainty: 'Uncertainty'
+      };
+      return titles[currentProperty.value] || currentProperty.value;
     });
 
     const position = ref({ x: window.innerWidth - 250, y: window.innerHeight - 200 });
@@ -62,40 +81,40 @@ export default {
     const dragOffset = ref({ x: 0, y: 0 });
     const legendContainer = ref(null);
 
-    // Update interpolatedColorScale to use choroplethSettings
+    // Update interpolatedColorScale using converted values for "error"
     const interpolatedColorScale = computed(() => {
       const property = currentProperty.value;
       const colorSchemes = choroplethSettings.value.colorSchemes;
       
-      // Ensure we have a valid color scheme
       if (!colorSchemes || !colorSchemes[property]) {
         console.warn(`No color scheme found for property: ${property}`);
-        return Array.from({ length: 100 }, () => '#CCCCCC'); // Fallback color
+        return Array.from({ length: 100 }, () => '#CCCCCC');
       }
 
       const colors = colorSchemes[property];
       
-      // Handle error property with divergent scale
       if (property === 'error' && colors.length === 3) {
-        const midpoint = (currentMaxValue.value + currentMinValue.value) / 2;
+        const displayMin = displayMinValue.value;
+        const displayMax = displayMaxValue.value;
+        const midpoint = (displayMin + displayMax) / 2;
         
         const negativeScale = scaleLinear()
-          .domain([currentMinValue.value, midpoint])
+          .domain([displayMin, midpoint])
           .range([colors[0], colors[1]])
           .interpolate(interpolateRgb);
           
         const positiveScale = scaleLinear()
-          .domain([midpoint, currentMaxValue.value])
+          .domain([midpoint, displayMax])
           .range([colors[1], colors[2]])
           .interpolate(interpolateRgb);
           
         return Array.from({ length: 100 }, (_, i) => {
-          const value = currentMinValue.value + (i / 99) * (currentMaxValue.value - currentMinValue.value);
+          const value = displayMin + (i / 99) * (displayMax - displayMin);
           return value <= midpoint ? negativeScale(value) : positiveScale(value);
         });
       }
       
-      // For all other properties (including uncertainty), use sequential scale
+      // For non-error properties we simply interpolate colors
       return Array.from({ length: 100 }, (_, i) => {
         const t = i / 99;
         return interpolateRgb(colors[0], colors[1])(t);
@@ -133,8 +152,8 @@ export default {
       startDrag,
       interpolatedColorScale,
       mappedPropertyTitle,
-      currentMinValue,
-      currentMaxValue,
+      displayMinValue,
+      displayMaxValue,
     };
   },
 };
