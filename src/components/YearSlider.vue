@@ -169,7 +169,7 @@ export default {
     })
 
     const years = computed(() => {
-      const startYear = 2015
+      const startYear = 2016
       const endYear = 2024
       return Array.from(
         { length: endYear - startYear + 1 }, 
@@ -179,7 +179,7 @@ export default {
 
     const sliderMin = computed(() => {
       if (animationType.value === 'year') {
-        return 2015
+        return 2016
       }
       return 0 // First month index
     })
@@ -263,7 +263,7 @@ export default {
           // Always animate through years with end-of-season predictions
           let nextYear = parseInt(currentYear.value) + 1
           if (nextYear > 2024) {
-            nextYear = 2015
+            nextYear = 2016
           }
           store.commit('setYear', nextYear.toString())
           store.commit('setPredictionDay', sortedDays.value[0].day)
@@ -282,7 +282,7 @@ export default {
               // If we've gone through all months, move to next year
               let nextYear = parseInt(currentYear.value) + 1
               if (nextYear > 2024) {
-                nextYear = 2015
+                nextYear = 2016
               }
               store.commit('setYear', nextYear.toString())
             }

@@ -354,7 +354,7 @@ export default createStore({
         async fetchAllPredictions({ commit, state }) {
             try {
                 const predictions = [];
-                const startYear = 2015;
+                const startYear = 2016;
                 const endYear = 2023;
                 
                 for (let year = startYear; year <= endYear; year++) {

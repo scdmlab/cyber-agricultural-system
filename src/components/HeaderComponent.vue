@@ -7,13 +7,13 @@
       <nav class="flex items-center space-x-6">
         <a href="#" @click.prevent="showReferences" class="header-link">
           <Icon icon="mdi:file-document" :width="24" :height="24" :inline="true" class="mr-2" />
-          References
+          Project Intro
         </a>
         <a href="#" @click.prevent="showResearchGroup" class="header-link">
           <Icon icon="mdi:account-group" :width="24" :height="24" :inline="true" class="mr-2" />
           Research Group
         </a>
-        <a href="https://github.com/scdmlab/" target="_blank" class="header-link">
+        <a href="https://github.com/scdmlab/cyber-agricultural-system/" target="_blank" class="header-link">
           <Icon icon="mdi:github" :width="24" :height="24" :inline="true" class="mr-2" />
           Github
         </a>
@@ -65,12 +65,15 @@ export default {
       showReferencesPopup: false,
       showResearchGroupPopup: false,
       referencesContent: `
-        <p>References:</p>
-        <p>Corn yield prediction and uncertainty analysis based on remotely sensed variables using a Bayesian neural network approach(href).</p>
-        <p>In this project, we have developed models and tools to provide near real-time in-season crop yield predictions for two mainly commodity crops (i.e., corn and soybeans) at the county-level for the CONUS, based on state-of-the-art remote sensing and deep learning technologies.</p>
-        <p>The predicted yield information will be disseminated through a web-based cyber-platform for free public use, which is critical for a variety of stakeholders, such as for US producers to make operational decisions; for insurance companies to help with claim and compliance assessment; for agricultural finance companies to support businesses of distribution, processing, and marketing.</p>
-        <p>The predicted yield information will also be delivered to USDA for decision support to maintain the stability of the food supply and price, to reduce food security threats. The proposed tool could potentially reduce the USDA NASS survey response burden and cost, improve the efficiency and data quality, and enhance USDA NASS crop yield prediction capability.</p>
-        <p>Therefore, the proposed project will add value to NASS's existing crop yield estimation program and have broad impacts on many stakeholders.</p>
+        <div class="space-y-4">
+          <p>This web tool provides bi-weekly county-level crop yield prediction and uncertainty for two main commodity crops (corn and soybean), using satellite images and Bayesian neural network.</p>
+          
+          <p>The detailed method is provided in our published work "Corn yield prediction and uncertainty analysis based on remotely sensed variables using a Bayesian neural network approach" [Ma et el., 2021].</p>
+          
+          <p>This is a collaborative work between UW-Madison and USDA NASS, and it adds value to NASS's existing state-level crop yield estimation program.</p>
+          
+          <p>This project is funded by USDA NIFA Agriculture and Food Research Initiative Project under Grant 1028199.</p>
+        </div>
       `,
       researchGroupContent: `
         <div class="space-y-4">

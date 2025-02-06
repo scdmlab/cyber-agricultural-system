@@ -90,7 +90,7 @@
               <input 
                 type="number"
                 v-model="startYear"
-                min="2015"
+                min="2016"
                 :max="endYear"
                 class="w-24 rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
               />
@@ -239,7 +239,7 @@ export default {
 
     const exportCrop = ref('all')
     const yearRange = ref('all')
-    const startYear = ref(2015)
+    const startYear = ref(2016)
     const endYear = ref(2024)
     const predictionTime = ref('all')
     
@@ -329,7 +329,7 @@ export default {
           ? ['corn', 'soybean'] 
           : [exportCrop.value]
 
-        const yearStart = yearRange.value === 'all' ? 2015 : parseInt(startYear.value)
+        const yearStart = yearRange.value === 'all' ? 2016 : parseInt(startYear.value)
         const yearEnd = yearRange.value === 'all' ? 2024 : parseInt(endYear.value)
 
         // Process each crop separately
@@ -478,7 +478,7 @@ export default {
           uncertainties: []
         }
 
-        for (let year = 2015; year <= 2024; year++) {
+        for (let year = 2016; year <= 2024; year++) {
           const data = await fetchPredictionData(plotCropType.value, year, '284')
           if (data) {
             const countyYield = data.find(row => row.FIPS === county.fips)
