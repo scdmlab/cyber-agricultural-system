@@ -5,14 +5,14 @@
     :height="500"
     @close="$emit('close')"
   >
-    <div class="setting">
+    <!-- <div class="setting">
       <label>Choropleth Range:</label>
       <div class="range-inputs">
         <input type="number" v-model.number="localMinValue" :placeholder="defaultMinValue" />
         <span>to</span>
         <input type="number" v-model.number="localMaxValue" :placeholder="defaultMaxValue" />
       </div>
-    </div>
+    </div> -->
     <div class="setting">
       <label>Color Scheme:</label>
       <div class="color-scheme-container">
@@ -28,6 +28,7 @@
             <input type="color" v-model="localColorScheme[1]" title="Max value" />
           </template>
         </div>
+        <button class="reset-button" @click="resetColorScheme">Reset Colors</button>
       </div>
     </div>
     <div class="setting">
@@ -101,6 +102,17 @@ export default {
       localBasemapOpacity.value = newSettings.basemapOpacity
     }, { deep: true })
 
+    const defaultColorSchemes = {
+      pred: ['#ebf8b3', '#074359'],     // Sequential blue-green
+      yield: ['#ebf8b3', '#074359'],    // Sequential blue-green
+      error: ['#3B4992', '#FFFFFF', '#EE7733'],      // Divergent blue-orange
+      uncertainty: ['#ffffff', '#916C07']  // Sequential brown
+    }
+
+    function resetColorScheme() {
+      localColorScheme.value = [...defaultColorSchemes[currentProperty.value]]
+    }
+
     function apply() {
       const newSettings = {
         minValue: localMinValue.value,
@@ -116,7 +128,7 @@ export default {
       
       store.commit('setChoroplethSettings', newSettings)
       emit('apply', newSettings)
-      emit('close')
+
     }
 
     function close() {
@@ -135,6 +147,7 @@ export default {
       defaultMaxValue,
       isErrorProperty,
       getColorPreviewStyle,
+      resetColorScheme,
     }
   }
 }
@@ -166,13 +179,7 @@ export default {
 .color-scheme-container {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-}
-
-.color-preview {
-  width: 100%;
-  height: 20px;
-  margin-bottom: 5px;
+  gap: 8px;
 }
 
 .color-pickers {
@@ -227,5 +234,23 @@ button:hover {
 
 input[type="range"] {
   width: 100%;
+}
+
+.reset-button {
+  margin-top: 8px;
+  padding: 4px 8px;
+  background-color: var(--color-primary);
+  color: var(--color-text-light);
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 0.9em;
+  width: 100%;
+  
+
+}
+
+.reset-button:hover {
+  background-color: var(--color-secondary-dark);
 }
 </style>
