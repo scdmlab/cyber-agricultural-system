@@ -20,11 +20,31 @@
       </nav>
     </div>
 
-    <PopupWindow v-if="showReferencesPopup" @close="showReferencesPopup = false" title="References" width="600" height="400">
+    <PopupWindow 
+      v-if="showReferencesPopup" 
+      @close="showReferencesPopup = false" 
+      title="References" 
+      :initial-width="600" 
+      :initial-height="400"
+      :min-width="400"
+      :max-width="800"
+      :min-height="300"
+      :max-height="600"
+    >
       <div class="prose prose-sm max-w-none text-gray-800" v-html="referencesContent"></div>
     </PopupWindow>
 
-    <PopupWindow v-if="showResearchGroupPopup" @close="showResearchGroupPopup = false" title="Research Group" width="500" height="400">
+    <PopupWindow 
+      v-if="showResearchGroupPopup" 
+      @close="showResearchGroupPopup = false" 
+      title="Research Group" 
+      :initial-width="800" 
+      :initial-height="600"
+      :min-width="400"
+      :max-width="1200"
+      :min-height="300"
+      :max-height="600"
+    >
       <div class="prose prose-sm max-w-none text-gray-800" v-html="researchGroupContent"></div>
     </PopupWindow>
   </header>
@@ -53,16 +73,31 @@ export default {
         <p>Therefore, the proposed project will add value to NASS's existing crop yield estimation program and have broad impacts on many stakeholders.</p>
       `,
       researchGroupContent: `
-        <ul>
-          <li>Zhou Zhang, UW-Madison, zzhang347@wisc.edu</li>
-          <li>Yuchi Ma, UW-Madison, ma286@wisc.edu</li>
-          <li>Zeyu Cao, UW-Madison, zcao96@wisc.edu</li>
-          <li>Zhengwei Yang, REE-NASS, zhengwei.yang@usda.gov</li>
-          <li>Qunying Huang, UW-Madison, qhuang46@wisc.edu</li>
-          <li>Meiliu Wu, UW-Madison, mwu233@wisc.edu</li>
-          <li>Songxi Yang, UW-Madison, songxi.yang@wisc.edu</li>
-          <li>Haiyue Liu, UW-Madison, hliu746@wisc.edu</li>
-        </ul>
+        <div class="space-y-4">
+          <div>
+            <p class="font-bold text-lg mb-2">PI:</p>
+            <p class="ml-4">Zhou Zhang, UW-Madison, zzhang347@wisc.edu</p>
+          </div>
+          
+          <div>
+            <p class="font-bold text-lg mb-2">Co-PIs:</p>
+            <div class="ml-4 space-y-1">
+              <p>Qunying Huang, UW-Madison, qhuang46@wisc.edu</p>
+              <p>Zhengwei Yang, USDA NASS, zhengwei.yang@usda.gov</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="font-bold text-lg mb-2">Students:</p>
+            <div class="ml-4 space-y-1">
+              <p>Yuchi Ma, UW-Madison, ma286@wisc.edu</p>
+              <p>Xiaoyu Wang, UW-Madison, xwang2696@wisc.edu</p>
+              <p>Meiliu Wu, UW-Madison, mwu233@wisc.edu</p>
+              <p>Songxi Yang, UW-Madison, songxi.yang@wisc.edu</p>
+              <p>Haiyue Liu, UW-Madison, hliu746@wisc.edu</p>
+            </div>
+          </div>
+        </div>
       `
     }
   },

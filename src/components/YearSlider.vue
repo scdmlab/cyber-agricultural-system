@@ -27,7 +27,7 @@
         <!-- Main controls in a single row -->
         <select 
           v-model="selectedCrop"
-          class="p-1 bg-white border border-gray-300 rounded w-16"
+          class="p-1 bg-white border border-gray-300 rounded w-22"
         >
           <option value="corn">Corn</option>
           <option value="soybean">Soybean</option>
@@ -35,7 +35,7 @@
 
         <select 
           v-model="selectedProperty"
-          class="p-1 bg-white border border-gray-300 rounded w-48"
+          class="p-1 bg-white border border-gray-300 rounded w-52"
         >
           <option value="pred">Predicted Yield (bu/acre)</option>
           <option value="error">Prediction Error (bu/acre)</option>
@@ -44,7 +44,7 @@
 
         <select 
           v-model="selectedDay"
-          class="p-1 bg-white border border-gray-300 rounded w-48"
+          class="p-1 bg-white border border-gray-300 rounded w-55"
         >
           <option v-for="{ day, date } in sortedDays" :key="day" :value="day">
             {{ date }}
