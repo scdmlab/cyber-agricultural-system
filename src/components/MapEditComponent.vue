@@ -364,7 +364,7 @@ export default {
 
 .map-container {
   flex-grow: 1;
-  min-height: 400px;
+  min-height: 300px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
