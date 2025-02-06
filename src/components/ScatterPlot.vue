@@ -6,6 +6,7 @@
   
   <script>
   import { ref, onMounted, watch, onUnmounted, computed } from 'vue'
+  import { useStore } from 'vuex'
   import Chart from 'chart.js/auto'
   
   export default {
@@ -39,14 +40,18 @@
     }
   },
     setup(props) {
+      const store = useStore()
       const chartRef = ref(null)
       let chart = null
 
       const computedHeight = computed(() => {
-        if (typeof props.height === 'number') {
-          return `${props.height}px`
-        }
-        return props.height
+        return typeof props.height === 'number' ? `${props.height}px` : props.height
+      })
+
+      const yAxisLabel = computed(() => {
+        return store.state.currentUnit === 't/ha'
+          ? 'Yield (t/ha)'
+          : 'Yield (BU/ACRE)'
       })
 
       const generateTitle = () => {
@@ -70,6 +75,13 @@
 
         const ctx = chartRef.value.getContext('2d')
         
+        // Determine conversion factor from current unit.
+        // (All original data is in bu/acre.)
+        const conversionFactor =
+          store.state.currentUnit === 't/ha'
+            ? (props.cropType === 'Corn' ? 0.06277 : 0.0673)
+            : 1
+
         // Calculate x-offset for each county (dataset)
         const offsetStep = props.offsetStep
         const totalDatasets = props.datasets.length
@@ -88,7 +100,7 @@
           // Add offset to x-values
           const addOffset = (data) => data.map(point => ({
             x: point.x + xOffset,
-            y: point.y
+            y: point.y * conversionFactor // <-- Conversion applied here
           }))
 
           if (props.displayMode === 'both') {
@@ -169,7 +181,7 @@
               y: {
                 title: {
                   display: true,
-                  text: 'Yield (BU/ACRE)',
+                  text: yAxisLabel.value,
                   padding: { bottom: 10 }
                 },
                 ticks: {
@@ -301,7 +313,7 @@
                   label: function(context) {
                     // Round to nearest year instead of floor
                     const year = Math.round(context.parsed.x);
-                    let label = `${context.dataset.label} - ${year}: ${context.parsed.y.toFixed(1)} bu/acre`;
+                    let label = `${context.dataset.label} - ${year}: ${context.parsed.y.toFixed(1)} ${store.state.currentUnit === 't/ha' ? 't/ha' : 'bu/acre'}`;
                     if (props.displayMode === 'predicted' || 
                        (props.displayMode === 'both' && context.dataset.label.includes('Predicted'))) {
                       const uncertainty = context.dataset.errorBars?.[context.dataIndex];
@@ -449,6 +461,9 @@
         },
         { deep: true }
       )
+      watch(() => store.state.currentUnit, () => {
+        renderScatterPlot()
+      })
 
       onUnmounted(() => {
         if (chart) {
