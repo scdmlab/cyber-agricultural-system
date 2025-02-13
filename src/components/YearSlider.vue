@@ -1,33 +1,46 @@
 <template>
   <div 
     v-if="isVisible" 
-    class="absolute z-50 bg-white bg-opacity-80 p-4 rounded shadow-md flex flex-col items-center w-3/8 max-w-4xl"
+    class="absolute z-50 bg-white bg-opacity-80 p-4 rounded shadow-md flex flex-col items-center"
+    :class="[isCompact ? 'w-64' : 'w-3/8 max-w-4xl']"
     :style="{ left: position.x + 'px', top: position.y + 'px', transform: 'none' }"
     ref="sliderContainer"
   >
-    <!-- Add drag handle -->
+    <!-- Modified header with expand/collapse button -->
     <div 
       class="absolute top-0 left-0 w-full h-6 bg-gray-100 rounded-t cursor-move flex items-center px-2"
       @mousedown="startDrag"
     >
       <span class="text-gray-500 text-sm">⋮⋮ Drag to move</span>
-      <!-- Existing close button -->
-      <button 
-        @click="closeSlider" 
-        class="absolute top-0 right-2 text-gray-500 hover:text-black focus:outline-none"
-        aria-label="Close year slider"
-      >
-        <span class="text-xl">×</span>
-      </button>
+      <div class="absolute right-2 flex items-center gap-2">
+        <button 
+          @click="toggleCompact" 
+          class="text-gray-500 hover:text-black focus:outline-none"
+          :title="isCompact ? 'Expand' : 'Collapse'"
+        >
+          <span class="text-xl">{{ isCompact ? '⊏' : '⊐' }}</span>
+        </button>
+        <button 
+          @click="closeSlider" 
+          class="text-gray-500 hover:text-black focus:outline-none"
+          aria-label="Close year slider"
+        >
+          <span class="text-xl">×</span>
+        </button>
+      </div>
     </div>
 
-    <!-- Add h-fit to contain the height -->
-    <div class="flex flex-col w-full h-fit">
-      <div class="flex items-center w-full gap-2 mt-6">
-        <!-- Main controls in a single row -->
+    <!-- Modified content layout -->
+    <div class="flex flex-col w-full h-fit mt-6" :class="{ 'space-y-2': isCompact }">
+      <!-- Controls with conditional layout -->
+      <div :class="[
+        'flex gap-2',
+        isCompact ? 'flex-col' : 'items-center w-full'
+      ]">
         <select 
           v-model="selectedCrop"
-          class="p-1 bg-white border border-gray-300 rounded w-22"
+          class="p-1 bg-white border border-gray-300 rounded"
+          :class="[isCompact ? 'w-full' : 'w-22']"
         >
           <option value="corn">Corn</option>
           <option value="soybean">Soybean</option>
@@ -35,7 +48,8 @@
 
         <select 
           v-model="selectedProperty"
-          class="p-1 bg-white border border-gray-300 rounded w-52"
+          class="p-1 bg-white border border-gray-300 rounded"
+          :class="[isCompact ? 'w-full' : 'w-52']"
         >
           <option value="pred">Predicted Yield</option>
           <option value="error">Prediction Error</option>
@@ -44,30 +58,39 @@
 
         <select 
           v-model="selectedDay"
-          class="p-1 bg-white border border-gray-300 rounded w-55"
+          class="p-1 bg-white border border-gray-300 rounded"
+          :class="[isCompact ? 'w-full' : 'w-55']"
         >
           <option v-for="{ day, date } in sortedDays" :key="day" :value="day">
             {{ date }}
           </option>
         </select>
 
-        <select 
-          v-model="currentYear"
-          class="p-1 bg-white border border-gray-300 rounded w-16"
-        >
-          <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
-        </select>
+        <div :class="[
+          'flex items-center',
+          isCompact ? 'w-full justify-between' : 'gap-2'
+        ]">
+          <select 
+            v-model="currentYear"
+            class="p-1 bg-white border border-gray-300 rounded w-16"
+          >
+            <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+          </select>
 
-        <!-- Play button -->
-        <button 
-          @click="togglePlay" 
-          class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 w-10 h-10 flex items-center justify-center ml-2"
-        >
-          {{ isPlaying ? '⏸' : '▶' }}
-        </button>
+          <button 
+            @click="togglePlay" 
+            class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 w-10 h-10 flex items-center justify-center"
+            :class="{ 'ml-2': !isCompact }"
+          >
+            {{ isPlaying ? '⏸' : '▶' }}
+          </button>
+        </div>
 
         <!-- Animation type radio buttons -->
-        <div class="flex items-center gap-2 ml-2">
+        <div :class="[
+          'flex items-center gap-2',
+          isCompact ? 'w-full justify-center' : 'ml-2'
+        ]">
           <label class="inline-flex items-center">
             <input
               type="radio"
@@ -102,7 +125,7 @@
       </div>
 
       <!-- Status display -->
-      <div class="text-xs font-bold mt-2 mb-1">
+      <div class="text-xs font-bold mt-2 mb-1" :class="{ 'text-center': isCompact }">
         Year: {{ currentYear }} | 
         {{ dayMapping[selectedDay] }} |
         Property: {{ propertyLabels[selectedProperty] }}
@@ -363,6 +386,13 @@ export default {
       document.removeEventListener('mouseup', stopDrag)
     })
 
+    // Add isCompact state
+    const isCompact = ref(false)
+    
+    const toggleCompact = () => {
+      isCompact.value = !isCompact.value
+    }
+
     return {
       selectedCrop,
       selectedProperty,
@@ -386,6 +416,8 @@ export default {
       position,
       startDrag,
       sliderContainer,
+      isCompact,
+      toggleCompact,
     }
   }
 }

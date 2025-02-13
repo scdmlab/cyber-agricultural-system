@@ -23,7 +23,7 @@
     <PopupWindow 
       v-if="showReferencesPopup" 
       @close="showReferencesPopup = false" 
-      title="References" 
+      title="Project Intro" 
       :initial-width="600" 
       :initial-height="400"
       :min-width="400"

@@ -4,27 +4,19 @@
       <div class="map-title" :style="{ fontFamily: mapFont }">{{ mapTitle }}</div>
       <div class="map-metadata">
         <div class="north-arrow">
-          <svg width="24" height="32" viewBox="0 0 24 32">
+          <svg width="24" height="48" viewBox="0 0 24 48">
             <!-- North Arrow with professional design -->
-            <g transform="translate(12,16)">
+            <g transform="translate(12,12)">
               <!-- Main Arrow -->
               <path 
-                d="M0,-14 L7,2 L0,-2 L-7,2 Z" 
+                d="M0,-8 L4,0 L0,-2 L-4,0 Z" 
                 fill="#555"
                 stroke="#555"
                 stroke-width="1"
               />
-              <!-- Stem -->
-              <rect 
-                x="-1" 
-                y="-2" 
-                width="2" 
-                height="12" 
-                fill="#555"
-              />
               <!-- N Letter -->
               <text 
-                y="14"
+                y="16"
                 text-anchor="middle" 
                 font-size="10" 
                 font-weight="bold" 
