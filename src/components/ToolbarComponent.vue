@@ -6,15 +6,15 @@
         <!-- Left group -->
         <div class="flex items-center space-x-2">
           <button @click="toggleSidebar('data')" aria-label="Data" class="toolbar-button">
-            <Icon icon="mdi:database" class="text-gray-600" />
+            <Icon icon="mdi:database" class="text-gray-600" width="24" height="24" />
             <span class="tooltip">Time Selection</span>
           </button>
           <button @click="toggleSidebar('analysis')" aria-label="Analysis" class="toolbar-button">
-            <Icon icon="mdi:chart-bar" class="text-gray-600" />
+            <Icon icon="mdi:chart-bar" class="text-gray-600" width="24" height="24" />
             <span class="tooltip">County Selection</span>
           </button>
           <button @click="toggleSidebar('mapping')" aria-label="Mapping" class="toolbar-button">
-            <Icon icon="mdi:map" class="text-gray-600" />
+            <Icon icon="mdi:map" class="text-gray-600" width="24" height="24" />
             <span class="tooltip">Yield Map</span>
           </button>
         </div>
@@ -29,34 +29,34 @@
           <div class="h-6 w-px bg-gray-600 mx-2"></div>
           -->
           <button @click="toggleBasemapPopup" aria-label="Change Basemap" class="toolbar-button">
-            <Icon icon="tdesign:map-double" class="text-gray-600" />
+            <Icon icon="tdesign:map-double" class="text-gray-600" width="24" height="24" />
             <span class="tooltip">Change Basemap</span>
           </button>
           <button @click="toggleSettings" aria-label="Map Settings" class="toolbar-button">
-            <Icon icon="mdi:cog" class="text-gray-600" />
+            <Icon icon="mdi:cog" class="text-gray-600" width="24" height="24" />
             <span class="tooltip">Map Settings</span>
           </button>
           <div class="h-6 w-px bg-gray-600 mx-2"></div>
           <button @click="$emit('toggle-legend')" aria-label="Toggle Legend" class="toolbar-button">
-            <Icon icon="material-symbols:legend-toggle-rounded" class="text-gray-600" />
+            <Icon icon="material-symbols:legend-toggle-rounded" class="text-gray-600" width="24" height="24" />
             <span class="tooltip">Toggle Legend</span>
           </button>
           <div class="h-6 w-px bg-gray-600 mx-2"></div>
           <button @click="$emit('zoom-in')" aria-label="Zoom In" class="toolbar-button">
-            <Icon icon="mdi:plus" class="text-gray-600" />
+            <Icon icon="mdi:plus" class="text-gray-600" width="24" height="24" />
             <span class="tooltip">Zoom In</span>
           </button>
           <button @click="$emit('reset-view')" aria-label="Reset View" class="toolbar-button">
-            <Icon icon="mdi:home" class="text-gray-600" />
+            <Icon icon="mdi:home" class="text-gray-600" width="24" height="24" />
             <span class="tooltip">Reset View</span>
           </button>
           <button @click="$emit('zoom-out')" aria-label="Zoom Out" class="toolbar-button">
-            <Icon icon="mdi:minus" class="text-gray-600" />
+            <Icon icon="mdi:minus" class="text-gray-600" width="24" height="24" />
             <span class="tooltip">Zoom Out</span>
           </button>
           <div class="h-6 w-px bg-gray-600 mx-2"></div>
           <button @click="toggleYearSlider" aria-label="Toggle Year Slider" class="toolbar-button">
-            <Icon icon="mdi:calendar-range" class="text-gray-600" />
+            <Icon icon="mdi:calendar-range" class="text-gray-600" width="24" height="24" />
             <span class="tooltip">Toggle Year Slider</span>
           </button>
         </div>
@@ -186,7 +186,9 @@ nav {
 }
 
 .toolbar-button svg {
-  @apply w-4 h-4;
+  @apply w-6 h-6;
+  width: 24px !important;
+  height: 24px !important;
   color: currentColor;
 }
 
