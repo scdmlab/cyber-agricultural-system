@@ -41,15 +41,12 @@ export default {
     const store = useStore();
     const currentProperty = computed(() => store.state.currentProperty);
     const choroplethSettings = computed(() => store.state.choroplethSettings);
-    const currentUnit = computed(() => store.state.currentUnit);
     const currentCrop = computed(() => store.state.currentCrop);
     
-    // Conversion factor: if unit is t/ha then convert; else factor is 1
-    const conversionFactor = computed(() => {
-      return currentUnit.value === 't/ha'
-        ? (currentCrop.value === 'corn' ? 0.06277 : 0.0673)
-        : 1
-    });
+    // Conversion factor is now always applied since we're always using t/ha
+    const conversionFactor = computed(() => 
+      currentCrop.value === 'corn' ? 0.06277 : 0.0673
+    );
 
     // We now use the converted values for display
     const currentMinValue = computed(() => {
@@ -66,11 +63,10 @@ export default {
     const displayMaxValue = computed(() => currentMaxValue.value * conversionFactor.value);
 
     const mappedPropertyTitle = computed(() => {
-      const suffix = currentUnit.value === 't/ha' ? ' (t/ha)' : ' (bu/acre)';
       const titles = {
-        pred: 'Predicted Yield' + suffix,
-        yield: 'Actual Yield' + suffix,
-        error: 'Prediction Error' + suffix,
+        pred: 'Predicted Yield (t/ha)',
+        yield: 'Actual Yield (t/ha)',
+        error: 'Prediction Error (t/ha)',
         uncertainty: 'Uncertainty'
       };
       return titles[currentProperty.value] || currentProperty.value;

@@ -58,15 +58,6 @@
           <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
         </select>
 
-        <!-- Unit selection -->
-        <select
-          v-model="selectedUnit"
-          class="p-1 bg-white border border-gray-300 rounded w-24"
-        >
-          <option value="bu/acre">bu/acre</option>
-          <option value="t/ha">t/ha</option>
-        </select>
-
         <!-- Play button -->
         <button 
           @click="togglePlay" 
@@ -152,17 +143,10 @@ export default {
       set: value => store.commit('setPredictionDay', value)
     })
 
-    // New computed for unit selection
-    const selectedUnit = computed({
-      get: () => store.state.currentUnit,
-      set: value => store.commit('setUnit', value)
-    })
-
     const propertyLabels = computed(() => {
-      const suffix = store.state.currentUnit === 't/ha' ? ' (t/ha)' : ' (bu/acre)'
       return {
-        pred: 'Predicted Yield' + suffix,
-        error: 'Prediction Error' + suffix,
+        pred: 'Predicted Yield',
+        error: 'Prediction Error',
         uncertainty: 'Model Uncertainty'
       }
     })
@@ -384,7 +368,6 @@ export default {
       selectedProperty,
       currentYear,
       selectedDay,
-      selectedUnit,
       isPlaying,
       dayMapping,
       sortedDays,

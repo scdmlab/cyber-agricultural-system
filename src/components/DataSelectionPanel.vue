@@ -46,22 +46,9 @@
           v-model="localProperty"
           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
         >
-          <option value="pred">Predicted Yield (bu/acre)</option>
-          <option value="error">Prediction Error (bu/acre)</option>
+          <option value="pred">Predicted Yield (t/ha)</option>
+          <option value="error">Prediction Error (t/ha)</option>
           <option value="uncertainty">Model Uncertainty</option>
-        </select>
-      </div>
-      
-      <!-- New unit selection -->
-      <div>
-        <label for="unit" class="block text-sm font-medium text-gray-700">Units:</label>
-        <select
-          id="unit"
-          v-model="localUnit"
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
-        >
-          <option value="bu/acre">bu/acre</option>
-          <option value="t/ha">t/ha</option>
         </select>
       </div>
     </div>
@@ -106,7 +93,6 @@ export default {
       year: store.state.currentYear,
       day: store.state.currentDay,
       property: store.state.currentProperty,
-      unit: store.state.currentUnit, // <-- added unit
     })
     
     const localCrop = computed({
@@ -127,11 +113,6 @@ export default {
     const localProperty = computed({
       get: () => localSelections.value.property,
       set: value => localSelections.value.property = value
-    })
-    
-    const localUnit = computed({
-      get: () => localSelections.value.unit,
-      set: value => localSelections.value.unit = value
     })
 
     const dayMapping = {
@@ -173,7 +154,6 @@ export default {
       store.commit('setYear', localSelections.value.year)
       store.commit('setPredictionDay', localSelections.value.day)
       store.commit('setProperty', localSelections.value.property)
-      store.commit('setUnit', localSelections.value.unit) // commit unit selection
       
       await store.dispatch('fetchPredictionData')
     }
@@ -206,10 +186,9 @@ export default {
         )
 
         if (data && data.length > 0) {
-          const conversionFactor = store.state.currentUnit === 't/ha'
-            ? (store.state.currentCrop === 'corn' ? 0.06277 : 0.0673)
-            : 1
-          const unitLabel = store.state.currentUnit === 't/ha' ? ' (t/ha)' : ' (bu/acre)'
+          // Apply the correct conversion factor based on crop type
+          const conversionFactor = store.state.currentCrop === 'corn' ? 0.06277 : 0.0673
+          const unitLabel = ' (t/ha)'
 
           const formattedData = data.map(row => ({
             'FIPS': row.FIPS,
@@ -219,7 +198,7 @@ export default {
             ['Predicted Yield' + unitLabel]: (parseFloat(row.y_test_pred) * conversionFactor).toFixed(3),
             ['NASS Reported Yield' + unitLabel]: (parseFloat(row.y_test) * conversionFactor).toFixed(3),
             ['Prediction Error' + unitLabel]: ((parseFloat(row.y_test_pred) - parseFloat(row.y_test)) * conversionFactor).toFixed(3),
-            'Model Uncertainty': (parseFloat(row.y_test_pred_uncertainty) * conversionFactor).toFixed(3)
+            'Model Uncertainty': parseFloat(row.y_test_pred_uncertainty).toFixed(3) // Uncertainty remains as percentage
           }))
 
           const csv = Papa.unparse(formattedData)
@@ -228,7 +207,7 @@ export default {
           const a = document.createElement('a')
           a.href = url
           const cropName = store.state.currentCrop.charAt(0).toUpperCase() + store.state.currentCrop.slice(1)
-          const fileName = `${cropName}_Yield_Prediction_${store.state.currentYear}_Day${store.state.currentDay}_${store.state.currentUnit}.csv`
+          const fileName = `${cropName}_Yield_Prediction_${store.state.currentYear}_Day${store.state.currentDay}.csv`
           a.download = fileName
           a.click()
           window.URL.revokeObjectURL(url)
@@ -245,7 +224,6 @@ export default {
       localYear,
       localDay,
       localProperty,
-      localUnit,
       years,
       sortedDays,
       isExporting,

@@ -48,11 +48,7 @@
         return typeof props.height === 'number' ? `${props.height}px` : props.height
       })
 
-      const yAxisLabel = computed(() => {
-        return store.state.currentUnit === 't/ha'
-          ? 'Yield (t/ha)'
-          : 'Yield (BU/ACRE)'
-      })
+      const yAxisLabel = computed(() => 'Yield (t/ha)')
 
       const generateTitle = () => {
         const mode = {
@@ -68,20 +64,14 @@
         console.log('Rendering scatter plot with data:', props.datasets)
         if (!chartRef.value) return
 
-        // Destroy previous chart if it exists
         if (chart) {
           chart.destroy()
         }
 
         const ctx = chartRef.value.getContext('2d')
         
-        // Determine conversion factor from current unit.
-        // (All original data is in bu/acre.)
-        const conversionFactor =
-          store.state.currentUnit === 't/ha'
-            ? (props.cropType === 'Corn' ? 0.06277 : 0.0673)
-            : 1
-
+        // Remove conversion since data should already be in t/ha
+        
         // Calculate x-offset for each county (dataset)
         const offsetStep = props.offsetStep
         const totalDatasets = props.datasets.length
@@ -97,10 +87,10 @@
           // Calculate x-offset for this dataset
           const xOffset = offsetStart + (index * offsetStep)
 
-          // Add offset to x-values
+          // Add offset to x-values only, y values are already in t/ha
           const addOffset = (data) => data.map(point => ({
             x: point.x + xOffset,
-            y: point.y * conversionFactor // <-- Conversion applied here
+            y: point.y // Remove conversion here
           }))
 
           if (props.displayMode === 'both') {
@@ -311,17 +301,17 @@
               tooltip: {
                 callbacks: {
                   label: function(context) {
-                    // Round to nearest year instead of floor
-                    const year = Math.round(context.parsed.x);
-                    let label = `${context.dataset.label} - ${year}: ${context.parsed.y.toFixed(1)} ${store.state.currentUnit === 't/ha' ? 't/ha' : 'bu/acre'}`;
+                    const year = Math.round(context.parsed.x)
+                    let label = `${context.dataset.label} - ${year}: ${context.parsed.y.toFixed(1)} t/ha`
+                    
                     if (props.displayMode === 'predicted' || 
-                       (props.displayMode === 'both' && context.dataset.label.includes('Predicted'))) {
-                      const uncertainty = context.dataset.errorBars?.[context.dataIndex];
+                        (props.displayMode === 'both' && context.dataset.label.includes('Predicted'))) {
+                      const uncertainty = context.dataset.errorBars?.[context.dataIndex]
                       if (uncertainty) {
-                        label += ` (±${uncertainty.toFixed(1)}%)`;
+                        label += ` (±${uncertainty.toFixed(1)}%)`
                       }
                     }
-                    return label;
+                    return label
                   }
                 }
               },
@@ -461,9 +451,6 @@
         },
         { deep: true }
       )
-      watch(() => store.state.currentUnit, () => {
-        renderScatterPlot()
-      })
 
       onUnmounted(() => {
         if (chart) {

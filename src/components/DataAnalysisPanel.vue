@@ -50,17 +50,6 @@
           Add County
         </button>
 
-        <div class="mt-4">
-          <label class="block text-sm font-medium text-gray-700">Units:</label>
-          <select
-            v-model="selectedUnit"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
-          >
-            <option value="bu/acre">bu/acre</option>
-            <option value="t/ha">t/ha</option>
-          </select>
-        </div>
-
         <div class="mt-6 space-y-4">
           <div class="flex items-center space-x-4">
             <label class="text-sm font-medium text-gray-700">Export Data For:</label>
@@ -462,11 +451,6 @@ export default {
     const plotCropType = ref('corn')
     const plotOffset = ref('0.1')
 
-    const selectedUnit = computed({
-      get: () => store.state.currentUnit,
-      set: value => store.commit('setUnit', value)
-    })
-
     async function displayPlot() {
       showPlot.value = true
       plotData.value = []
@@ -550,8 +534,7 @@ export default {
       plotDisplayMode,
       displayPlot,
       plotCropType,
-      plotOffset,
-      selectedUnit
+      plotOffset
     }
   }
 }
