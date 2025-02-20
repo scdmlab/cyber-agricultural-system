@@ -17,6 +17,10 @@
             <Icon icon="mdi:map" class="text-gray-600" width="24" height="24" />
             <span class="tooltip">Yield Map</span>
           </button>
+          <button @click="toggleSidebar('nass')" aria-label="NASS Data" class="toolbar-button">
+            <Icon icon="mdi:download" class="text-gray-600" width="24" height="24" />
+            <span class="tooltip">Download NASS Data</span>
+          </button>
         </div>
 
         <!-- Right group -->
