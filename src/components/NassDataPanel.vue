@@ -28,19 +28,6 @@
         </select>
       </div>
 
-      <!-- Geographic Level -->
-      <div class="space-y-2">
-        <label class="block text-sm font-medium text-gray-700">Geographic Level:</label>
-        <select
-          v-model="geoLevel"
-          class="w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
-        >
-          <option value="NATIONAL">National</option>
-          <option value="STATE">State Level</option>
-          <option value="COUNTY">County Level</option>
-        </select>
-      </div>
-
       <!-- Year Selection -->
       <div class="space-y-2">
         <label class="block text-sm font-medium text-gray-700">Year:</label>
@@ -125,10 +112,8 @@ import Papa from 'papaparse'
 export default {
   name: 'NassDataPanel',
   setup() {
-    const API_KEY = 'AE94E7E7-899A-3D58-BB36-C5182E9A2170'
     const statisticCategory = ref('YIELD')
     const selectedCrop = ref('CORN')
-    const geoLevel = ref('COUNTY')
     const selectedYear = ref(new Date().getFullYear())
     const isLoading = ref(false)
     const previewData = ref([])
@@ -143,7 +128,7 @@ export default {
         // key: API_KEY,
         commodity_desc: selectedCrop.value,
         year: selectedYear.value,
-        agg_level_desc: geoLevel.value,
+        agg_level_desc: 'COUNTY',
         statisticcat_desc: statisticCategory.value
       })
     //   console.log(`${baseUrl}?${params.toString()}`)
@@ -182,17 +167,30 @@ export default {
 
     const formatDataForCsv = (data) => {
       return data.map(item => {
-        // Create FIPS from state and county codes
         const stateFips = item.state_fips_code.padStart(2, '0')
         const countyFips = (item.county_code || '').padStart(3, '0')
         const fips = stateFips + countyFips
+
+        // Create dynamic value label based on statisticCategory
+        const valueLabel = (() => {
+          switch (statisticCategory.value) {
+            case 'YIELD':
+              return 'NASS Reported Yield (bu/acre)'
+            case 'AREA PLANTED':
+              return 'NASS Reported Planted Area (acres)'
+            case 'AREA HARVESTED':
+              return 'NASS Reported Harvested Area (acres)'
+            default:
+              return 'Value'
+          }
+        })()
 
         return {
           'FIPS': fips,
           'Location': item.location_desc,
           'Crop type': item.commodity_desc.toLowerCase(),
           'Year': item.year,
-          'NASS Reported Yield (bu/acre)': item.Value
+          [valueLabel]: item.Value
         }
       })
     }
@@ -232,7 +230,6 @@ export default {
     return {
       statisticCategory,
       selectedCrop,
-      geoLevel,
       selectedYear,
       currentYear,
       isLoading,
