@@ -19,6 +19,7 @@
         <DataSelectionPanel v-if="activeSidebar === 'data'" />
         <DataAnalysisPanel v-if="activeSidebar === 'analysis'" />
         <MappingPanel v-if="activeSidebar === 'mapping'" />
+        <NassDataPanel v-if="activeSidebar === 'nass'" />
       </div>
     </transition>
     <div id="map" ref="mapContainer"></div>
@@ -51,6 +52,7 @@ import DataAnalysisPanel from "@/components/DataAnalysisPanel.vue";
 import MappingPanel from "@/components/MappingPanel.vue";
 import LegendComponent from "@/components/LegendComponent.vue";
 import YearSlider from "@/components/YearSlider.vue";
+import NassDataPanel from "@/components/NassDataPanel.vue";
 
 export default {
   name: 'MapComponent',
@@ -60,7 +62,8 @@ export default {
     DataAnalysisPanel,
     MappingPanel,
     LegendComponent,
-    YearSlider
+    YearSlider,
+    NassDataPanel,
   },
   setup() {
     const store = useStore()
