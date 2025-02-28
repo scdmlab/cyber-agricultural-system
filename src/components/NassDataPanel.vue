@@ -1,6 +1,9 @@
 <template>
   <div class="bg-white p-6 rounded-lg shadow-md h-full flex flex-col overflow-hidden">
-    <h2 class="text-2xl font-bold text-green-600 mb-4">Download NASS Data</h2>
+    <h2 class="text-2xl font-bold text-green-600 mb-2">Download NASS Data</h2>
+    <p class="text-sm text-gray-600 mb-4">
+      Data from USDA NASS QuickStats (SURVEY program, CROPS sector, FIELD CROPS group)
+    </p>
     
     <div class="flex flex-col space-y-4">
       <!-- Data Type Selection -->
@@ -34,7 +37,7 @@
         <input
           type="number"
           v-model="selectedYear"
-          :min="1950"
+          :min="2000"
           :max="2023"
           class="w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
         />
@@ -114,13 +117,13 @@ export default {
   setup() {
     const statisticCategory = ref('YIELD')
     const selectedCrop = ref('CORN')
-    const selectedYear = ref(new Date().getFullYear())
+    const selectedYear = ref(Math.min(new Date().getFullYear(), 2023))
     const isLoading = ref(false)
     const previewData = ref([])
     const error = ref(null)
     const isDownloading = ref(false)
     
-    const currentYear = new Date().getFullYear()
+    const currentYear = Math.min(new Date().getFullYear(), 2023)
 
     const buildApiUrl = () => {
       const baseUrl = 'https://nass-crop-proxy.replit.app/api/nass'
@@ -129,7 +132,15 @@ export default {
         commodity_desc: selectedCrop.value,
         year: selectedYear.value,
         agg_level_desc: 'COUNTY',
-        statisticcat_desc: statisticCategory.value
+        statisticcat_desc: statisticCategory.value,
+        // Adding required parameters based on NASS QuickStats API requirements
+        source_desc: 'SURVEY',
+        sector_desc: 'CROPS',
+        group_desc: 'FIELD CROPS',
+        // Set the specific data item based on crop selection
+        short_desc: selectedCrop.value === 'CORN' 
+          ? 'CORN, GRAIN - YIELD, MEASURED IN BU / ACRE'
+          : 'SOYBEANS - YIELD, MEASURED IN BU / ACRE'
       })
     //   console.log(`${baseUrl}?${params.toString()}`)
       return `${baseUrl}?${params.toString()}`
