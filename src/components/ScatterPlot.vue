@@ -48,7 +48,16 @@
         return typeof props.height === 'number' ? `${props.height}px` : props.height
       })
 
-      const yAxisLabel = computed(() => 'Yield (t/ha)')
+      const yAxisLabel = computed(() => {
+        return store.state.currentUnit === 't/ha'
+          ? 'Yield (t/ha)'
+          : 'Yield (BU/ACRE)'
+      })
+
+      const conversionFactor =
+        store.state.currentUnit === 't/ha'
+          ? (props.cropType === 'Corn' ? 0.06277 : 0.0673)
+          : 1
 
       const generateTitle = () => {
         const mode = {
@@ -70,8 +79,6 @@
 
         const ctx = chartRef.value.getContext('2d')
         
-        // Remove conversion since data should already be in t/ha
-        
         // Calculate x-offset for each county (dataset)
         const offsetStep = props.offsetStep
         const totalDatasets = props.datasets.length
@@ -87,10 +94,10 @@
           // Calculate x-offset for this dataset
           const xOffset = offsetStart + (index * offsetStep)
 
-          // Add offset to x-values only, y values are already in t/ha
+          // Add offset to x-values
           const addOffset = (data) => data.map(point => ({
             x: point.x + xOffset,
-            y: point.y // Remove conversion here
+            y: point.y * conversionFactor // <-- Conversion applied here
           }))
 
           if (props.displayMode === 'both') {
@@ -302,7 +309,7 @@
                 callbacks: {
                   label: function(context) {
                     const year = Math.round(context.parsed.x)
-                    let label = `${context.dataset.label} - ${year}: ${context.parsed.y.toFixed(1)} t/ha`
+                    let label = `${context.dataset.label} - ${year}: ${context.parsed.y.toFixed(1)} ${store.state.currentUnit === 't/ha' ? 't/ha' : 'bu/acre'}`
                     
                     if (props.displayMode === 'predicted' || 
                         (props.displayMode === 'both' && context.dataset.label.includes('Predicted'))) {
@@ -451,6 +458,10 @@
         },
         { deep: true }
       )
+
+      watch(() => store.state.currentUnit, () => {
+        renderScatterPlot()
+      })
 
       onUnmounted(() => {
         if (chart) {

@@ -32,7 +32,7 @@ export default createStore({
         currentYear: '2021',
         currentMonth: '0',
         currentProperty: 'pred',
-        currentUnit: 't/ha',
+        currentUnit: 'bu/acre',
         mapData: null,
         selectedLocation: null,
         csvData: null,
@@ -96,6 +96,9 @@ export default createStore({
         },
         setProperty(state, property) {
             state.currentProperty = property
+        },
+        setCurrentUnit(state, unit) {
+            state.currentUnit = unit
         },
         setMapData(state, data) {
             state.mapData = data

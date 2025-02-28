@@ -109,7 +109,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import Papa from 'papaparse'
 
 export default {

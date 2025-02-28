@@ -22,13 +22,6 @@ import { useStore } from 'vuex';
 import { scaleLinear } from 'd3-scale';
 import { interpolateRgb } from 'd3-interpolate';
 
-const propertyTitleMap = {
-  pred: 'Predicted Yield (bu/acre)',
-  yield: 'Actual Yield (bu/acre)',
-  error: 'Prediction Error (bu/acre)',
-  uncertainty: 'Uncertainty'
-};
-
 export default {
   name: 'LegendComponent',
   props: {
@@ -37,15 +30,16 @@ export default {
     colorScale: { type: Array, required: true },
   },
   emits: ['close'],
-  setup(props) {
+  setup() {
     const store = useStore();
     const currentProperty = computed(() => store.state.currentProperty);
     const choroplethSettings = computed(() => store.state.choroplethSettings);
     const currentCrop = computed(() => store.state.currentCrop);
+    const currentUnit = computed(() => store.state.currentUnit);
     
-    // Conversion factor is now always applied since we're always using t/ha
+    // Conversion factor is applied only when using t/ha
     const conversionFactor = computed(() => 
-      currentCrop.value === 'corn' ? 0.06277 : 0.0673
+      currentUnit.value === 't/ha' ? (currentCrop.value === 'corn' ? 0.06277 : 0.0673) : 1
     );
 
     // We now use the converted values for display
@@ -63,10 +57,11 @@ export default {
     const displayMaxValue = computed(() => currentMaxValue.value * conversionFactor.value);
 
     const mappedPropertyTitle = computed(() => {
+      const unitSuffix = currentUnit.value === 't/ha' ? '(t/ha)' : '(bu/acre)';
       const titles = {
-        pred: 'Predicted Yield (t/ha)',
-        yield: 'Actual Yield (t/ha)',
-        error: 'Prediction Error (t/ha)',
+        pred: `Predicted Yield ${unitSuffix}`,
+        yield: `Actual Yield ${unitSuffix}`,
+        error: `Prediction Error ${unitSuffix}`,
         uncertainty: 'Uncertainty'
       };
       return titles[currentProperty.value] || currentProperty.value;

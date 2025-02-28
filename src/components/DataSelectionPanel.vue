@@ -46,9 +46,21 @@
           v-model="localProperty"
           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
         >
-          <option value="pred">Predicted Yield (t/ha)</option>
-          <option value="error">Prediction Error (t/ha)</option>
+          <option value="pred">Predicted Yield ({{ unitLabel }})</option>
+          <option value="error">Prediction Error ({{ unitLabel }})</option>
           <option value="uncertainty">Model Uncertainty</option>
+        </select>
+      </div>
+      
+      <div>
+        <label for="unit" class="block text-sm font-medium text-gray-700">Units:</label>
+        <select
+          id="unit"
+          v-model="localUnit"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+        >
+          <option value="bu/acre">Bushels per Acre (bu/acre)</option>
+          <option value="t/ha">Tonnes per Hectare (t/ha)</option>
         </select>
       </div>
     </div>
@@ -93,6 +105,7 @@ export default {
       year: store.state.currentYear,
       day: store.state.currentDay,
       property: store.state.currentProperty,
+      unit: store.state.currentUnit,
     })
     
     const localCrop = computed({
@@ -114,6 +127,13 @@ export default {
       get: () => localSelections.value.property,
       set: value => localSelections.value.property = value
     })
+    
+    const localUnit = computed({
+      get: () => localSelections.value.unit,
+      set: value => localSelections.value.unit = value
+    })
+
+    const unitLabel = computed(() => localSelections.value.unit)
 
     const dayMapping = {
       "140": "May 20 (In Season)",
@@ -154,6 +174,7 @@ export default {
       store.commit('setYear', localSelections.value.year)
       store.commit('setPredictionDay', localSelections.value.day)
       store.commit('setProperty', localSelections.value.property)
+      store.commit('setCurrentUnit', localSelections.value.unit)
       
       await store.dispatch('fetchPredictionData')
     }
@@ -224,6 +245,8 @@ export default {
       localYear,
       localDay,
       localProperty,
+      localUnit,
+      unitLabel,
       years,
       sortedDays,
       isExporting,

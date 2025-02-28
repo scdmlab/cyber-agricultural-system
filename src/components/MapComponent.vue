@@ -73,11 +73,11 @@ export default {
     const drawnPolygons = ref([])
     const activeSidebar = ref(null)
     const scaleControl = ref(null)
-    const currentUnit = ref('metric')
     const isSidebarOpen = ref(false)
     const sidebarWidth = ref(300)
     const isResizing = ref(false)
     const colorScale = ref(null)
+    const hoveredStateId = ref(null)
     const hoveredCountyId = ref(null)
     const baseMapVisible = ref(true)
     const choroplethVisible = ref(true)
@@ -692,7 +692,6 @@ export default {
           container.addEventListener('click', () => {
             this._unit = this._unit === 'metric' ? 'imperial' : 'metric'
             this.setUnit(this._unit)
-            currentUnit.value = this._unit // Update the reactive ref
           })
 
           container.style.cursor = 'pointer'
@@ -702,7 +701,7 @@ export default {
 
       scaleControl.value = new CustomScaleControl({
         maxWidth: 100,
-        unit: currentUnit.value
+        unit: store.state.currentUnit
       })
 
       map.value.addControl(scaleControl.value, 'bottom-left')
@@ -930,7 +929,7 @@ export default {
       zoomIn,
       zoomOut,
       resetViewToCONUS,
-      currentUnit,
+      currentUnit: store.state.currentUnit,
       toggleSidebar,
       activeSidebar,
       isSidebarOpen,

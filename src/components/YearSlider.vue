@@ -57,6 +57,15 @@
         </select>
 
         <select 
+          v-model="selectedUnit"
+          class="p-1 bg-white border border-gray-300 rounded"
+          :class="[isCompact ? 'w-full' : 'w-32']"
+        >
+          <option value="bu/acre">bu/acre</option>
+          <option value="t/ha">t/ha</option>
+        </select>
+
+        <select 
           v-model="selectedDay"
           class="p-1 bg-white border border-gray-300 rounded"
           :class="[isCompact ? 'w-full' : 'w-55']"
@@ -128,7 +137,8 @@
       <div class="text-xs font-bold mt-2 mb-1" :class="{ 'text-center': isCompact }">
         Year: {{ currentYear }} | 
         {{ dayMapping[selectedDay] }} |
-        Property: {{ propertyLabels[selectedProperty] }}
+        Property: {{ propertyLabels[selectedProperty] }} |
+        Unit: {{ selectedUnit }}
       </div>
     </div>
   </div>
@@ -156,6 +166,11 @@ export default {
       set: value => store.commit('setProperty', value)
     })
 
+    const selectedUnit = computed({
+      get: () => store.state.currentUnit,
+      set: value => store.commit('setCurrentUnit', value)
+    })
+
     const currentYear = computed({
       get: () => store.state.currentYear,
       set: value => store.commit('setYear', value)
@@ -167,9 +182,10 @@ export default {
     })
 
     const propertyLabels = computed(() => {
+      const suffix = store.state.currentUnit === 't/ha' ? ' (t/ha)' : ' (bu/acre)';
       return {
-        pred: 'Predicted Yield',
-        error: 'Prediction Error',
+        pred: 'Predicted Yield' + suffix,
+        error: 'Prediction Error' + suffix,
         uncertainty: 'Model Uncertainty'
       }
     })
@@ -232,7 +248,7 @@ export default {
 
     // Update predictions whenever any selection changes
     watch(
-      [selectedCrop, selectedProperty, currentYear, selectedDay],
+      [selectedCrop, selectedProperty, currentYear, selectedDay, selectedUnit],
       async () => {
         await updatePredictions()
       }
@@ -398,6 +414,7 @@ export default {
       selectedProperty,
       currentYear,
       selectedDay,
+      selectedUnit,
       isPlaying,
       dayMapping,
       sortedDays,
