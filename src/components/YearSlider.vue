@@ -2,7 +2,7 @@
   <div 
     v-if="isVisible" 
     class="absolute z-50 bg-white bg-opacity-80 p-4 rounded shadow-md flex flex-col items-center"
-    :class="[isCompact ? 'w-64' : 'w-3/8 max-w-4xl']"
+    :class="[isCompact ? 'w-72' : 'w-3/8 max-w-4xl']"
     :style="{ left: position.x + 'px', top: position.y + 'px', transform: 'none' }"
     ref="sliderContainer"
   >
@@ -11,7 +11,7 @@
       class="absolute top-0 left-0 w-full h-6 bg-gray-100 rounded-t cursor-move flex items-center px-2"
       @mousedown="startDrag"
     >
-      <span class="text-gray-500 text-sm">⋮⋮ Drag to move</span>
+      <span class="text-gray-500 text-base">⋮⋮ Drag to move</span>
       <div class="absolute right-2 flex items-center gap-2">
         <button 
           @click="toggleCompact" 
@@ -39,7 +39,7 @@
       ]">
         <select 
           v-model="selectedCrop"
-          class="p-1 bg-white border border-gray-300 rounded"
+          class="p-1 bg-white border border-gray-300 rounded text-sm md:text-base"
           :class="[isCompact ? 'w-full' : 'w-22']"
         >
           <option value="corn">Corn</option>
@@ -48,7 +48,7 @@
 
         <select 
           v-model="selectedProperty"
-          class="p-1 bg-white border border-gray-300 rounded"
+          class="p-1 bg-white border border-gray-300 rounded text-sm md:text-base"
           :class="[isCompact ? 'w-full' : 'w-52']"
         >
           <option value="pred">Predicted Yield</option>
@@ -58,7 +58,7 @@
 
         <select 
           v-model="selectedUnit"
-          class="p-1 bg-white border border-gray-300 rounded"
+          class="p-1 bg-white border border-gray-300 rounded text-sm md:text-base"
           :class="[isCompact ? 'w-full' : 'w-32']"
         >
           <option value="bu/acre">bu/acre</option>
@@ -67,7 +67,7 @@
 
         <select 
           v-model="selectedDay"
-          class="p-1 bg-white border border-gray-300 rounded"
+          class="p-1 bg-white border border-gray-300 rounded text-sm md:text-base"
           :class="[isCompact ? 'w-full' : 'w-55']"
         >
           <option v-for="{ day, date } in sortedDays" :key="day" :value="day">
@@ -97,8 +97,8 @@
 
         <!-- Animation type radio buttons -->
         <div :class="[
-          'flex items-center gap-2',
-          isCompact ? 'w-full justify-center' : 'ml-2'
+          'flex items-center justify-between w-full px-1',
+          isCompact ? 'mt-2' : 'ml-2'
         ]">
           <label class="inline-flex items-center">
             <input
@@ -107,16 +107,16 @@
               value="year"
               class="form-radio text-blue-500"
             >
-            <span class="ml-1 text-sm whitespace-nowrap">By Year</span>
+            <span class="ml-1 text-xs sm:text-sm whitespace-nowrap">By Year</span>
           </label>
-          <label class="inline-flex items-center ml-2">
+          <label class="inline-flex items-center">
             <input
               type="radio"
               v-model="animationType"
               value="month"
               class="form-radio text-blue-500"
             >
-            <span class="ml-1 text-sm whitespace-nowrap">By Month</span>
+            <span class="ml-1 text-xs sm:text-sm whitespace-nowrap">By Month</span>
           </label>
         </div>
       </div>
@@ -134,7 +134,7 @@
       </div>
 
       <!-- Status display -->
-      <div class="text-xs font-bold mt-2 mb-1" :class="{ 'text-center': isCompact }">
+      <div class="text-sm md:text-base font-bold mt-2 mb-1" :class="{ 'text-center': isCompact }">
         Year: {{ currentYear }} | 
         {{ dayMapping[selectedDay] }} |
         Property: {{ propertyLabels[selectedProperty] }} |
@@ -441,6 +441,11 @@ export default {
 </script>
 
 <style>
+/* Font size responsive utilities */
+.text-responsive {
+  font-size: clamp(0.875rem, 1vw + 0.5rem, 1.125rem);
+}
+
 .slider-thumb::-webkit-slider-thumb {
   @apply appearance-none w-4 h-4 bg-blue-500 rounded-full cursor-pointer;
 }

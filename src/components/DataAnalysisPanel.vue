@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white p-6 rounded-lg shadow-md h-full flex flex-col overflow-y-auto">
+  <div class="bg-white p-6 rounded-lg shadow-md h-full flex flex-col overflow-y-auto max-h-screen">
     <h2 class="text-2xl font-bold text-green-600 mb-4">County Selection</h2>
     
     <div class="flex-grow space-y-4">
@@ -116,29 +116,39 @@
             </div>
           </div>
 
-          <button
-            @click="exportData"
-            :disabled="!hasSelectedCounties || isExporting"
-            class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300 disabled:opacity-50 flex items-center justify-center mb-4"
-          >
-            <span v-if="isExporting" class="mr-2">
-              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            </span>
-            {{ isExporting ? 'Downloading...' : 'Export Data' }}
-          </button>
+          <div class="flex space-x-4 mb-4">
+            <button
+              @click="exportData"
+              :disabled="!hasSelectedCounties || isExporting"
+              class="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300 disabled:opacity-50 flex items-center justify-center"
+            >
+              <span v-if="isExporting" class="mr-2">
+                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </span>
+              {{ isExporting ? 'Downloading...' : 'Export Data' }}
+            </button>
 
-          <button
-            @click="displayPlot"
-            :disabled="!hasSelectedCounties"
-            class="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300 disabled:opacity-50"
-          >
-            Display Historical Yields
-          </button>
+            <button
+              @click="displayPlot"
+              :disabled="!hasSelectedCounties"
+              class="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300 disabled:opacity-50"
+            >
+              Display Time Series
+            </button>
+
+            <button
+              @click="displayHistogram"
+              class="flex-1 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition duration-300"
+            >
+              Display Distribution
+            </button>
+          </div>
 
           <div class="mt-4 space-y-4">
+            <!-- Plot Configuration Options -->
             <div class="flex items-center space-x-4">
               <label class="text-sm font-medium text-gray-700">Display Mode:</label>
               <select
@@ -160,29 +170,89 @@
                 <option value="soybean">Soybean</option>
               </select>
             </div>
-
-            <div class="flex items-center space-x-4">
-              <label class="text-sm font-medium text-gray-700">County Offset:</label>
-              <input
-                type="range"
-                v-model="plotOffset"
-                min="0"
-                max="0.3"
-                step="0.01"
-                class="flex-1"
-              />
-              <span class="text-sm text-gray-600 w-12">{{ plotOffset }}</span>
-            </div>
           </div>
 
-          <div v-if="showPlot" class="mt-4">
-            <ScatterPlot
-              :datasets="plotData"
-              :display-mode="plotDisplayMode"
-              :offset-step="parseFloat(plotOffset)"
-              :crop-type="plotCropType.charAt(0).toUpperCase() + plotCropType.slice(1)"
-              height="500px"
-            />
+          <!-- Time Series Plot Section -->
+          <div v-if="showPlot" class="mt-6 border rounded-lg p-4 pb-8 mb-6">
+            <div class="flex justify-between items-center mb-4 cursor-pointer" @click="showScatterSection = !showScatterSection">
+              <h3 class="text-lg font-semibold text-green-600">Time Series Plot</h3>
+              <button class="text-gray-500 hover:text-gray-700">
+                <span v-if="showScatterSection">▼</span>
+                <span v-else>▶</span>
+              </button>
+            </div>
+            
+            <div v-if="showScatterSection">
+              <div class="mb-4 space-y-4">
+                <div class="flex items-center space-x-4">
+                  <label class="text-sm font-medium text-gray-700">County Offset:</label>
+                  <input
+                    type="range"
+                    v-model="plotOffset"
+                    min="0"
+                    max="0.3"
+                    step="0.01"
+                    class="flex-1"
+                  />
+                  <span class="text-sm text-gray-600 w-12">{{ plotOffset }}</span>
+                </div>
+              </div>
+              
+              <ScatterPlot
+                :datasets="plotData"
+                :display-mode="plotDisplayMode"
+                :offset-step="parseFloat(plotOffset)"
+                :crop-type="plotCropType.charAt(0).toUpperCase() + plotCropType.slice(1)"
+                height="500px"
+              />
+            </div>
+          </div>
+          
+          <!-- Histogram Plot Section -->
+          <div v-if="showHistogram" class="mt-2 border rounded-lg p-4 pb-8">
+            <div class="flex justify-between items-center mb-4 cursor-pointer" @click="showHistogramSection = !showHistogramSection">
+              <h3 class="text-lg font-semibold text-green-600">Yield Distribution (All Counties)</h3>
+              <button class="text-gray-500 hover:text-gray-700">
+                <span v-if="showHistogramSection">▼</span>
+                <span v-else>▶</span>
+              </button>
+            </div>
+            
+            <div v-if="showHistogramSection">
+              <div class="mb-4 space-y-4">
+                <div class="flex items-center space-x-4">
+                  <label class="text-sm font-medium text-gray-700">Year:</label>
+                  <select
+                    v-model="histogramYear"
+                    class="flex-1 rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
+                  >
+                    <option v-for="year in [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]" :key="year" :value="year">{{ year }}</option>
+                  </select>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                  <label class="text-sm font-medium text-gray-700">Bin Count:</label>
+                  <input
+                    type="range"
+                    v-model="histogramBins"
+                    min="5"
+                    max="20"
+                    step="1"
+                    class="flex-1"
+                  />
+                  <span class="text-sm text-gray-600 w-12">{{ histogramBins }}</span>
+                </div>
+              </div>
+              
+              <HistogramPlot
+                :all-counties-data="allCountiesData"
+                :display-mode="plotDisplayMode"
+                :crop-type="plotCropType.charAt(0).toUpperCase() + plotCropType.slice(1)"
+                :bin-count="parseInt(histogramBins)"
+                :year="histogramYear"
+                height="500px"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -196,11 +266,13 @@ import { useStore } from 'vuex'
 import { stateCodeMap } from '@/utils/stateCodeMap'
 import Papa from 'papaparse'
 import ScatterPlot from './ScatterPlot.vue'
+import HistogramPlot from './HistogramPlot.vue'
 
 export default {
   name: 'DataAnalysisPanel',
   components: {
-    ScatterPlot
+    ScatterPlot,
+    HistogramPlot
   },
   setup() {
     const store = useStore()
@@ -457,6 +529,7 @@ export default {
     })
 
     const showPlot = ref(false)
+    const showHistogram = ref(false)
     const plotData = ref([])
     const plotDisplayMode = ref('both')
     const plotCropType = ref('corn')
@@ -522,12 +595,62 @@ export default {
         plotData.value.push(countyData)
       }
     }
+    
+    async function displayHistogram() {
+      showHistogram.value = true
+      await fetchAllCountiesData()
+    }
 
     watch([plotDisplayMode, plotCropType], () => {
       if (showPlot.value) {
         displayPlot()
       }
+      if (showHistogram.value) {
+        fetchAllCountiesData()
+      }
     })
+
+    const plotType = ref('scatter')
+    const histogramBins = ref(10)
+    const histogramYear = ref(2024)
+    const showScatterSection = ref(true)
+    const showHistogramSection = ref(true)
+    const allCountiesData = ref([])
+
+    // Function to fetch data for all counties for the histogram
+    async function fetchAllCountiesData() {
+      allCountiesData.value = []
+      const year = histogramYear.value
+      const day = '284' // End of season
+
+      try {
+        const data = await fetchPredictionData(plotCropType.value, year, day)
+        if (data) {
+          data.forEach(row => {
+            if (row.y_test || row.y_test_pred) {
+              allCountiesData.value.push({
+                fips: row.FIPS,
+                actual: row.y_test ? parseFloat(row.y_test) : null,
+                predicted: row.y_test_pred ? parseFloat(row.y_test_pred) : null,
+                uncertainty: row.y_test_pred_uncertainty ? parseFloat(row.y_test_pred_uncertainty) : null
+              })
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching all counties data:', error)
+      }
+    }
+
+    // Update all counties data when crop type changes
+    watch([plotCropType, histogramYear], () => {
+      if (showHistogram.value) {
+        fetchAllCountiesData()
+      }
+    })
+
+    // Initial fetch of all counties data
+    fetchAllCountiesData()
 
     return {
       selectedCounties,
@@ -546,12 +669,20 @@ export default {
       exportData,
       isExporting,
       showPlot,
+      showHistogram,
       plotData,
       plotDisplayMode,
       displayPlot,
+      displayHistogram,
       plotCropType,
       plotOffset,
-      selectedUnit
+      selectedUnit,
+      plotType,
+      histogramBins,
+      histogramYear,
+      showScatterSection,
+      showHistogramSection,
+      allCountiesData
     }
   }
 }
