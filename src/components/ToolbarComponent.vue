@@ -1,24 +1,36 @@
 <!-- ToolbarComponent.vue -->
 <template>
   <div>
-    <nav class="relative bg-gray-100 border-b border-gray-200 shadow-sm py-0.5 px-4 z-30" aria-label="Map controls">
+    <nav class="relative bg-gray-100 border-b border-gray-200 shadow-sm py-2 px-4 z-30" aria-label="Map controls">
       <div class="flex justify-between items-center h-full w-full">
         <!-- Left group -->
         <div class="flex items-center space-x-2">
           <button @click="toggleSidebar('data')" aria-label="Data" class="toolbar-button">
-            <Icon icon="mdi:database" class="text-gray-600" width="24" height="24" />
+            <div class="flex flex-col items-center">
+              <Icon icon="mdi:calendar-clock" class="text-gray-600" width="24" height="24" />
+              <span class="button-label">Time</span>
+            </div>
             <span class="tooltip">Time Selection</span>
           </button>
           <button @click="toggleSidebar('analysis')" aria-label="Analysis" class="toolbar-button">
-            <Icon icon="mdi:chart-bar" class="text-gray-600" width="24" height="24" />
+            <div class="flex flex-col items-center">
+              <Icon icon="mdi:map-marker-multiple" class="text-gray-600" width="24" height="24" />
+              <span class="button-label">County</span>
+            </div>
             <span class="tooltip">County Selection</span>
           </button>
           <button @click="toggleSidebar('mapping')" aria-label="Mapping" class="toolbar-button">
-            <Icon icon="mdi:map" class="text-gray-600" width="24" height="24" />
+            <div class="flex flex-col items-center">
+              <Icon icon="mdi:map" class="text-gray-600" width="24" height="24" />
+              <span class="button-label">Mapping</span>
+            </div>
             <span class="tooltip">Yield Map</span>
           </button>
           <button @click="toggleSidebar('nass')" aria-label="NASS Data" class="toolbar-button">
-            <Icon icon="mdi:download" class="text-gray-600" width="24" height="24" />
+            <div class="flex flex-col items-center">
+              <Icon icon="mdi:download" class="text-gray-600" width="24" height="24" />
+              <span class="button-label">NASS Data</span>
+            </div>
             <span class="tooltip">Download NASS Data</span>
           </button>
         </div>
@@ -33,34 +45,55 @@
           <div class="h-6 w-px bg-gray-600 mx-2"></div>
           -->
           <button @click="toggleBasemapPopup" aria-label="Change Basemap" class="toolbar-button">
-            <Icon icon="tdesign:map-double" class="text-gray-600" width="24" height="24" />
+            <div class="flex flex-col items-center">
+              <Icon icon="tdesign:map-double" class="text-gray-600" width="24" height="24" />
+              <span class="button-label">Basemap</span>
+            </div>
             <span class="tooltip">Change Basemap</span>
           </button>
           <button @click="toggleSettings" aria-label="Map Settings" class="toolbar-button">
-            <Icon icon="mdi:cog" class="text-gray-600" width="24" height="24" />
+            <div class="flex flex-col items-center">
+              <Icon icon="mdi:cog" class="text-gray-600" width="24" height="24" />
+              <span class="button-label">Settings</span>
+            </div>
             <span class="tooltip">Map Settings</span>
           </button>
           <div class="h-6 w-px bg-gray-600 mx-2"></div>
           <button @click="$emit('toggle-legend')" aria-label="Toggle Legend" class="toolbar-button">
-            <Icon icon="material-symbols:legend-toggle-rounded" class="text-gray-600" width="24" height="24" />
+            <div class="flex flex-col items-center">
+              <Icon icon="material-symbols:legend-toggle-rounded" class="text-gray-600" width="24" height="24" />
+              <span class="button-label">Legend</span>
+            </div>
             <span class="tooltip">Toggle Legend</span>
           </button>
           <div class="h-6 w-px bg-gray-600 mx-2"></div>
           <button @click="$emit('zoom-in')" aria-label="Zoom In" class="toolbar-button">
-            <Icon icon="mdi:plus" class="text-gray-600" width="24" height="24" />
+            <div class="flex flex-col items-center">
+              <Icon icon="mdi:plus" class="text-gray-600" width="24" height="24" />
+              <span class="button-label">Zoom In</span>
+            </div>
             <span class="tooltip">Zoom In</span>
           </button>
           <button @click="$emit('reset-view')" aria-label="Reset View" class="toolbar-button">
-            <Icon icon="mdi:home" class="text-gray-600" width="24" height="24" />
+            <div class="flex flex-col items-center">
+              <Icon icon="mdi:home" class="text-gray-600" width="24" height="24" />
+              <span class="button-label">Home</span>
+            </div>
             <span class="tooltip">Reset View</span>
           </button>
           <button @click="$emit('zoom-out')" aria-label="Zoom Out" class="toolbar-button">
-            <Icon icon="mdi:minus" class="text-gray-600" width="24" height="24" />
+            <div class="flex flex-col items-center">
+              <Icon icon="mdi:minus" class="text-gray-600" width="24" height="24" />
+              <span class="button-label">Zoom Out</span>
+            </div>
             <span class="tooltip">Zoom Out</span>
           </button>
           <div class="h-6 w-px bg-gray-600 mx-2"></div>
           <button @click="toggleYearSlider" aria-label="Toggle Year Slider" class="toolbar-button">
-            <Icon icon="mdi:calendar-range" class="text-gray-600" width="24" height="24" />
+            <div class="flex flex-col items-center">
+              <Icon icon="mdi:timeline-clock" class="text-gray-600" width="24" height="24" />
+              <span class="button-label">Year</span>
+            </div>
             <span class="tooltip">Toggle Year Slider</span>
           </button>
         </div>
@@ -167,16 +200,18 @@ export default {
 
 <style scoped>
 nav {
-  height: 36px;
+  height: 60px;
   width: 100%;
   display: flex;
   align-items: center; /* Center all content vertically */
 }
 
 .toolbar-button {
-  @apply p-1 rounded-full transition-colors duration-200 ease-in-out relative;
+  @apply p-1 rounded-lg transition-colors duration-200 ease-in-out relative;
   @apply hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-green-500;
   @apply flex items-center justify-center; /* Center icon within button */
+  min-width: 50px;
+  min-height: 50px;
   z-index: 30;
 }
 
@@ -194,6 +229,11 @@ nav {
   width: 24px !important;
   height: 24px !important;
   color: currentColor;
+}
+
+.button-label {
+  @apply text-xs font-medium text-gray-600 mt-1;
+  line-height: 1;
 }
 
 .h-6 {
