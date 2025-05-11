@@ -4,6 +4,18 @@
     
     <div class="flex-grow space-y-4">
       <div class="mt-4 space-y-4">
+        <!-- State Selector -->
+        <label class="block text-sm font-medium text-gray-700">Select State:</label>
+        <select
+          v-model="selectedState"
+          class="block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50 py-0.5 text-sm"
+        >
+          <option value="">All States</option>
+          <option v-for="state in stateOptions" :key="state.code" :value="state.code">
+            {{ state.name }}
+          </option>
+        </select>
+
         <label class="block text-sm font-medium text-gray-700">Select Counties:</label>
         <div v-for="(county, index) in selectedCounties" :key="index" class="space-y-0.5">
           <div class="flex items-center space-x-2">
@@ -323,11 +335,52 @@ export default {
     const csvData = computed(() => store.state.csvData || [])
     const baseUrl = import.meta.env.BASE_URL
 
+    const selectedState = ref('')
+    const stateOptions = computed(() => {
+      return Object.entries(stateCodeMap)
+        .map(([code, name]) => ({ code, name }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    })
+
+    // Reset counties when state changes
+    watch(selectedState, () => {
+      selectedCounties.value = [{
+        input: '',
+        selected: null,
+        showSuggestions: false,
+        filteredSuggestions: []
+      }]
+      store.commit('setSelectedCountyFIPS', [])
+      store.commit('setSelectedCounties', selectedCounties.value)
+    })
+
+    // Helper to extract state FIPS from full county FIPS
+    const getStateCode = (fips) => fips?.toString().substring(0, 2)
+
+    // Ensure external additions (e.g., map click) respect current state filter
+    watch(() => store.state.selectedCounties, (newCounties) => {
+      // If a state filter is active, drop counties from other states
+      if (selectedState.value) {
+        const filtered = newCounties.filter(c => !c.selected || getStateCode(c.selected.fips) === selectedState.value)
+        if (filtered.length !== newCounties.length) {
+          store.commit('setSelectedCounties', filtered)
+          const newFips = filtered.filter(c => c.selected).map(c => c.selected.fips)
+          store.commit('setSelectedCountyFIPS', newFips)
+          return // avoid local update until store emits next tick
+        }
+      }
+      selectedCounties.value = newCounties
+    }, { deep: true })
+
     const countySuggestions = computed(() => {
       const uniqueCounties = new Map()
       if (csvData.value) {
         csvData.value.forEach(row => {
           const stateCode = row.FIPS.substring(0, 2)
+
+          // Filter by selected state if one is chosen
+          if (selectedState.value && stateCode !== selectedState.value) return
+
           const stateName = stateCodeMap[stateCode] || 'Unknown State'
           const countyName = `${row.NAME} County, ${stateName}`
           uniqueCounties.set(row.FIPS, {
@@ -352,6 +405,12 @@ export default {
     }
 
     function selectSuggestion(suggestion, index) {
+      // Block selection if it conflicts with chosen state
+      const suggestionState = suggestion.fips.substring(0, 2)
+      if (selectedState.value && suggestionState !== selectedState.value) {
+        return // ignore mismatching county
+      }
+
       selectedCounties.value[index] = {
         input: suggestion.name,
         selected: {
@@ -599,6 +658,8 @@ export default {
     async function displayHistogram() {
       showHistogram.value = true
       await fetchAllCountiesData()
+      // Ensure the histogram section is visible
+      showHistogramSection.value = true
     }
 
     watch([plotDisplayMode, plotCropType], () => {
@@ -642,12 +703,12 @@ export default {
       }
     }
 
-    // Update all counties data when crop type changes
-    watch([plotCropType, histogramYear], () => {
+    // Update all counties data when crop type or year changes
+    watch([plotCropType, histogramYear], async () => {
       if (showHistogram.value) {
-        fetchAllCountiesData()
+        await fetchAllCountiesData()
       }
-    })
+    }, { immediate: false })
 
     // Initial fetch of all counties data
     fetchAllCountiesData()
@@ -682,7 +743,9 @@ export default {
       histogramYear,
       showScatterSection,
       showHistogramSection,
-      allCountiesData
+      allCountiesData,
+      selectedState,
+      stateOptions
     }
   }
 }

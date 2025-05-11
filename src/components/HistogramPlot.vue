@@ -119,8 +119,12 @@ export default {
     }
 
     const renderHistogramPlot = () => {
-      console.log('Rendering histogram plot with data:', props.allCountiesData)
+      console.log('Rendering histogram plot with data:', props.allCountiesData, 'for year:', props.year)
       if (!chartRef.value) return
+      if (!props.allCountiesData || props.allCountiesData.length === 0) {
+        console.warn('No data available for histogram')
+        return
+      }
 
       if (chart) {
         chart.destroy()
@@ -256,7 +260,7 @@ export default {
     })
 
     watch(
-      () => [props.datasets, props.binCount, props.displayMode],
+      () => [props.datasets, props.binCount, props.displayMode, props.year, props.allCountiesData],
       () => {
         renderHistogramPlot()
       },
