@@ -27,7 +27,7 @@
           v-if="showLegend"
           :minValue="choroplethSettings.minValue"
           :maxValue="choroplethSettings.maxValue"
-          :colorScale="choroplethSettings.colorScheme"
+          :colorScale="currentColorScheme"
           @close="toggleLegend"
         />
   </div>
@@ -86,6 +86,10 @@ export default {
     const markers = ref([])
     const choroplethSettings = computed(() => store.state.choroplethSettings)
     const currentBasemapUrl = computed(() => store.getters.currentBasemapUrl)
+    const currentColorScale = ref(null)
+    const currentColorScheme = ref(
+      store.state.choroplethSettings.colorSchemes.pred || ['#ebf8b3', '#074359']
+    )
 
     const toggleLegend = () => {
       showLegend.value = !showLegend.value
@@ -224,6 +228,9 @@ export default {
       const colors =
         choroplethSettings.value.colorSchemes[store.state.currentProperty] ||
         choroplethSettings.value.colorSchemes.pred;
+
+      // Store the current color scheme for the legend
+      currentColorScheme.value = colors;
 
       // Create appropriate color scale
       if (store.state.currentProperty === 'error') {

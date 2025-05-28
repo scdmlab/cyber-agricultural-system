@@ -21,7 +21,7 @@
           <div class="flex items-center space-x-2">
             <!-- Use dropdown when state is selected, otherwise use text input -->
             <select
-              v-if="selectedState"
+              v-if="selectedState && !county.selected"
               v-model="county.selectedFips"
               @change="selectCountyFromDropdown(index)"
               class="flex-grow block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50 py-0.5 text-sm"
@@ -41,6 +41,7 @@
               v-model="county.input"
               @input="updateSuggestions(index)"
               @keydown.enter="selectCounty(index)"
+              :disabled="selectedState && county.selected && getStateCode(county.selected.fips) !== selectedState"
               placeholder="Type a county name"
               class="flex-grow block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50 py-0.5 text-sm"
             />
@@ -73,7 +74,7 @@
           </ul>
         </div>
         <button 
-          @click="addCounty" 
+          @click="addCountyField" 
           class="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300"
         >
           Add County
@@ -290,7 +291,7 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useStore } from 'vuex'
 import { stateCodeMap } from '@/utils/stateCodeMap'
 import Papa from 'papaparse'
@@ -306,42 +307,28 @@ export default {
   setup() {
     const store = useStore()
     
-    watch(() => store.state.selectedCounties, (newCounties) => {
-      selectedCounties.value = newCounties;
-    }, { deep: true });
-
-    const selectedCounties = ref(store.state.selectedCounties.length > 0
-      ? store.state.selectedCounties
-      : [{
-          input: '',
-          selected: null,
-          selectedFips: '',
-          showSuggestions: false,
-          filteredSuggestions: []
-        }]
-    );
-
-    watch(() => store.state.selectedCountyFIPS, (newFIPS) => {
-      const currentFIPS = selectedCounties.value
-        .filter(c => c.selected)
-        .map(c => c.selected.fips)
-      
-      if (!arraysEqual(currentFIPS, newFIPS)) {
-        store.commit('setSelectedCounties', selectedCounties.value);
+    // Computed property to always get selected counties from the store
+    const selectedCounties = computed({
+      get: () => store.state.selectedCounties.map(county => ({
+        ...county,
+        // Ensure selectedFips is always present for the dropdown
+        selectedFips: county.selectedFips || (county.selected ? county.selected.fips : '') 
+      })),
+      // When component tries to set it, commit to store instead
+      set: (newVal) => {
+        store.commit('setSelectedCounties', newVal)
       }
-    })
+    });
 
-    watch(selectedCounties, (newCounties) => {
-      const newFIPS = newCounties
-        .filter(c => c.selected)
-        .map(c => c.selected.fips)
-      
-      store.commit('setSelectedCountyFIPS', newFIPS);
-    }, { deep: true })
-
-    function arraysEqual(a, b) {
-      if (a.length !== b.length) return false;
-      return a.every((val, idx) => val === b[idx]);
+    // Initialize with a default empty county if store is empty
+    if (store.state.selectedCounties.length === 0) {
+      store.commit('setSelectedCounties', [{
+        input: '',
+        selected: null,
+        selectedFips: '',
+        showSuggestions: false,
+        filteredSuggestions: []
+      }]);
     }
 
     const exportCrop = ref('all')
@@ -491,39 +478,80 @@ export default {
       fetchAvailableCountiesForState()
     }, { immediate: true })
 
-    // Reset counties when state changes
-    watch(selectedState, () => {
-      selectedCounties.value = [{
-        input: '',
-        selected: null,
-        selectedFips: '',
-        showSuggestions: false,
-        filteredSuggestions: []
-      }]
-      store.commit('setSelectedCountyFIPS', [])
-      store.commit('setSelectedCounties', selectedCounties.value)
+    // Watch for state changes
+    watch(selectedState, async (newState, oldState) => {
+      if (newState !== oldState) {
+        await fetchAvailableCountiesForState()
+      }
     })
 
     // Helper to extract state FIPS from full county FIPS
     const getStateCode = (fips) => fips?.toString().substring(0, 2)
 
-    // Ensure external additions (e.g., map click) respect current state filter
-    watch(() => store.state.selectedCounties, (newCounties) => {
-      // If a state filter is active, drop counties from other states
-      if (selectedState.value) {
-        const filtered = newCounties.filter(c => !c.selected || getStateCode(c.selected.fips) === selectedState.value)
-        if (filtered.length !== newCounties.length) {
-          store.commit('setSelectedCounties', filtered)
-          const newFips = filtered.filter(c => c.selected).map(c => c.selected.fips)
-          store.commit('setSelectedCountyFIPS', newFips)
-          return // avoid local update until store emits next tick
-        }
+    // Watch for changes in local selectedCounties and update store FIPS
+    watch(selectedCounties, (newCounties) => {
+      const newFIPS = newCounties
+        .filter(c => c.selected)
+        .map(c => c.selected.fips)
+      
+      // Only update store if FIPS actually changed
+      const currentStoreFIPS = store.state.selectedCountyFIPS
+      if (JSON.stringify(newFIPS.sort()) !== JSON.stringify(currentStoreFIPS.sort())) {
+        store.commit('setSelectedCountyFIPS', newFIPS)
+        store.commit('setSelectedCounties', newCounties)
       }
-      // Ensure all counties have the selectedFips property
-      selectedCounties.value = newCounties.map(county => ({
-        ...county,
-        selectedFips: county.selectedFips || (county.selected ? county.selected.fips : '')
-      }))
+    }, { deep: true })
+
+    // Watch for external changes from store (like map clicks) and sync them to local state
+    watch(() => store.state.selectedCountyFIPS, (newStoreFIPS) => {
+      // Check if this is a genuine external change (different from our local state)
+      const currentLocalFIPS = selectedCounties.value
+        .filter(c => c.selected)
+        .map(c => c.selected.fips)
+        .sort()
+      
+      const sortedStoreFIPS = [...newStoreFIPS].sort()
+      
+      // Only update if FIPS lists are different (external change detected)
+      if (JSON.stringify(currentLocalFIPS) !== JSON.stringify(sortedStoreFIPS)) {
+        // If state filter is active, check if new counties are allowed
+        if (selectedState.value) {
+          const newFIPS = sortedStoreFIPS.filter(fips => !currentLocalFIPS.includes(fips))
+          const invalidFIPS = newFIPS.filter(fips => getStateCode(fips) !== selectedState.value)
+          
+          if (invalidFIPS.length > 0) {
+            // Reject the invalid counties by reverting the store
+            store.commit('setSelectedCountyFIPS', currentLocalFIPS)
+            console.log(`Cannot add counties from other states while ${stateCodeMap[selectedState.value]} filter is active`)
+            return
+          }
+        }
+        
+        // Rebuild local state from store state
+        const newLocalCounties = []
+        for (const fips of sortedStoreFIPS) {
+          const storeCounty = store.state.selectedCounties.find(c => c.selected?.fips === fips)
+          if (storeCounty) {
+            newLocalCounties.push({
+              ...storeCounty,
+              selectedFips: storeCounty.selected ? storeCounty.selected.fips : ''
+            })
+          }
+        }
+        
+        // Add empty field if needed
+        if (newLocalCounties.length === 0 || newLocalCounties[newLocalCounties.length - 1].selected) {
+          newLocalCounties.push({
+            input: '',
+            selected: null,
+            selectedFips: '',
+            showSuggestions: false,
+            filteredSuggestions: []
+          })
+        }
+        
+        selectedCounties.value = newLocalCounties
+      }
     }, { deep: true })
 
     const countySuggestions = computed(() => {
@@ -559,13 +587,13 @@ export default {
     }
 
     function selectSuggestion(suggestion, index) {
-      // Block selection if it conflicts with chosen state
       const suggestionState = suggestion.fips.substring(0, 2)
       if (selectedState.value && suggestionState !== selectedState.value) {
-        return // ignore mismatching county
+        return
       }
 
-      selectedCounties.value[index] = {
+      const newCounties = [...selectedCounties.value]; // Create a new array
+      newCounties[index] = {
         input: suggestion.name,
         selected: {
           fips: suggestion.fips,
@@ -574,8 +602,9 @@ export default {
         selectedFips: suggestion.fips,
         showSuggestions: false,
         filteredSuggestions: []
-      }
-      updateSelectedFIPS()
+      };
+      store.commit('setSelectedCounties', newCounties);
+      updateSelectedFIPS();
     }
 
     const isExporting = ref(false)
@@ -670,49 +699,63 @@ export default {
     }
 
     function selectCounty(index) {
-      const county = selectedCounties.value[index]
-      if (county.filteredSuggestions.length) {
-        selectSuggestion(county.filteredSuggestions[0], index)
+      const countyInput = selectedCounties.value[index]; // Get the specific county input object
+      if (countyInput.filteredSuggestions.length) {
+        selectSuggestion(countyInput.filteredSuggestions[0], index); // Pass the correct county input
       }
     }
 
-    function addCounty() {
-      selectedCounties.value.push({
+    function addCountyField() {
+      const newCounties = [...selectedCounties.value];
+      newCounties.push({
         input: '',
-        showSuggestions: false,
         selected: null,
         selectedFips: '',
+        showSuggestions: false,
         filteredSuggestions: []
-      })
+      });
+      store.commit('setSelectedCounties', newCounties);
+      if (selectedState.value) {
+        fetchAvailableCountiesForState();
+      }
     }
 
     function removeCounty(index) {
-      const county = selectedCounties.value[index]
-      if (county.selected) {
-        store.commit('removeSelectedCountyFIPS', county.selected.fips)
+      let newCounties = [...selectedCounties.value];
+      const removedCounty = newCounties[index];
+
+      newCounties.splice(index, 1);
+
+      if (newCounties.length === 0) {
+        newCounties.push({
+          input: '',
+          selected: null,
+          selectedFips: '',
+          showSuggestions: false,
+          filteredSuggestions: []
+        });
+      }
+      store.commit('setSelectedCounties', newCounties);
+      // If a selected county was removed, update FIPS directly
+      if (removedCounty.selected) {
+        const fipsToUpdate = newCounties.filter(c => c.selected).map(c => c.selected.fips);
+        store.commit('setSelectedCountyFIPS', fipsToUpdate);
       } else {
-        selectedCounties.value.splice(index, 1)
-        if (selectedCounties.value.length === 0) {
-          selectedCounties.value.push({
-            input: '',
-            selected: null,
-            selectedFips: '',
-            showSuggestions: false,
-            filteredSuggestions: []
-          })
-        }
+        updateSelectedFIPS(); // Recalculate FIPS if an empty field was removed
       }
     }
 
     function clearCounty(index) {
-      selectedCounties.value[index] = {
+      const newCounties = [...selectedCounties.value];
+      newCounties[index] = {
         input: '',
         showSuggestions: false,
         selected: null,
         selectedFips: '',
         filteredSuggestions: []
-      }
-      updateSelectedFIPS()
+      };
+      store.commit('setSelectedCounties', newCounties);
+      updateSelectedFIPS();
     }
 
     function updateSelectedFIPS() {
@@ -720,6 +763,7 @@ export default {
         .filter(c => c.selected)
         .map(c => c.selected.fips)
       store.commit('setSelectedCountyFIPS', selectedFIPS)
+      // No need to commit selectedCounties here, computed property handles it
     }
 
     const hasSelectedCounties = computed(() => {
@@ -835,26 +879,34 @@ export default {
 
     // New function to handle dropdown selection
     function selectCountyFromDropdown(index) {
-      const fips = selectedCounties.value[index].selectedFips
-      if (!fips) {
-        clearCounty(index)
-        return
-      }
+      const fips = selectedCounties.value[index].selectedFips;
+      const newCounties = [...selectedCounties.value];
 
-      const county = availableCountiesForState.value.find(c => c.fips === fips)
-      if (county) {
-        selectedCounties.value[index] = {
-          input: county.name,
-          selected: {
-            fips: county.fips,
-            name: county.name
-          },
-          selectedFips: county.fips,
+      if (!fips) {
+        newCounties[index] = {
+          input: '',
+          selected: null,
+          selectedFips: '',
           showSuggestions: false,
           filteredSuggestions: []
+        };
+      } else {
+        const county = availableCountiesForState.value.find(c => c.fips === fips);
+        if (county) {
+          newCounties[index] = {
+            input: county.name,
+            selected: {
+              fips: county.fips,
+              name: county.name
+            },
+            selectedFips: county.fips,
+            showSuggestions: false,
+            filteredSuggestions: []
+          };
         }
-        updateSelectedFIPS()
       }
+      store.commit('setSelectedCounties', newCounties);
+      updateSelectedFIPS();
     }
 
     return {
@@ -867,7 +919,7 @@ export default {
       updateSuggestions,
       selectSuggestion,
       selectCounty,
-      addCounty,
+      addCountyField,
       removeCounty,
       clearCounty,
       hasSelectedCounties,
@@ -891,7 +943,8 @@ export default {
       selectedState,
       stateOptions,
       availableCountiesForState,
-      selectCountyFromDropdown
+      selectCountyFromDropdown,
+      getStateCode
     }
   }
 }
