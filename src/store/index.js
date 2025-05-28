@@ -223,6 +223,7 @@ export default createStore({
                 state.selectedCounties.push({
                     input: name,
                     selected: { fips, name },
+                    selectedFips: fips,
                     showSuggestions: false,
                     filteredSuggestions: []
                 });
@@ -240,10 +241,14 @@ export default createStore({
                 state.selectedCounties = [{
                     input: '',
                     selected: null,
+                    selectedFips: '',
                     showSuggestions: false,
                     filteredSuggestions: []
                 }];
             }
+        },
+        setSelectedCounties(state, counties) {
+            state.selectedCounties = counties;
         },
         setCurrentPredictionData(state, data) {
             state.currentPredictionData = data

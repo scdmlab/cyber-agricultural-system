@@ -19,7 +19,24 @@
         <label class="block text-sm font-medium text-gray-700">Select Counties:</label>
         <div v-for="(county, index) in selectedCounties" :key="index" class="space-y-0.5">
           <div class="flex items-center space-x-2">
+            <!-- Use dropdown when state is selected, otherwise use text input -->
+            <select
+              v-if="selectedState"
+              v-model="county.selectedFips"
+              @change="selectCountyFromDropdown(index)"
+              class="flex-grow block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50 py-0.5 text-sm"
+            >
+              <option value="">Choose a county...</option>
+              <option 
+                v-for="availableCounty in availableCountiesForState" 
+                :key="availableCounty.fips" 
+                :value="availableCounty.fips"
+              >
+                {{ availableCounty.name }}
+              </option>
+            </select>
             <input
+              v-else
               :id="`county-input-${index}`"
               v-model="county.input"
               @input="updateSuggestions(index)"
@@ -44,7 +61,7 @@
               ×
             </button>
           </div>
-          <ul v-if="county.showSuggestions" class="bg-white border border-gray-300 rounded-md shadow-sm mt-1">
+          <ul v-if="!selectedState && county.showSuggestions" class="bg-white border border-gray-300 rounded-md shadow-sm mt-1">
             <li
               v-for="suggestion in county.filteredSuggestions"
               :key="suggestion.fips"
@@ -298,6 +315,7 @@ export default {
       : [{
           input: '',
           selected: null,
+          selectedFips: '',
           showSuggestions: false,
           filteredSuggestions: []
         }]
@@ -335,18 +353,150 @@ export default {
     const csvData = computed(() => store.state.csvData || [])
     const baseUrl = import.meta.env.BASE_URL
 
+    // Plot-related variables - moved to the top so they're available for all functions
+    const showPlot = ref(false)
+    const showHistogram = ref(false)
+    const plotData = ref([])
+    const plotDisplayMode = ref('both')
+    const plotCropType = ref('corn')
+    const plotOffset = ref('0.1')
+    const plotType = ref('scatter')
+    const histogramBins = ref(10)
+    const histogramYear = ref(2024)
+    const showScatterSection = ref(true)
+    const showHistogramSection = ref(true)
+    const allCountiesData = ref([])
+
+    const selectedUnit = computed({
+      get: () => store.state.currentUnit,
+      set: value => store.commit('setCurrentUnit', value)
+    })
+
+    // Helper function to fetch prediction data - moved up to be available for other functions
+    async function fetchPredictionData(crop, year, day = null) {
+      const csvPath = day 
+        ? `${baseUrl}result_${crop}/bnn/result${year}_${day.toString().padStart(3, '0')}.csv`
+        : `${baseUrl}result_${crop}/bnn/result${year}.csv`
+
+      try {
+        const response = await fetch(csvPath)
+        if (!response.ok) {
+          console.log(`No data found for ${csvPath}`)
+          return null
+        }
+        const csvText = await response.text()
+        return Papa.parse(csvText, { header: true, skipEmptyLines: true }).data
+      } catch (error) {
+        console.error(`Error fetching ${csvPath}:`, error)
+        return null
+      }
+    }
+
     const selectedState = ref('')
+    
+    // Store available states based on actual data
+    const availableStates = ref(new Set())
+    
+    // Fetch available states based on prediction data
+    const fetchAvailableStates = async () => {
+      const statesWithData = new Set()
+      
+      try {
+        // Check for data in the most recent year for the current crop
+        const data = await fetchPredictionData(plotCropType.value, 2024, '284')
+        if (data) {
+          data.forEach(row => {
+            if (row.FIPS) {
+              const fips = row.FIPS.toString().padStart(5, '0')
+              const stateCode = fips.substring(0, 2)
+              statesWithData.add(stateCode)
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching available states:', error)
+      }
+      
+      availableStates.value = statesWithData
+    }
+    
+    // Compute state options based on available states
     const stateOptions = computed(() => {
       return Object.entries(stateCodeMap)
+        .filter(([code, name]) => availableStates.value.has(code))
         .map(([code, name]) => ({ code, name }))
         .sort((a, b) => a.name.localeCompare(b.name))
     })
+
+    // Fetch available states when crop type changes
+    watch(plotCropType, async () => {
+      await fetchAvailableStates()
+      // Clear state selection if current state doesn't have data for the new crop
+      if (selectedState.value && !availableStates.value.has(selectedState.value)) {
+        selectedState.value = ''
+      }
+    }, { immediate: true })
+
+    // Get available counties from the prediction data when a state is selected
+    const availableCountiesForState = ref([])
+    const fetchAvailableCountiesForState = async () => {
+      if (!selectedState.value) {
+        availableCountiesForState.value = []
+        return
+      }
+
+      const uniqueCounties = new Map()
+      
+      // Fetch prediction data to get available counties
+      try {
+        const data = await fetchPredictionData(plotCropType.value, 2024, '284')
+        if (data) {
+          // Import county boundaries to get proper names
+          const { default: countyBoundaries } = await import('@/assets/gz_2010_us_050_00_20m.json')
+          
+          data.forEach(row => {
+            if (row.FIPS) {
+              const fips = row.FIPS.toString().padStart(5, '0')
+              const stateCode = fips.substring(0, 2)
+              
+              if (stateCode === selectedState.value) {
+                // Find the county in the GeoJSON data
+                const countyFeature = countyBoundaries.features.find(feature => {
+                  const featureFips = `${feature.properties.STATE}${feature.properties.COUNTY.padStart(3, '0')}`
+                  return featureFips === fips
+                })
+                
+                if (countyFeature) {
+                  const countyName = countyFeature.properties.NAME
+                  const stateName = stateCodeMap[stateCode] || 'Unknown State'
+                  uniqueCounties.set(fips, {
+                    fips: fips,
+                    name: `${countyName} County, ${stateName}`
+                  })
+                }
+              }
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching available counties:', error)
+      }
+
+      availableCountiesForState.value = Array.from(uniqueCounties.values())
+        .sort((a, b) => a.name.localeCompare(b.name))
+    }
+
+    // Watch for state or crop changes to update available counties
+    watch([selectedState, plotCropType], () => {
+      fetchAvailableCountiesForState()
+    }, { immediate: true })
 
     // Reset counties when state changes
     watch(selectedState, () => {
       selectedCounties.value = [{
         input: '',
         selected: null,
+        selectedFips: '',
         showSuggestions: false,
         filteredSuggestions: []
       }]
@@ -369,7 +519,11 @@ export default {
           return // avoid local update until store emits next tick
         }
       }
-      selectedCounties.value = newCounties
+      // Ensure all counties have the selectedFips property
+      selectedCounties.value = newCounties.map(county => ({
+        ...county,
+        selectedFips: county.selectedFips || (county.selected ? county.selected.fips : '')
+      }))
     }, { deep: true })
 
     const countySuggestions = computed(() => {
@@ -417,29 +571,11 @@ export default {
           fips: suggestion.fips,
           name: suggestion.name
         },
+        selectedFips: suggestion.fips,
         showSuggestions: false,
         filteredSuggestions: []
       }
       updateSelectedFIPS()
-    }
-
-    async function fetchPredictionData(crop, year, day = null) {
-      const csvPath = day 
-        ? `${baseUrl}result_${crop}/bnn/result${year}_${day.toString().padStart(3, '0')}.csv`
-        : `${baseUrl}result_${crop}/bnn/result${year}.csv`
-
-      try {
-        const response = await fetch(csvPath)
-        if (!response.ok) {
-          console.log(`No data found for ${csvPath}`)
-          return null
-        }
-        const csvText = await response.text()
-        return Papa.parse(csvText, { header: true, skipEmptyLines: true }).data
-      } catch (error) {
-        console.error(`Error fetching ${csvPath}:`, error)
-        return null
-      }
     }
 
     const isExporting = ref(false)
@@ -545,6 +681,7 @@ export default {
         input: '',
         showSuggestions: false,
         selected: null,
+        selectedFips: '',
         filteredSuggestions: []
       })
     }
@@ -559,6 +696,7 @@ export default {
           selectedCounties.value.push({
             input: '',
             selected: null,
+            selectedFips: '',
             showSuggestions: false,
             filteredSuggestions: []
           })
@@ -571,6 +709,7 @@ export default {
         input: '',
         showSuggestions: false,
         selected: null,
+        selectedFips: '',
         filteredSuggestions: []
       }
       updateSelectedFIPS()
@@ -585,18 +724,6 @@ export default {
 
     const hasSelectedCounties = computed(() => {
       return selectedCounties.value.some(county => county.selected)
-    })
-
-    const showPlot = ref(false)
-    const showHistogram = ref(false)
-    const plotData = ref([])
-    const plotDisplayMode = ref('both')
-    const plotCropType = ref('corn')
-    const plotOffset = ref('0.1')
-
-    const selectedUnit = computed({
-      get: () => store.state.currentUnit,
-      set: value => store.commit('setCurrentUnit', value)
     })
 
     async function displayPlot() {
@@ -671,13 +798,6 @@ export default {
       }
     })
 
-    const plotType = ref('scatter')
-    const histogramBins = ref(10)
-    const histogramYear = ref(2024)
-    const showScatterSection = ref(true)
-    const showHistogramSection = ref(true)
-    const allCountiesData = ref([])
-
     // Function to fetch data for all counties for the histogram
     async function fetchAllCountiesData() {
       allCountiesData.value = []
@@ -713,6 +833,30 @@ export default {
     // Initial fetch of all counties data
     fetchAllCountiesData()
 
+    // New function to handle dropdown selection
+    function selectCountyFromDropdown(index) {
+      const fips = selectedCounties.value[index].selectedFips
+      if (!fips) {
+        clearCounty(index)
+        return
+      }
+
+      const county = availableCountiesForState.value.find(c => c.fips === fips)
+      if (county) {
+        selectedCounties.value[index] = {
+          input: county.name,
+          selected: {
+            fips: county.fips,
+            name: county.name
+          },
+          selectedFips: county.fips,
+          showSuggestions: false,
+          filteredSuggestions: []
+        }
+        updateSelectedFIPS()
+      }
+    }
+
     return {
       selectedCounties,
       exportCrop,
@@ -745,7 +889,9 @@ export default {
       showHistogramSection,
       allCountiesData,
       selectedState,
-      stateOptions
+      stateOptions,
+      availableCountiesForState,
+      selectCountyFromDropdown
     }
   }
 }
