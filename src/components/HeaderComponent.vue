@@ -75,7 +75,7 @@ export default {
           
           <p>This is a collaborative work between UW-Madison and USDA NASS, and it adds value to NASS's existing state-level crop yield estimation program.</p>
           
-          <p>This project is funded by USDA NIFA Agriculture and Food Research Initiative Project under Grant 1028199.</p>
+          <p>This project is funded by USDA NIFA Agriculture and Food Research Initiative Project (Award # 2022-67021-36468).</p>
         </div>
       `,
       researchGroupContent: `
@@ -96,11 +96,11 @@ export default {
           <div>
             <p class="font-bold text-lg mb-2">Students:</p>
             <div class="ml-4 space-y-1">
-              <p>Yuchi Ma, UW-Madison, ma286@wisc.edu</p>
-              <p>Xiaoyu Wang, UW-Madison, xwang2696@wisc.edu</p>
-              <p>Meiliu Wu, UW-Madison, mwu233@wisc.edu</p>
-              <p>Songxi Yang, UW-Madison, songxi.yang@wisc.edu</p>
-              <p>Haiyue Liu, UW-Madison, hliu746@wisc.edu</p>
+              <p>Yuchi Ma, UW-Madison</p>
+              <p>Xiaoyu Wang, UW-Madison</p>
+              <p>Meiliu Wu, UW-Madison</p>
+              <p>Songxi Yang, UW-Madison</p>
+              <p>Haiyue Liu, UW-Madison</p>
             </div>
           </div>
         </div>
