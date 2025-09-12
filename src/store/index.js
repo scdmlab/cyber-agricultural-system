@@ -29,7 +29,7 @@ export default createStore({
     state: {
       map: null,
         currentCrop: 'corn',
-        currentYear: '2021',
+        currentYear: '2025',
         currentMonth: '0',
         currentProperty: 'pred',
         currentUnit: 'bu/acre',
@@ -41,7 +41,7 @@ export default createStore({
         hoveredCountyId: null,
         historicalData: [],
         averagePredData: [],
-        mapTitle: 'Corn Prediction for US in 2021',
+        mapTitle: 'Corn Prediction for US in 2025',
         mapDescription: '',
         mapFont: 'Arial',
         mapBackgroundColor: '#FFFFFF',
@@ -67,7 +67,7 @@ export default createStore({
       drawnPolygons: [], // Add this line to store drawn polygons
       yearSliderVisible: true,
       cachedPredictions: {}, // Add this line to store cached predictions
-      currentDay: '284', // Default to day 284 (end of season)
+      currentDay: '188', // Default to day 284 (end of season)
       selectedCountyFIPS: [], // Add this line to track selected counties
       selectedCounties: [], // Add this line to store selected counties
       currentPredictionData: null, // Add this line to store current prediction data
@@ -80,7 +80,7 @@ export default createStore({
         setCrop(state, crop) {
             state.currentCrop = crop
             if (crop === 'soybean') {
-                state.currentYear = '2024'
+                state.currentYear = '2025'
                 if (state.currentProperty === 'error') {
                     state.currentProperty = 'pred'
                 }
@@ -545,7 +545,7 @@ export default createStore({
     async initializeMapState({ dispatch, commit, state }) {
       await dispatch('initializeData')
       commit('setProperty', 'pred')
-      commit('setYear', state.currentCrop === 'soybean' ? 2024 : state.currentYear)
+      commit('setYear', state.currentCrop === 'soybean' ? 2025 : state.currentYear)
     },
     async updateAvailableDays({ commit, state }) {
       const days = await getAvailableFiles(state.currentCrop, state.currentYear)

@@ -211,7 +211,7 @@ export default {
 
     const years = computed(() => {
       const startYear = 2016
-      const endYear = 2024
+      const endYear = 2025
       return Array.from(
         { length: endYear - startYear + 1 }, 
         (_, i) => (startYear + i).toString()
@@ -227,7 +227,7 @@ export default {
 
     const sliderMax = computed(() => {
       if (animationType.value === 'year') {
-        return 2024
+        return 2025
       }
       return sortedDays.value.length - 1 // Last month index
     })
@@ -303,7 +303,7 @@ export default {
         if (animationType.value === 'year') {
           // Always animate through years with end-of-season predictions
           let nextYear = parseInt(currentYear.value) + 1
-          if (nextYear > 2024) {
+          if (nextYear > 2025) {
             nextYear = 2016
           }
           store.commit('setYear', nextYear.toString())
@@ -322,7 +322,7 @@ export default {
             if (nextIndex === 0) {
               // If we've gone through all months, move to next year
               let nextYear = parseInt(currentYear.value) + 1
-              if (nextYear > 2024) {
+              if (nextYear > 2025) {
                 nextYear = 2016
               }
               store.commit('setYear', nextYear.toString())
