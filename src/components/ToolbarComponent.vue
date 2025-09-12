@@ -8,9 +8,9 @@
           <button @click="toggleSidebar('data')" aria-label="Data" class="toolbar-button">
             <div class="flex flex-col items-center">
               <Icon icon="mdi:calendar-clock" class="text-gray-600" width="24" height="24" />
-              <span class="button-label">Time</span>
+              <span class="button-label">Date</span>
             </div>
-            <span class="tooltip">Time Selection</span>
+            <span class="tooltip">Date Selection</span>
           </button>
           <button @click="toggleSidebar('analysis')" aria-label="Analysis" class="toolbar-button">
             <div class="flex flex-col items-center">

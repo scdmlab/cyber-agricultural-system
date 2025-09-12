@@ -31,6 +31,11 @@ coverage
 *.tsbuildinfo
 .cursorrules
 .cursorignore
+.claude
+CLAUDE.md
+AGENTS.md
+.AGENTS.md
+.CLAUDE.md
 
 .dist
 dist/
