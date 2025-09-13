@@ -93,16 +93,6 @@ export default {
             </div>
           </div>
 
-          <div>
-            <p class="font-bold text-lg mb-2">Students:</p>
-            <div class="ml-4 space-y-1">
-              <p>Yuchi Ma, UW-Madison</p>
-              <p>Xiaoyu Wang, UW-Madison</p>
-              <p>Meiliu Wu, UW-Madison</p>
-              <p>Songxi Yang, UW-Madison</p>
-              <p>Haiyue Liu, UW-Madison</p>
-            </div>
-          </div>
         </div>
       `
     }

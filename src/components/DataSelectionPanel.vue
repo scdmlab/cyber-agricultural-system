@@ -157,7 +157,7 @@ export default {
 
     const years = computed(() => {
       const startYear = 2016
-      const endYear = 2024
+      const endYear = 2025
       return Array.from({ length: endYear - startYear + 1 }, (_, i) => (startYear + i).toString())
     })
 
