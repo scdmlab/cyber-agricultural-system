@@ -84,14 +84,6 @@ export default {
             <p class="font-bold text-lg mb-2">PI:</p>
             <p class="ml-4">Zhou Zhang, UW-Madison, zzhang347@wisc.edu</p>
           </div>
-          
-          <div>
-            <p class="font-bold text-lg mb-2">Co-PIs:</p>
-            <div class="ml-4 space-y-1">
-              <p>Qunying Huang, UW-Madison, qhuang46@wisc.edu</p>
-              <p>Zhengwei Yang, USDA NASS, zhengwei.yang@usda.gov</p>
-            </div>
-          </div>
 
         </div>
       `
