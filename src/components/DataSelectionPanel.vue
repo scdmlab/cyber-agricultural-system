@@ -148,17 +148,39 @@ export default {
       "284": "October 11 (End of Season)"
     }
 
+    const getCurrentDayOfYear = () => {
+      const now = new Date()
+      const start = new Date(now.getFullYear(), 0, 0)
+      const diff = now - start
+      const oneDay = 1000 * 60 * 60 * 24
+      return Math.floor(diff / oneDay)
+    }
+
     const sortedDays = computed(() => {
+      const currentYear = new Date().getFullYear()
+      const currentDayOfYear = getCurrentDayOfYear()
+
       return Object.entries(dayMapping)
-        .filter(([day]) => store.state.availableDays.includes(day))
+        .filter(([day]) => {
+          // Filter by available days
+          if (!store.state.availableDays.includes(day)) return false
+
+          // If selected year is current year, only show days up to today
+          if (localSelections.value.year === currentYear.toString()) {
+            return parseInt(day) <= currentDayOfYear
+          }
+
+          // For past years, show all available days
+          return parseInt(localSelections.value.year) < currentYear
+        })
         .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
         .map(([day, date]) => ({ day, date }))
     })
 
     const years = computed(() => {
       const startYear = 2016
-      const endYear = 2025
-      return Array.from({ length: endYear - startYear + 1 }, (_, i) => (startYear + i).toString())
+      const currentYear = new Date().getFullYear()
+      return Array.from({ length: currentYear - startYear + 1 }, (_, i) => (startYear + i).toString())
     })
 
     watch(

@@ -203,17 +203,37 @@ export default {
       "284": "October 11 (End of Season)"
     }
 
+    const getCurrentDayOfYear = () => {
+      const now = new Date()
+      const start = new Date(now.getFullYear(), 0, 0)
+      const diff = now - start
+      const oneDay = 1000 * 60 * 60 * 24
+      return Math.floor(diff / oneDay)
+    }
+
     const sortedDays = computed(() => {
+      const currentYearValue = new Date().getFullYear()
+      const currentDayOfYear = getCurrentDayOfYear()
+
       return Object.entries(dayMapping)
+        .filter(([day]) => {
+          // If selected year is current year, only show days up to today
+          if (parseInt(currentYear.value) === currentYearValue) {
+            return parseInt(day) <= currentDayOfYear
+          }
+
+          // For past years, show all available days
+          return parseInt(currentYear.value) < currentYearValue
+        })
         .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
         .map(([day, date]) => ({ day, date }))
     })
 
     const years = computed(() => {
       const startYear = 2016
-      const endYear = 2025
+      const currentYearValue = new Date().getFullYear()
       return Array.from(
-        { length: endYear - startYear + 1 }, 
+        { length: currentYearValue - startYear + 1 },
         (_, i) => (startYear + i).toString()
       )
     })
@@ -227,7 +247,7 @@ export default {
 
     const sliderMax = computed(() => {
       if (animationType.value === 'year') {
-        return 2025
+        return new Date().getFullYear()
       }
       return sortedDays.value.length - 1 // Last month index
     })
@@ -300,18 +320,20 @@ export default {
 
     const playAnimation = () => {
       intervalId.value = setInterval(async () => {
+        const currentYearValue = new Date().getFullYear()
+
         if (animationType.value === 'year') {
           // Always animate through years with end-of-season predictions
           let nextYear = parseInt(currentYear.value) + 1
-          if (nextYear > 2025) {
+          if (nextYear > currentYearValue) {
             nextYear = 2016
           }
           store.commit('setYear', nextYear.toString())
           store.commit('setPredictionDay', sortedDays.value[0].day)
         } else {
           // Animate through months for the current year
-          if (selectedDay.value === '284') {
-            // Start from the first month if currently at end-of-season
+          if (selectedDay.value === '284' || selectedDay.value === sortedDays.value[sortedDays.value.length - 1]?.day) {
+            // Start from the first month if currently at end-of-season or last available day
             store.commit('setPredictionDay', sortedDays.value[0].day)
           } else {
             // Move to next month
@@ -322,7 +344,7 @@ export default {
             if (nextIndex === 0) {
               // If we've gone through all months, move to next year
               let nextYear = parseInt(currentYear.value) + 1
-              if (nextYear > 2025) {
+              if (nextYear > currentYearValue) {
                 nextYear = 2016
               }
               store.commit('setYear', nextYear.toString())

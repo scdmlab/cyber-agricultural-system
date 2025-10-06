@@ -12,10 +12,6 @@
           <Icon icon="mdi:file-document" :width="20" :height="20" :inline="true" class="mr-1" />
           Project Intro
         </a>
-        <a href="#" @click.prevent="showResearchGroup" class="header-link text-sm sm:text-base">
-          <Icon icon="mdi:account-group" :width="20" :height="20" :inline="true" class="mr-1" />
-          Research Group
-        </a>
         <a href="https://github.com/scdmlab/cyber-agricultural-system/" target="_blank" class="header-link text-sm sm:text-base">
           <Icon icon="mdi:github" :width="20" :height="20" :inline="true" class="mr-1" />
           Github
@@ -27,29 +23,14 @@
       v-if="showReferencesPopup" 
       @close="showReferencesPopup = false" 
       title="Project Intro" 
-      :initial-width="600" 
-      :initial-height="400"
-      :min-width="400"
-      :max-width="800"
-      :min-height="300"
-      :max-height="600"
+      :width="popupWidth"
+      :height="400"
+      :initial-x="popupX"
+      :initial-y="popupY"
     >
       <div class="prose prose-sm md:prose max-w-none text-gray-800 p-4" v-html="referencesContent"></div>
     </PopupWindow>
 
-    <PopupWindow 
-      v-if="showResearchGroupPopup" 
-      @close="showResearchGroupPopup = false" 
-      title="Research Group" 
-      :initial-width="800" 
-      :initial-height="600"
-      :min-width="400"
-      :max-width="1200"
-      :min-height="300"
-      :max-height="600"
-    >
-      <div class="prose prose-sm md:prose max-w-none text-gray-800 p-4" v-html="researchGroupContent"></div>
-    </PopupWindow>
   </header>
 </template>
 
@@ -66,7 +47,9 @@ export default {
   data() {
     return {
       showReferencesPopup: false,
-      showResearchGroupPopup: false,
+      popupWidth: Math.min(window.innerWidth * 0.8, 1200),
+      popupX: Math.max(0, (window.innerWidth - Math.min(window.innerWidth * 0.8, 1200)) / 2),
+      popupY: Math.max(0, (window.innerHeight - 400) / 2),
       referencesContent: `
         <div class="space-y-6">
           <p>This web tool provides bi-weekly county-level crop yield prediction and uncertainty for two main commodity crops (corn and soybean), using satellite images and Bayesian neural network.</p>
@@ -76,25 +59,31 @@ export default {
           <p>This is a collaborative work between UW-Madison and USDA NASS, and it adds value to NASS's existing state-level crop yield estimation program.</p>
           
           <p>This project is funded by USDA NIFA Agriculture and Food Research Initiative Project (Award # 2022-67021-36468).</p>
-        </div>
-      `,
-      researchGroupContent: `
-        <div class="space-y-6">
-          <div>
-            <p class="font-bold text-lg mb-2">PI:</p>
+          
+          <div class="mt-6 pt-4 border-t border-gray-200">
+            <p class="font-bold text-lg mb-2">Principal Investigator:</p>
             <p class="ml-4">Zhou Zhang, UW-Madison, zzhang347@wisc.edu</p>
           </div>
-
         </div>
       `
     }
   },
+  mounted() {
+    this.updatePopupPosition()
+    window.addEventListener('resize', this.updatePopupPosition)
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.updatePopupPosition)
+  },
   methods: {
     showReferences() {
+      this.updatePopupPosition()
       this.showReferencesPopup = true
     },
-    showResearchGroup() {
-      this.showResearchGroupPopup = true
+    updatePopupPosition() {
+      this.popupWidth = Math.min(window.innerWidth * 0.8, 1200)
+      this.popupX = Math.max(0, (window.innerWidth - this.popupWidth) / 2)
+      this.popupY = Math.max(0, (window.innerHeight - 400) / 2)
     }
   }
 }
