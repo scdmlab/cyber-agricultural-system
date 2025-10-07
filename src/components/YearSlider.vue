@@ -211,29 +211,50 @@ export default {
       return Math.floor(diff / oneDay)
     }
 
-    const sortedDays = computed(() => {
+    const isDateInFuture = (year, day) => {
       const currentYearValue = new Date().getFullYear()
       const currentDayOfYear = getCurrentDayOfYear()
 
-      return Object.entries(dayMapping)
-        .filter(([day]) => {
-          // If selected year is current year, only show days up to today
-          if (parseInt(currentYear.value) === currentYearValue) {
-            return parseInt(day) <= currentDayOfYear
-          }
+      const yearNum = parseInt(year)
+      const dayNum = parseInt(day)
 
-          // For past years, show all available days
-          return parseInt(currentYear.value) < currentYearValue
-        })
+      if (yearNum > currentYearValue) return true
+      if (yearNum === currentYearValue && dayNum > currentDayOfYear) return true
+      return false
+    }
+
+    const getMostRecentValidDate = () => {
+      const currentYearValue = new Date().getFullYear()
+      const currentDayOfYear = getCurrentDayOfYear()
+
+      // All possible days in descending order
+      const possibleDays = ["284", "268", "252", "236", "220", "204", "188", "172", "156", "140"]
+
+      // For current year, find most recent day that's not in the future
+      for (const day of possibleDays) {
+        if (parseInt(day) <= currentDayOfYear) {
+          return { year: currentYearValue.toString(), day }
+        }
+      }
+
+      // If no valid day found for current year, use last year's last day
+      return { year: (currentYearValue - 1).toString(), day: possibleDays[0] }
+    }
+
+    const sortedDays = computed(() => {
+      // Filter by available days from the store (based on actual file existence)
+      const availableDays = store.state.availableDays || []
+      return Object.entries(dayMapping)
+        .filter(([day]) => availableDays.includes(day))
         .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
         .map(([day, date]) => ({ day, date }))
     })
 
     const years = computed(() => {
       const startYear = 2016
-      const currentYearValue = new Date().getFullYear()
+      const endYear = 2025
       return Array.from(
-        { length: currentYearValue - startYear + 1 },
+        { length: endYear - startYear + 1 },
         (_, i) => (startYear + i).toString()
       )
     })
@@ -247,7 +268,7 @@ export default {
 
     const sliderMax = computed(() => {
       if (animationType.value === 'year') {
-        return new Date().getFullYear()
+        return 2025
       }
       return sortedDays.value.length - 1 // Last month index
     })
@@ -255,6 +276,20 @@ export default {
     const isVisible = computed(() => store.state.yearSliderVisible)
 
     const animationType = ref('year')
+
+    // Watch for future date selections
+    watch(
+      () => ({ year: currentYear.value, day: selectedDay.value }),
+      (newVal) => {
+        // Check if date is in future
+        if (isDateInFuture(newVal.year, newVal.day)) {
+          alert('Data is not available. Please check again later.')
+          const validDate = getMostRecentValidDate()
+          store.commit('setYear', validDate.year)
+          store.commit('setPredictionDay', validDate.day)
+        }
+      }
+    )
 
     const sliderValue = computed(() => {
       if (animationType.value === 'year') {
@@ -265,6 +300,15 @@ export default {
         )
       }
     })
+
+    // Update available days when crop or year changes
+    watch(
+      [selectedCrop, currentYear],
+      async () => {
+        await store.dispatch('updateAvailableDays')
+      },
+      { immediate: true }
+    )
 
     // Update predictions whenever any selection changes
     watch(
@@ -320,36 +364,65 @@ export default {
 
     const playAnimation = () => {
       intervalId.value = setInterval(async () => {
-        const currentYearValue = new Date().getFullYear()
-
         if (animationType.value === 'year') {
           // Always animate through years with end-of-season predictions
           let nextYear = parseInt(currentYear.value) + 1
-          if (nextYear > currentYearValue) {
+          if (nextYear > 2025) {
             nextYear = 2016
           }
+
+          // Check if next year/day combo is valid
+          const testDay = sortedDays.value[0]?.day || '140'
+          if (isDateInFuture(nextYear.toString(), testDay)) {
+            // Stop at most recent valid date
+            const validDate = getMostRecentValidDate()
+            store.commit('setYear', validDate.year)
+            store.commit('setPredictionDay', validDate.day)
+            stopPlaying()
+            return
+          }
+
           store.commit('setYear', nextYear.toString())
           store.commit('setPredictionDay', sortedDays.value[0].day)
         } else {
           // Animate through months for the current year
-          if (selectedDay.value === '284' || selectedDay.value === sortedDays.value[sortedDays.value.length - 1]?.day) {
-            // Start from the first month if currently at end-of-season or last available day
+          const currentDayIndex = sortedDays.value.findIndex(
+            d => d.day === selectedDay.value
+          )
+          const nextIndex = currentDayIndex + 1
+
+          if (nextIndex >= sortedDays.value.length) {
+            // Move to next year and first day
+            let nextYear = parseInt(currentYear.value) + 1
+            if (nextYear > 2025) {
+              nextYear = 2016
+            }
+
+            const testDay = sortedDays.value[0]?.day || '140'
+            if (isDateInFuture(nextYear.toString(), testDay)) {
+              // Stop at most recent valid date
+              const validDate = getMostRecentValidDate()
+              store.commit('setYear', validDate.year)
+              store.commit('setPredictionDay', validDate.day)
+              stopPlaying()
+              return
+            }
+
+            store.commit('setYear', nextYear.toString())
             store.commit('setPredictionDay', sortedDays.value[0].day)
           } else {
-            // Move to next month
-            const currentDayIndex = sortedDays.value.findIndex(
-              d => d.day === selectedDay.value
-            )
-            const nextIndex = (currentDayIndex + 1) % sortedDays.value.length
-            if (nextIndex === 0) {
-              // If we've gone through all months, move to next year
-              let nextYear = parseInt(currentYear.value) + 1
-              if (nextYear > currentYearValue) {
-                nextYear = 2016
-              }
-              store.commit('setYear', nextYear.toString())
+            // Check if next day is in future
+            const nextDay = sortedDays.value[nextIndex].day
+            if (isDateInFuture(currentYear.value, nextDay)) {
+              // Stop at most recent valid date
+              const validDate = getMostRecentValidDate()
+              store.commit('setYear', validDate.year)
+              store.commit('setPredictionDay', validDate.day)
+              stopPlaying()
+              return
             }
-            store.commit('setPredictionDay', sortedDays.value[nextIndex].day)
+
+            store.commit('setPredictionDay', nextDay)
           }
         }
         await updatePredictions()

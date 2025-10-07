@@ -156,32 +156,62 @@ export default {
       return Math.floor(diff / oneDay)
     }
 
-    const sortedDays = computed(() => {
+    const isDateInFuture = (year, day) => {
       const currentYear = new Date().getFullYear()
       const currentDayOfYear = getCurrentDayOfYear()
 
+      const yearNum = parseInt(year)
+      const dayNum = parseInt(day)
+
+      if (yearNum > currentYear) return true
+      if (yearNum === currentYear && dayNum > currentDayOfYear) return true
+      return false
+    }
+
+    const getMostRecentValidDate = () => {
+      const currentYear = new Date().getFullYear()
+      const currentDayOfYear = getCurrentDayOfYear()
+
+      // All possible days in descending order
+      const possibleDays = ["284", "268", "252", "236", "220", "204", "188", "172", "156", "140"]
+
+      // For current year, find most recent day that's not in the future
+      for (const day of possibleDays) {
+        if (parseInt(day) <= currentDayOfYear) {
+          return { year: currentYear.toString(), day }
+        }
+      }
+
+      // If no valid day found for current year, use last year's last day
+      return { year: (currentYear - 1).toString(), day: possibleDays[0] }
+    }
+
+    const sortedDays = computed(() => {
       return Object.entries(dayMapping)
-        .filter(([day]) => {
-          // Filter by available days
-          if (!store.state.availableDays.includes(day)) return false
-
-          // If selected year is current year, only show days up to today
-          if (localSelections.value.year === currentYear.toString()) {
-            return parseInt(day) <= currentDayOfYear
-          }
-
-          // For past years, show all available days
-          return parseInt(localSelections.value.year) < currentYear
-        })
+        .filter(([day]) => store.state.availableDays.includes(day))
         .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
         .map(([day, date]) => ({ day, date }))
     })
 
     const years = computed(() => {
       const startYear = 2016
-      const currentYear = new Date().getFullYear()
-      return Array.from({ length: currentYear - startYear + 1 }, (_, i) => (startYear + i).toString())
+      const endYear = 2025
+      return Array.from({ length: endYear - startYear + 1 }, (_, i) => (startYear + i).toString())
     })
+
+    // Watch for future date selections
+    watch(
+      () => ({ year: localSelections.value.year, day: localSelections.value.day }),
+      (newVal) => {
+        // Check if date is in future
+        if (isDateInFuture(newVal.year, newVal.day)) {
+          alert('Data is not available. Please check again later.')
+          const validDate = getMostRecentValidDate()
+          localSelections.value.year = validDate.year
+          localSelections.value.day = validDate.day
+        }
+      }
+    )
 
     watch(
       [localCrop, localYear],
