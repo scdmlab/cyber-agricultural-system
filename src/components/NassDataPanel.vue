@@ -1,11 +1,11 @@
 <template>
-  <div class="bg-white p-6 rounded-lg shadow-md h-full flex flex-col overflow-hidden">
+  <div class="bg-white p-6 rounded-lg shadow-md h-full flex flex-col">
     <h2 class="text-2xl font-bold text-green-600 mb-2">Download NASS Data</h2>
     <p class="text-sm text-gray-600 mb-4">
       Data from USDA NASS QuickStats (SURVEY program, CROPS sector, FIELD CROPS group)
     </p>
-    
-    <div class="flex flex-col space-y-4">
+
+    <div class="flex flex-col space-y-4 flex-grow overflow-hidden">
       <!-- Data Type Selection -->
       <div class="space-y-2">
         <label class="block text-sm font-medium text-gray-700">Statistic Category:</label>
@@ -38,9 +38,16 @@
           type="number"
           v-model="selectedYear"
           :min="2000"
-          :max="2023"
+          :max="maxYear"
           class="w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
         />
+        <p class="text-xs text-gray-500">
+          NASS data typically available 6-12 months after year end. Recent years may have limited data.
+        </p>
+        <!-- Warning for very recent years -->
+        <div v-if="selectedYear >= currentYear" class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-2 rounded text-xs">
+          <strong>Note:</strong> Data for {{ selectedYear }} may not be available yet. Consider selecting {{ currentYear - 1 }} or earlier.
+        </div>
       </div>
 
       <!-- Preview Data Button -->
@@ -75,16 +82,16 @@
       </button>
 
       <!-- Error Message -->
-      <div v-if="error" class="text-red-600 text-sm">
-        {{ error }}
+      <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative text-sm">
+        <span class="block sm:inline">{{ error }}</span>
       </div>
 
       <!-- Data Preview in scrollable container -->
-      <div v-if="previewData.length > 0" class="flex-grow overflow-auto">
+      <div v-if="previewData.length > 0" class="flex-grow flex flex-col min-h-0">
         <h3 class="text-lg font-semibold text-gray-700 mb-2">Preview:</h3>
-        <div class="overflow-x-auto">
+        <div class="overflow-auto flex-grow border border-gray-200 rounded">
           <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+            <thead class="bg-gray-50 sticky top-0">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
@@ -111,24 +118,24 @@
 <script>
 import { ref } from 'vue'
 import Papa from 'papaparse'
+import { NASS_PROXY_URL } from '@/config/api'
 
 export default {
   name: 'NassDataPanel',
   setup() {
     const statisticCategory = ref('YIELD')
     const selectedCrop = ref('CORN')
-    const selectedYear = ref(Math.min(new Date().getFullYear(), 2023))
+    const currentYear = new Date().getFullYear()
+    // Allow selection up to current year + 1 (in case data becomes available early)
+    const maxYear = currentYear + 1
+    const selectedYear = ref(currentYear - 1) // Default to previous year (most likely to have data)
     const isLoading = ref(false)
     const previewData = ref([])
     const error = ref(null)
     const isDownloading = ref(false)
-    
-    const currentYear = Math.min(new Date().getFullYear(), 2023)
 
     const buildApiUrl = () => {
-      const baseUrl = 'https://nass-crop-proxy.replit.app/api/nass'
       const params = new URLSearchParams({
-        // key: API_KEY,
         commodity_desc: selectedCrop.value,
         year: selectedYear.value,
         agg_level_desc: 'COUNTY',
@@ -138,12 +145,11 @@ export default {
         sector_desc: 'CROPS',
         group_desc: 'FIELD CROPS',
         // Set the specific data item based on crop selection
-        short_desc: selectedCrop.value === 'CORN' 
+        short_desc: selectedCrop.value === 'CORN'
           ? 'CORN, GRAIN - YIELD, MEASURED IN BU / ACRE'
           : 'SOYBEANS - YIELD, MEASURED IN BU / ACRE'
       })
-    //   console.log(`${baseUrl}?${params.toString()}`)
-      return `${baseUrl}?${params.toString()}`
+      return `${NASS_PROXY_URL}?${params.toString()}`
     }
 
     const fetchData = async () => {
@@ -163,9 +169,15 @@ export default {
         }
 
         previewData.value = data.data || []
-        
+
         if (previewData.value.length === 0) {
-          error.value = 'No data found for the selected criteria'
+          // Provide more helpful error message based on selected year
+          const isRecentYear = selectedYear.value >= currentYear - 1
+          if (isRecentYear) {
+            error.value = `No data found for ${selectedYear.value}. NASS data for recent years may not be available yet. Data is typically released 6-12 months after year end. Try selecting an earlier year.`
+          } else {
+            error.value = `No data found for the selected criteria (${selectedCrop.value}, ${selectedYear.value}). Please try different parameters.`
+          }
         }
 
       } catch (err) {
@@ -243,6 +255,7 @@ export default {
       selectedCrop,
       selectedYear,
       currentYear,
+      maxYear,
       isLoading,
       previewData,
       error,

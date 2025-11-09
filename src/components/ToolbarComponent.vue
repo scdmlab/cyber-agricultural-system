@@ -89,12 +89,12 @@
             <span class="tooltip">Zoom Out</span>
           </button>
           <div class="h-6 w-px bg-gray-600 mx-2"></div>
-          <button @click="toggleYearSlider" aria-label="Toggle Year Slider" class="toolbar-button">
+          <button @click="toggleYearSlider" aria-label="Time Slider" class="toolbar-button">
             <div class="flex flex-col items-center">
               <Icon icon="mdi:timeline-clock" class="text-gray-600" width="24" height="24" />
-              <span class="button-label">Year</span>
+              <span class="button-label">Timeline</span>
             </div>
-            <span class="tooltip">Toggle Year Slider</span>
+            <span class="tooltip">Time Slider</span>
           </button>
         </div>
       </div>

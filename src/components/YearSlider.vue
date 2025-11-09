@@ -97,7 +97,7 @@
 
         <!-- Animation type radio buttons -->
         <div :class="[
-          'flex items-center justify-between w-full px-1',
+          'flex flex-col gap-1 px-1',
           isCompact ? 'mt-2' : 'ml-2'
         ]">
           <label class="inline-flex items-center">
@@ -135,10 +135,9 @@
 
       <!-- Status display -->
       <div class="text-sm md:text-base font-bold mt-2 mb-1" :class="{ 'text-center': isCompact }">
-        Year: {{ currentYear }} | 
+        Year: {{ currentYear }} |
         {{ dayMapping[selectedDay] }} |
-        Property: {{ propertyLabels[selectedProperty] }} |
-        Unit: {{ selectedUnit }}
+        Property: {{ propertyLabels[selectedProperty] }}<template v-if="selectedProperty !== 'uncertainty'"> | Unit: {{ selectedUnit }}</template>
       </div>
     </div>
   </div>

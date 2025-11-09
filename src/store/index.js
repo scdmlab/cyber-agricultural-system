@@ -310,10 +310,10 @@ export default createStore({
 
         async fetchPredictionData({ commit, state }) {
           const { currentCrop, currentYear, currentDay } = state
-          
+
           // Create a cache key
           const cacheKey = `${currentCrop}_${currentYear}_${currentDay}`
-          
+
           // Check cache first
           if (state.cachedPredictions[cacheKey]) {
             commit('setCurrentPredictionData', state.cachedPredictions[cacheKey])
@@ -330,7 +330,7 @@ export default createStore({
               throw new Error(`Failed to fetch ${csvPath}: ${response.status}`)
             }
             const csvText = await response.text()
-            
+
             // Parse CSV data
             const parsedData = Papa.parse(csvText, {
               header: true,
@@ -365,14 +365,14 @@ export default createStore({
                 const predictions = [];
                 const startYear = 2016;
                 const endYear = 2023;
-                
+
                 for (let year = startYear; year <= endYear; year++) {
                     const response = await fetch(`/api/predictions/${state.currentCrop}/${year}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     const data = await response.json();
-                    
+
                     const yearPredictions = data
                         .filter(row => row.FIPS)
                         .map(row => ({
@@ -385,7 +385,7 @@ export default createStore({
                         }));
                     predictions.push(...yearPredictions);
                 }
-                
+
                 commit('setAllPredictions', predictions);
             } catch (error) {
                 console.error('Error fetching predictions:', error);
