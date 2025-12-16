@@ -1,4 +1,4 @@
-,FIPS,predicted_yield(t/ha),end_of_season_NASS_yield(t/ha),y_test_pred,end_of_season_NASS_yield(bu/acre),y_test_pred_uncertainty,prediction_error(bu/acre)
+,FIPS,predicted_yield(t/ha),end_of_season_NASS_yield(t/ha),y_test_pred,y_test,y_test_pred_uncertainty,prediction_error(bu/acre)
 0,17001,4.560083,-1.0,67.757545,-14.858841,0.26162815,82.61639
 1,17003,3.2270675,-1.0,47.95048,-14.858841,0.20796669,62.809322
 2,17005,3.6882205,-1.0,54.80268,-14.858841,0.18158625,69.66152

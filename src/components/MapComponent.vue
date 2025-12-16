@@ -204,7 +204,7 @@ export default {
         } else {
           val = row[store.state.currentProperty];
         }
-        if (!isNaN(val)) {
+        if (val !== null && !isNaN(val)) {
           dataById[row.FIPS] = parseFloat(val) * conversionFactor;
         }
       });

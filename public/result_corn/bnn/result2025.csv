@@ -1,4 +1,4 @@
-,FIPS,y_test_pred,y_test,y_test_pred_model_uncertainty,y_test_pred_cv,pred_error
+,FIPS,y_test_pred,y_test,y_test_pred_uncertainty,y_test_pred_cv,pred_error
 0,17007,117.96293,-1.0,13.073402,0.110826366,118.96293
 1,17009,123.991,-1.0,13.748756,0.11088512,124.991
 2,17011,127.41375,-1.0,12.943283,0.101584665,128.41376

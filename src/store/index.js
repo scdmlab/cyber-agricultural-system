@@ -340,13 +340,17 @@ export default createStore({
 
             const predictions = parsedData
               .filter(row => row.FIPS)
-              .map(row => ({
-                FIPS: row.FIPS.toString().padStart(5, '0'),
-                pred: parseFloat(row.y_test_pred),
-                yield: parseFloat(row.y_test),
-                uncertainty: parseFloat(row.y_test_pred_uncertainty),
-                error: parseFloat(row.y_test_pred) - parseFloat(row.y_test)
-              }))
+              .map(row => {
+                const yTest = parseFloat(row.y_test)
+                const yPred = parseFloat(row.y_test_pred)
+                return {
+                  FIPS: row.FIPS.toString().padStart(5, '0'),
+                  pred: yPred,
+                  yield: yTest,
+                  uncertainty: parseFloat(row.y_test_pred_uncertainty),
+                  error: yTest >= 0 ? yPred - yTest : null
+                }
+              })
 
             // Cache and set the current prediction data
             commit('setCachedPrediction', { key: cacheKey, data: predictions })
@@ -375,14 +379,18 @@ export default createStore({
 
                     const yearPredictions = data
                         .filter(row => row.FIPS)
-                        .map(row => ({
-                            FIPS: row.FIPS,
-                            year: year,
-                            pred: parseFloat(row.y_test_pred),
-                            yield: parseFloat(row.y_test),
-                            uncertainty: parseFloat(row.y_test_pred_uncertainty),
-                            error: parseFloat(row.y_test_pred) - parseFloat(row.y_test)
-                        }));
+                        .map(row => {
+                            const yTest = parseFloat(row.y_test)
+                            const yPred = parseFloat(row.y_test_pred)
+                            return {
+                                FIPS: row.FIPS,
+                                year: year,
+                                pred: yPred,
+                                yield: yTest,
+                                uncertainty: parseFloat(row.y_test_pred_uncertainty),
+                                error: yTest >= 0 ? yPred - yTest : null
+                            }
+                        });
                     predictions.push(...yearPredictions);
                 }
 
