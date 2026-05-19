@@ -179,6 +179,22 @@ export default {
       const predictions = await store.dispatch('fetchPredictionData');
       if (!predictions || predictions.length === 0) {
         console.warn('No prediction data available');
+        // 清空地图数据
+        if (map.value && map.value.getSource('counties')) {
+          const emptyFeatures = countiesWithFIPS.value.features.map(feature => ({
+            ...feature,
+            properties: {
+              ...feature.properties,
+              value: undefined,
+              color: 'rgba(0, 0, 0, 0)'
+            }
+          }))
+          map.value.getSource('counties').setData({
+            type: 'FeatureCollection',
+            features: emptyFeatures
+          })
+          map.value.setPaintProperty('counties-layer', 'fill-color', 'rgba(0, 0, 0, 0)')
+        }
         return;
       }
 
@@ -369,11 +385,15 @@ export default {
       window.addEventListener('mouseup', stopResizeSidebar)
 
       // Initial choropleth update after map loads
-      map.value.on('load', () => {
+      // map.value.on('load', () => {
+      map.value.on('load', async () => {
         // ... existing load event code ...
         
         // Trigger initial choropleth update
-        updateChoropleth()
+        // updateChoropleth()
+        // 先探测可用DOY，再渲染
+        await store.dispatch('updateAvailableDays')
+        await updateChoropleth()
 
         // Add a new layer for selected counties
         map.value.addLayer({

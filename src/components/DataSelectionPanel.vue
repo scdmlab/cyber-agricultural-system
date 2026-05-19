@@ -137,7 +137,8 @@ export default {
 
     const years = computed(() => {
       const startYear = 2016
-      const endYear = 2024
+      // const endYear = 2025
+      const endYear = new Date().getFullYear() 
       return Array.from({ length: endYear - startYear + 1 }, (_, i) => (startYear + i).toString())
     })
 
@@ -145,6 +146,7 @@ export default {
       [localCrop, localYear],
       async () => {
         await store.dispatch('updateAvailableDays')
+        localSelections.value.day = store.state.currentDay  // 同步到最新可用DOY
       },
       { immediate: true }
     )
@@ -160,7 +162,8 @@ export default {
 
     async function fetchPredictionData(crop, year, day) {
       const baseUrl = import.meta.env.BASE_URL
-      const csvPath = `${baseUrl}result_${crop}/bnn/result${year}_${day.toString().padStart(3, '0')}.csv`
+      const d = parseInt(day).toString()
+      const csvPath = `${baseUrl}20260306/result_${crop}/bnn_${d}/result_test_${year}_doy${d}.csv`
 
       try {
         const response = await fetch(csvPath)
@@ -195,10 +198,10 @@ export default {
             'Crop type': store.state.currentCrop,
             'Year': store.state.currentYear,
             'Day of Year': store.state.currentDay,
-            ['Predicted Yield' + unitLabel]: (parseFloat(row.y_test_pred) * conversionFactor).toFixed(3),
-            ['NASS Reported Yield' + unitLabel]: (parseFloat(row.y_test) * conversionFactor).toFixed(3),
-            ['Prediction Error' + unitLabel]: ((parseFloat(row.y_test_pred) - parseFloat(row.y_test)) * conversionFactor).toFixed(3),
-            'Model Uncertainty': parseFloat(row.y_test_pred_uncertainty).toFixed(3) // Uncertainty remains as percentage
+            ['Predicted Yield' + unitLabel]: (parseFloat(row['predicted_yield(t/ha)']) * conversionFactor).toFixed(3),
+            ['NASS Reported Yield' + unitLabel]: (parseFloat(row['end_of_season_NASS_yield(t/ha)']) * conversionFactor).toFixed(3),
+            ['Prediction Error' + unitLabel]: ((parseFloat(row['predicted_yield(t/ha)']) - parseFloat(row['end_of_season_NASS_yield(t/ha)'])) * conversionFactor).toFixed(3),
+            'Model Uncertainty': parseFloat(row['model_uncertainty']).toFixed(3)
           }))
 
           const csv = Papa.unparse(formattedData)

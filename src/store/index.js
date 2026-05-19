@@ -6,6 +6,25 @@ import { getBasemapUrl } from '@/utils/basemaps'
 
 const baseUrl = import.meta.env.BASE_URL
 
+// async function getAvailableFiles(crop, year) {
+//   const days = ["140", "156", "172", "188", "204", "220", "236", "252", "268", "284"]
+//   const availableDays = []
+
+//   for (const day of days) {
+//     const csvPath = `${baseUrl}20260306/result_${crop}/bnn_${day}/result_test_${year}_doy${day}.csv`
+//     try {
+//       const response = await fetch(csvPath, { method: 'HEAD' })
+//       if (response.ok) {
+//         availableDays.push(day)
+//       }
+//     } catch {
+//       console.debug(`File not found: ${csvPath}`)
+//     }
+//   }
+//   return availableDays
+// }
+
+// store/index.js - 替换 getAvailableFiles 函数
 async function getAvailableFiles(crop, year) {
   const days = ["140", "156", "172", "188", "204", "220", "236", "252", "268", "284"]
   const availableDays = []
@@ -13,14 +32,26 @@ async function getAvailableFiles(crop, year) {
   for (const day of days) {
     const csvPath = `${baseUrl}20260306/result_${crop}/bnn_${day}/result_test_${year}_doy${day}.csv`
     try {
-      const response = await fetch(csvPath, { method: 'HEAD' })
-      if (response.ok) {
+      const response = await fetch(csvPath)
+      if (!response.ok) {
+        console.debug(`File not found: ${csvPath}`)
+        continue
+      }
+      // 读取少量内容验证是否是真实CSV而非404页面
+      const text = await response.text()
+      const firstLine = text.trim().split('\n')[0]
+      // 真实CSV的header包含这个字段
+      if (firstLine.includes('predicted_yield') || firstLine.includes('FIPS')) {
         availableDays.push(day)
+        console.log(`[getAvailableFiles] confirmed: ${crop} ${year} DOY${day}`)
+      } else {
+        console.debug(`[getAvailableFiles] not a valid CSV: ${csvPath}`)
       }
     } catch {
       console.debug(`File not found: ${csvPath}`)
     }
   }
+  console.log(`[getAvailableFiles] ${crop} ${year} available:`, availableDays)
   return availableDays
 }
 
@@ -28,7 +59,8 @@ export default createStore({
     state: {
       map: null,
         currentCrop: 'corn',
-        currentYear: '2021',
+        // currentYear: '2025',
+        currentYear: new Date().getFullYear().toString(),  
         currentMonth: '0',
         currentProperty: 'pred',
         currentUnit: 't/ha',
@@ -79,7 +111,7 @@ export default createStore({
         setCrop(state, crop) {
             state.currentCrop = crop
             if (crop === 'soybean') {
-                state.currentYear = '2024'
+                state.currentYear = '2025'
                 if (state.currentProperty === 'error') {
                     state.currentProperty = 'pred'
                 }
@@ -318,7 +350,9 @@ export default createStore({
             console.log("Attempting to fetch from:", csvPath)
             const response = await fetch(csvPath)
             if (!response.ok) {
-              throw new Error(`Failed to fetch ${csvPath}: ${response.status}`)
+              // throw new Error(`Failed to fetch ${csvPath}: ${response.status}`)
+              commit('setCurrentPredictionData', [])
+              return []
             }
             const csvText = await response.text()
             
@@ -346,6 +380,7 @@ export default createStore({
 
           } catch (error) {
             console.error('Error fetching prediction data:', error)
+            commit('setCurrentPredictionData', []) 
             return []
           }
         },
@@ -536,11 +571,24 @@ export default createStore({
     async initializeMapState({ dispatch, commit, state }) {
       await dispatch('initializeData')
       commit('setProperty', 'pred')
-      commit('setYear', state.currentCrop === 'soybean' ? 2024 : state.currentYear)
+      commit('setYear', state.currentCrop === 'soybean' ? 2025 : state.currentYear)
+      // 新增：初始化时确定可用DOY并自动选最新的
+      await dispatch('updateAvailableDays')
     },
     async updateAvailableDays({ commit, state }) {
       const days = await getAvailableFiles(state.currentCrop, state.currentYear)
       commit('setAvailableDays', days)
+
+      // newest available DOY
+      if (days.length > 0) {
+        const currentDayStr = parseInt(state.currentDay).toString()
+        const latestDay = days[days.length - 1]  // days已按升序排列
+        if (!days.includes(currentDayStr)) {
+          commit('setPredictionDay', latestDay)
+        }
+      } else {
+        commit('setCurrentPredictionData', [])
+      }
     },
     },
     getters: {
