@@ -99,7 +99,7 @@
                 type="number"
                 v-model="endYear"
                 :min="startYear"
-                max="2024"
+                max="2025"
                 class="w-24 rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
               />
             </div>
@@ -234,27 +234,28 @@ export default {
     const exportCrop = ref('all')
     const yearRange = ref('all')
     const startYear = ref(2016)
-    const endYear = ref(2024)
+    const endYear = ref(2025)
     const predictionTime = ref('all')
     
-    const csvData = computed(() => store.state.csvData || [])
+    // const csvData = computed(() => store.state.csvData || [])
+    const countyData = computed(() => store.state.countyData || {})
     const baseUrl = import.meta.env.BASE_URL
 
     const countySuggestions = computed(() => {
-      const uniqueCounties = new Map()
-      if (csvData.value) {
-        csvData.value.forEach(row => {
-          const stateCode = row.FIPS.substring(0, 2)
-          const stateName = stateCodeMap[stateCode] || 'Unknown State'
-          const countyName = `${row.NAME} County, ${stateName}`
-          uniqueCounties.set(row.FIPS, {
-            fips: row.FIPS,
-            name: countyName
-          })
+    const suggestions = []
+    Object.entries(countyData.value).forEach(([name, entries]) => {
+      entries.forEach(entry => {
+        const fips = entry.stateFp.padStart(2, '0') + entry.countyFp.padStart(3, '0')
+        const stateCode = entry.stateFp.padStart(2, '0')
+        const stateName = stateCodeMap[stateCode] || 'Unknown State'
+        suggestions.push({
+          fips,
+          name: `${name} County, ${stateName}`
         })
-      }
-      return Array.from(uniqueCounties.values())
+      })
     })
+    return suggestions
+  })
 
     function updateSuggestions(index) {
       const input = selectedCounties.value[index].input.toLowerCase()
@@ -281,19 +282,15 @@ export default {
       updateSelectedFIPS()
     }
 
-    async function fetchPredictionData(crop, year, day = null) {
-      const csvPath = day 
-        ? `${baseUrl}result_${crop}/bnn/result${year}_${day.toString().padStart(3, '0')}.csv`
-        : `${baseUrl}result_${crop}/bnn/result${year}.csv`
 
+    async function fetchPredictionData(crop, year, day) {
+      const d = parseInt(day).toString()
+      const csvPath = `${baseUrl}20260306/result_${crop}/bnn_${d}/result_test_${year}_doy${d}.csv`
       try {
         const response = await fetch(csvPath)
-        if (!response.ok) {
-          console.log(`No data found for ${csvPath}`)
-          return null
-        }
+        if (!response.ok) return null
         const csvText = await response.text()
-        return Papa.parse(csvText, { header: true, skipEmptyLines: true }).data
+        return Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true }).data
       } catch (error) {
         console.error(`Error fetching ${csvPath}:`, error)
         return null
@@ -307,79 +304,59 @@ export default {
       try {
         const selectedCountyData = selectedCounties.value
           .filter(c => c.selected)
-          .map(c => ({
-            fips: c.selected.fips,
-            name: c.selected.name
-          }))
-        
-        if (selectedCountyData.length === 0) {
-          console.error('No counties selected')
-          return
-        }
+          .map(c => ({ fips: c.selected.fips, name: c.selected.name }))
 
-        const crops = exportCrop.value === 'all'
-          ? ['corn', 'soybean']
-          : [exportCrop.value]
+        if (selectedCountyData.length === 0) return
 
+        const crops = exportCrop.value === 'all' ? ['corn', 'soybean'] : [exportCrop.value]
         const yearStart = yearRange.value === 'all' ? 2016 : parseInt(startYear.value)
-        const yearEnd = yearRange.value === 'all' ? 2024 : parseInt(endYear.value)
-
-        const unit = store.state.currentUnit
-        const conversionFactor = unit === 't/ha'
-          ? (store.state.currentCrop === 'corn' ? 0.06277 : 0.0673)
-          : 1
-        const unitLabel = unit === 't/ha' ? ' (t/ha)' : ' (bu/acre)'
+        const yearEnd   = yearRange.value === 'all' ? 2025 : parseInt(endYear.value)
+        const daysToFetch = predictionTime.value === 'eos'
+          ? ['284']
+          : ['140','156','172','188','204','220','236','252','268','284']
 
         for (const crop of crops) {
+          const UNCERTAINTY_CONV = crop === 'corn' ? 15.93 : 14.87
           const allData = []
-          let daysToFetch = []
-          
-          switch (predictionTime.value) {
-            case 'all':
-              daysToFetch = ['140', '156', '172', '188', '204', '220', '236', '252', '268', '284']
-              break
-            case 'eos':
-              daysToFetch = ['284']
-              break
-          }
 
           for (let year = yearStart; year <= yearEnd; year++) {
             for (const day of daysToFetch) {
               const data = await fetchPredictionData(crop, year, day)
-              if (data) {
-                data.forEach(row => {
-                  const countyData = selectedCountyData.find(c => c.fips === row.FIPS)
-                  if (countyData) {
-                    const predicted = row.y_test_pred * conversionFactor
-                    const actual = row.y_test * conversionFactor
-                    const uncertainty = row.y_test_pred_uncertainty * conversionFactor
-                    const error = predicted - actual
+              if (!data) continue
 
-                    allData.push({
-                      'FIPS': row.FIPS,
-                      'County': countyData.name,
-                      'Crop type': crop,
-                      'Year': year,
-                      'Day of Year': day,
-                      ['Predicted Yield' + unitLabel]: predicted.toFixed(3),
-                      ['NASS Reported Yield' + unitLabel]: actual.toFixed(3),
-                      ['Prediction Error' + unitLabel]: error.toFixed(3),
-                      'Model Uncertainty': uncertainty.toFixed(3)
-                    })
-                  }
+              data.forEach(row => {
+                const county = selectedCountyData.find(c => c.fips === row.FIPS?.toString().padStart(5, '0'))
+                if (!county) return
+
+                const pred      = parseFloat(row['predicted_yield(bu/acre)'])
+                const actual    = parseFloat(row['end_of_season_NASS_yield(bu/acre)'])
+                const hasYield  = !isNaN(actual) && actual !== 0
+                const error     = hasYield ? parseFloat(row['prediction_error(bu/acre)']) : null
+                const uncertainty = parseFloat(row['model_uncertainty']) * UNCERTAINTY_CONV
+
+                allData.push({
+                  'FIPS': row.FIPS,
+                  'County': county.name,
+                  'Crop type': crop,
+                  'Year': year,
+                  'Day of Year': day,
+                  'Predicted Yield (bu/acre)': isNaN(pred) ? '' : pred.toFixed(2),
+                  'NASS Reported Yield (bu/acre)': hasYield ? actual.toFixed(2) : '',
+                  'Prediction Error (bu/acre)': error !== null ? error.toFixed(2) : '',
+                  'Model Uncertainty': isNaN(uncertainty) ? '' : uncertainty.toFixed(2)
                 })
-              }
+              })
             }
           }
 
           if (allData.length > 0) {
-            const csv = Papa.unparse(allData)
+            const csv  = Papa.unparse(allData)
             const blob = new Blob([csv], { type: 'text/csv' })
-            const url = window.URL.createObjectURL(blob)
-            const a = document.createElement('a')
+            const url  = window.URL.createObjectURL(blob)
+            const a    = document.createElement('a')
             a.href = url
             const cropName = crop.charAt(0).toUpperCase() + crop.slice(1)
-            a.download = `${cropName}_Yield_Prediction_Results_${unit}.csv`
+            a.download = `${cropName}_Yield_Prediction_Results_buacre.csv`
             a.click()
             window.URL.revokeObjectURL(url)
           }
@@ -457,15 +434,9 @@ export default {
 
       const selectedCountyData = selectedCounties.value
         .filter(c => c.selected)
-        .map(c => ({
-          fips: c.selected.fips,
-          name: c.selected.name
-        }))
+        .map(c => ({ fips: c.selected.fips, name: c.selected.name }))
 
-      const unit = store.state.currentUnit
-      const conversionFactor = unit === 't/ha'
-        ? (plotCropType.value === 'corn' ? 0.06277 : 0.0673)
-        : 1
+      const UNCERTAINTY_CONV = plotCropType.value === 'corn' ? 15.93 : 14.87
 
       for (const county of selectedCountyData) {
         const countyData = {
@@ -475,30 +446,28 @@ export default {
           uncertainties: []
         }
 
-        for (let year = 2016; year <= 2024; year++) {
+        for (let year = 2016; year <= 2025; year++) {
           const data = await fetchPredictionData(plotCropType.value, year, '284')
-          if (data) {
-            const countyYield = data.find(row => row.FIPS === county.fips)
-            if (countyYield) {
-              if (countyYield.y_test) {
-                countyData.actualData.push({
-                  x: year,
-                  y: parseFloat(countyYield.y_test) * conversionFactor
-                })
-              }
-              
-              if (countyYield.y_test_pred) {
-                countyData.predictedData.push({
-                  x: year,
-                  y: parseFloat(countyYield.y_test_pred) * conversionFactor
-                })
-                
-                if (countyYield.y_test_pred_uncertainty) {
-                  const uncertainty = parseFloat(countyYield.y_test_pred_uncertainty) * conversionFactor
-                  const uncertaintyPercent = (uncertainty / (parseFloat(countyYield.y_test_pred) * conversionFactor)) * 100
-                  countyData.uncertainties.push(uncertaintyPercent)
-                }
-              }
+          if (!data) continue
+
+          const row = data.find(r => r.FIPS?.toString().padStart(5, '0') === county.fips)
+          if (!row) continue
+
+          const pred      = parseFloat(row['predicted_yield(bu/acre)'])
+          const actual    = parseFloat(row['end_of_season_NASS_yield(bu/acre)'])
+          const rawUncert = parseFloat(row['model_uncertainty'])
+
+          if (!isNaN(actual) && actual !== 0) {
+            countyData.actualData.push({ x: year, y: actual })
+          }
+
+          if (!isNaN(pred)) {
+            countyData.predictedData.push({ x: year, y: pred })
+
+            if (!isNaN(rawUncert)) {
+              const uncertaintyBuAcre = rawUncert * UNCERTAINTY_CONV
+              const uncertaintyPercent = (uncertaintyBuAcre / pred) * 100
+              countyData.uncertainties.push(uncertaintyPercent)
             }
           }
         }

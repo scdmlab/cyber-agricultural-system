@@ -59,20 +59,21 @@ export default {
       return isFinite(max) ? max : 100;
     });
 
-    const displayMinValue = computed(() => currentMinValue.value * conversionFactor.value);
-    const displayMaxValue = computed(() => currentMaxValue.value * conversionFactor.value);
+    const displayMinValue = computed(() => currentMinValue.value);
+    const displayMaxValue = computed(() => currentMaxValue.value);
 
     const mappedPropertyTitle = computed(() => {
       const titles = {
-        pred: 'Predicted Yield (t/ha)',
-        yield: 'Actual Yield (t/ha)',
-        error: 'Prediction Error (t/ha)',
+        pred: 'Predicted Yield (bu/acre)',
+        yield: 'Actual Yield (bu/acre)',
+        error: 'Prediction Error (bu/acre)',
         uncertainty: 'Uncertainty'
       };
       return titles[currentProperty.value] || currentProperty.value;
     });
 
-    const position = ref({ x: window.innerWidth - 250, y: window.innerHeight - 200 });
+    // const position = ref({ x: window.innerWidth - 250, y: window.innerHeight - 200 });
+    const position = ref({ x: window.innerWidth - 220, y: 80 });
     const isDragging = ref(false);
     const dragOffset = ref({ x: 0, y: 0 });
     const legendContainer = ref(null);

@@ -179,7 +179,7 @@ export default {
       const predictions = await store.dispatch('fetchPredictionData');
       if (!predictions || predictions.length === 0) {
         console.warn('No prediction data available');
-        // 清空地图数据
+
         if (map.value && map.value.getSource('counties')) {
           const emptyFeatures = countiesWithFIPS.value.features.map(feature => ({
             ...feature,
@@ -391,7 +391,6 @@ export default {
         
         // Trigger initial choropleth update
         // updateChoropleth()
-        // 先探测可用DOY，再渲染
         await store.dispatch('updateAvailableDays')
         await updateChoropleth()
 
@@ -495,6 +494,7 @@ export default {
         container: mapContainer.value,
         style: {
           version: 8,
+          glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
           sources: {
             'osm': {
               type: 'raster',
@@ -582,6 +582,111 @@ export default {
             'line-color': '#000',
             'line-width': 2
           }
+        })
+
+        // State labels
+        const STATE_CENTERS = {
+          'Alabama': [-86.8, 32.8], 'Alaska': [-153.0, 64.2], 'Arizona': [-111.5, 34.3],
+          'Arkansas': [-92.4, 34.9], 'California': [-119.5, 37.2], 'Colorado': [-105.5, 39.0],
+          'Connecticut': [-72.7, 41.6], 'Delaware': [-75.5, 39.0], 'Florida': [-81.5, 28.5],
+          'Georgia': [-83.4, 32.7], 'Hawaii': [-156.3, 20.3], 'Idaho': [-114.5, 44.4],
+          'Illinois': [-89.2, 40.0], 'Indiana': [-86.1, 40.3], 'Iowa': [-93.5, 42.1],
+          'Kansas': [-98.4, 38.5], 'Kentucky': [-84.9, 37.5], 'Louisiana': [-91.8, 31.2],
+          'Maine': [-69.2, 45.4], 'Maryland': [-76.8, 39.0], 'Massachusetts': [-71.8, 42.3],
+          'Michigan': [-84.5, 44.3], 'Minnesota': [-94.3, 46.4], 'Mississippi': [-89.7, 32.7],
+          'Missouri': [-92.5, 38.4], 'Montana': [-110.0, 47.0], 'Nebraska': [-99.9, 41.5],
+          'Nevada': [-116.8, 39.5], 'New Hampshire': [-71.6, 43.7], 'New Jersey': [-74.5, 40.1],
+          'New Mexico': [-106.1, 34.4], 'New York': [-75.5, 43.0], 'North Carolina': [-79.4, 35.6],
+          'North Dakota': [-100.5, 47.5], 'Ohio': [-82.8, 40.4], 'Oklahoma': [-97.5, 35.5],
+          'Oregon': [-120.5, 44.0], 'Pennsylvania': [-77.2, 40.9], 'Rhode Island': [-71.5, 41.7],
+          'South Carolina': [-81.0, 33.9], 'South Dakota': [-100.3, 44.4], 'Tennessee': [-86.3, 35.9],
+          'Texas': [-99.3, 31.5], 'Utah': [-111.5, 39.5], 'Vermont': [-72.7, 44.0],
+          'Virginia': [-78.5, 37.5], 'Washington': [-120.5, 47.5], 'West Virginia': [-80.6, 38.9],
+          'Wisconsin': [-89.5, 44.5], 'Wyoming': [-107.5, 43.0]
+        }
+
+        const stateCentroids = {
+          type: 'FeatureCollection',
+          features: Object.entries(STATE_CENTERS).map(([name, [lng, lat]]) => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [lng, lat] },
+            properties: { NAME: name }
+          }))
+        }
+
+        map.value.addSource('state-centroids', {
+          type: 'geojson',
+          data: stateCentroids
+        })
+
+        map.value.addLayer({
+          id: 'state-labels',
+          type: 'symbol',
+          source: 'state-centroids',
+          layout: {
+            'text-field': ['get', 'NAME'],
+            'text-size': 18,
+            'text-font': ['Noto Sans Bold'],
+            'text-anchor': 'center',
+            'text-allow-overlap': false,
+          },
+          paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': '#000000',
+            'text-halo-width': 0.8
+          },
+          minzoom: 3,
+          maxzoom: 6
+        })
+        
+        // County labels
+        const countyMap = new Map()
+        countiesWithFIPS.value.features.forEach(f => {
+          const fips = f.properties.FIPS
+          if (!countyMap.has(fips)) {
+            const coords = f.geometry.type === 'Polygon'
+              ? f.geometry.coordinates[0]
+              : f.geometry.coordinates[0][0]
+            const lons = coords.map(c => c[0])
+            const lats = coords.map(c => c[1])
+            const cx = (Math.min(...lons) + Math.max(...lons)) / 2
+            const cy = (Math.min(...lats) + Math.max(...lats)) / 2
+            countyMap.set(fips, { cx, cy, properties: f.properties })
+          }
+        })
+
+        const countyCentroids = {
+          type: 'FeatureCollection',
+          features: Array.from(countyMap.values()).map(({ cx, cy, properties }) => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [cx, cy] },
+            properties
+          }))
+        }
+
+        map.value.addSource('county-centroids', {
+          type: 'geojson',
+          data: countyCentroids
+        })
+
+        map.value.addLayer({
+          id: 'county-labels',
+          type: 'symbol',
+          source: 'county-centroids',
+          layout: {
+            'text-field': ['get', 'NAME'],
+            'text-size': 13,
+            'text-font': ['Noto Sans Regular'],
+            'text-anchor': 'center',
+            'text-allow-overlap': false,
+            'symbol-avoid-edges': true,
+          },
+          paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': '#000000',
+            'text-halo-width': 0.8
+          },
+          minzoom: 6
         })
 
         // Update mousemove event

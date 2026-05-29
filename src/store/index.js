@@ -6,25 +6,7 @@ import { getBasemapUrl } from '@/utils/basemaps'
 
 const baseUrl = import.meta.env.BASE_URL
 
-// async function getAvailableFiles(crop, year) {
-//   const days = ["140", "156", "172", "188", "204", "220", "236", "252", "268", "284"]
-//   const availableDays = []
-
-//   for (const day of days) {
-//     const csvPath = `${baseUrl}20260306/result_${crop}/bnn_${day}/result_test_${year}_doy${day}.csv`
-//     try {
-//       const response = await fetch(csvPath, { method: 'HEAD' })
-//       if (response.ok) {
-//         availableDays.push(day)
-//       }
-//     } catch {
-//       console.debug(`File not found: ${csvPath}`)
-//     }
-//   }
-//   return availableDays
-// }
-
-// store/index.js - 替换 getAvailableFiles 函数
+//
 async function getAvailableFiles(crop, year) {
   const days = ["140", "156", "172", "188", "204", "220", "236", "252", "268", "284"]
   const availableDays = []
@@ -37,10 +19,10 @@ async function getAvailableFiles(crop, year) {
         console.debug(`File not found: ${csvPath}`)
         continue
       }
-      // 读取少量内容验证是否是真实CSV而非404页面
+
       const text = await response.text()
       const firstLine = text.trim().split('\n')[0]
-      // 真实CSV的header包含这个字段
+
       if (firstLine.includes('predicted_yield') || firstLine.includes('FIPS')) {
         availableDays.push(day)
         console.log(`[getAvailableFiles] confirmed: ${crop} ${year} DOY${day}`)
@@ -59,11 +41,10 @@ export default createStore({
     state: {
       map: null,
         currentCrop: 'corn',
-        // currentYear: '2025',
         currentYear: new Date().getFullYear().toString(),  
         currentMonth: '0',
         currentProperty: 'pred',
-        currentUnit: 't/ha',
+        currentUnit: 'bu/acre',
         mapData: null,
         selectedLocation: null,
         csvData: null,
@@ -79,8 +60,8 @@ export default createStore({
         countyData: {},
         availableStates: [],
         choroplethSettings: {
-          minValue: 55,
-          maxValue: 215,
+          minValue: 0,
+          maxValue: 300,
           colorSchemes: {
             pred: ['#ebf8b3', '#074359'],     // Sequential blue-green
             yield: ['#ebf8b3', '#074359'],    // Sequential blue-green
@@ -316,9 +297,9 @@ export default createStore({
                     .filter(row => Object.values(row).some(value => value.trim() !== ''))
                     .map(row => ({
                       ...row,
-                      yield: parseFloat(row.yield).toFixed(2),
-                      pred: parseFloat(row.pred).toFixed(2),
-                      error: parseFloat(row.error).toFixed(2)
+                      yield: row.yield ? parseFloat(row.yield).toFixed(2) : null,
+                      pred: row.pred ? parseFloat(row.pred).toFixed(2) : null,
+                      error: row.error ? parseFloat(row.error).toFixed(2) : null
                     }))
                   commit('setCsvData', cleanedData)
                 },
@@ -333,6 +314,7 @@ export default createStore({
 
         async fetchPredictionData({ commit, state }) {
           const { currentCrop, currentYear, currentDay } = state
+          const UNCERTAINTY_CONV = currentCrop === 'soybean' ? 14.87 : 15.93
           
           // Create a cache key
           const cacheKey = `${currentCrop}_${currentYear}_${currentDay}`
@@ -364,14 +346,19 @@ export default createStore({
             }).data
 
             const predictions = parsedData
-              .filter(row => row.FIPS)
-              .map(row => ({
+            .filter(row => row.FIPS)
+            .map(row => {
+              const yieldVal = parseFloat(row['end_of_season_NASS_yield(bu/acre)'])
+              const hasYield = yieldVal !== 0 && !isNaN(yieldVal)
+
+              return {
                 FIPS: row.FIPS.toString().padStart(5, '0'),
-                pred: parseFloat(row['predicted_yield(t/ha)']),
-                yield: parseFloat(row['end_of_season_NASS_yield(t/ha)']),
-                uncertainty: parseFloat(row['model_uncertainty']),
-                error: parseFloat(row['predicted_yield(t/ha)']) - parseFloat(row['end_of_season_NASS_yield(t/ha)'])
-              }))
+                pred: parseFloat(row['predicted_yield(bu/acre)']),
+                yield: hasYield ? yieldVal : null,
+                uncertainty: parseFloat(row['model_uncertainty']) * UNCERTAINTY_CONV,
+                error: hasYield ? parseFloat(row['prediction_error(bu/acre)']) : null
+              }
+            })
 
             // Cache and set the current prediction data
             commit('setCachedPrediction', { key: cacheKey, data: predictions })
@@ -481,7 +468,8 @@ export default createStore({
         
         async loadCountyData({ commit }) {
             try {
-              const response = await fetch('/api/data/county.csv');
+              // const response = await fetch('/api/data/county.csv');
+              const response = await fetch(`${baseUrl}data/county.csv`);
               if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
               }
@@ -516,7 +504,8 @@ export default createStore({
 
         async loadCountyInfo({ commit }) {
           try {
-            const response = await fetch('/api/data/county_info.csv');
+            // const response = await fetch('/api/data/county_info.csv');
+            const response = await fetch(`${baseUrl}data/county_info.csv`);
             if (!response.ok) {
               throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -572,7 +561,6 @@ export default createStore({
       await dispatch('initializeData')
       commit('setProperty', 'pred')
       commit('setYear', state.currentCrop === 'soybean' ? 2025 : state.currentYear)
-      // 新增：初始化时确定可用DOY并自动选最新的
       await dispatch('updateAvailableDays')
     },
     async updateAvailableDays({ commit, state }) {
@@ -582,7 +570,7 @@ export default createStore({
       // newest available DOY
       if (days.length > 0) {
         const currentDayStr = parseInt(state.currentDay).toString()
-        const latestDay = days[days.length - 1]  // days已按升序排列
+        const latestDay = days[days.length - 1]  //
         if (!days.includes(currentDayStr)) {
           commit('setPredictionDay', latestDay)
         }

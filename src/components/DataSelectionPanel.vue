@@ -46,8 +46,8 @@
           v-model="localProperty"
           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
         >
-          <option value="pred">Predicted Yield (t/ha)</option>
-          <option value="error">Prediction Error (t/ha)</option>
+          <option value="pred">Predicted Yield (bu/acre)</option>
+          <option value="error">Prediction Error (bu/acre)</option>
           <option value="uncertainty">Model Uncertainty</option>
         </select>
       </div>
@@ -179,6 +179,7 @@ export default {
       }
     }
 
+
     async function exportData() {
       isExporting.value = true
       try {
@@ -189,20 +190,26 @@ export default {
         )
 
         if (data && data.length > 0) {
-          // Apply the correct conversion factor based on crop type
-          const conversionFactor = store.state.currentCrop === 'corn' ? 0.06277 : 0.0673
-          const unitLabel = ' (t/ha)'
+          const UNCERTAINTY_CONV = store.state.currentCrop === 'corn' ? 15.93 : 14.87
 
-          const formattedData = data.map(row => ({
-            'FIPS': row.FIPS,
-            'Crop type': store.state.currentCrop,
-            'Year': store.state.currentYear,
-            'Day of Year': store.state.currentDay,
-            ['Predicted Yield' + unitLabel]: (parseFloat(row['predicted_yield(t/ha)']) * conversionFactor).toFixed(3),
-            ['NASS Reported Yield' + unitLabel]: (parseFloat(row['end_of_season_NASS_yield(t/ha)']) * conversionFactor).toFixed(3),
-            ['Prediction Error' + unitLabel]: ((parseFloat(row['predicted_yield(t/ha)']) - parseFloat(row['end_of_season_NASS_yield(t/ha)'])) * conversionFactor).toFixed(3),
-            'Model Uncertainty': parseFloat(row['model_uncertainty']).toFixed(3)
-          }))
+          const formattedData = data.map(row => {
+            const pred    = parseFloat(row['predicted_yield(bu/acre)'])
+            const actual  = parseFloat(row['end_of_season_NASS_yield(bu/acre)'])
+            const hasYield = !isNaN(actual) && actual !== 0
+            const error   = hasYield ? parseFloat(row['prediction_error(bu/acre)']) : null
+            const uncertainty = parseFloat(row['model_uncertainty']) * UNCERTAINTY_CONV
+
+            return {
+              'FIPS': row.FIPS,
+              'Crop type': store.state.currentCrop,
+              'Year': store.state.currentYear,
+              'Day of Year': store.state.currentDay,
+              'Predicted Yield (bu/acre)': isNaN(pred) ? '' : pred.toFixed(2),
+              'NASS Reported Yield (bu/acre)': hasYield ? actual.toFixed(2) : '',
+              'Prediction Error (bu/acre)': error !== null ? error.toFixed(2) : '',
+              'Model Uncertainty': isNaN(uncertainty) ? '' : uncertainty.toFixed(2)
+            }
+          })
 
           const csv = Papa.unparse(formattedData)
           const blob = new Blob([csv], { type: 'text/csv' })
@@ -210,8 +217,7 @@ export default {
           const a = document.createElement('a')
           a.href = url
           const cropName = store.state.currentCrop.charAt(0).toUpperCase() + store.state.currentCrop.slice(1)
-          const fileName = `${cropName}_Yield_Prediction_${store.state.currentYear}_Day${store.state.currentDay}.csv`
-          a.download = fileName
+          a.download = `${cropName}_Yield_Prediction_${store.state.currentYear}_Day${store.state.currentDay}.csv`
           a.click()
           window.URL.revokeObjectURL(url)
         }

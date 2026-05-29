@@ -48,7 +48,8 @@
         return typeof props.height === 'number' ? `${props.height}px` : props.height
       })
 
-      const yAxisLabel = computed(() => 'Yield (t/ha)')
+      // const yAxisLabel = computed(() => 'Yield (t/ha)')
+      const yAxisLabel = computed(() => 'Yield (bu/acre)')
 
       const generateTitle = () => {
         const mode = {
@@ -302,7 +303,8 @@
                 callbacks: {
                   label: function(context) {
                     const year = Math.round(context.parsed.x)
-                    let label = `${context.dataset.label} - ${year}: ${context.parsed.y.toFixed(1)} t/ha`
+                    // let label = `${context.dataset.label} - ${year}: ${context.parsed.y.toFixed(1)} t/ha`
+                    let label = `${context.dataset.label} - ${year}: ${context.parsed.y.toFixed(1)} bu/acre`
                     
                     if (props.displayMode === 'predicted' || 
                         (props.displayMode === 'both' && context.dataset.label.includes('Predicted'))) {
