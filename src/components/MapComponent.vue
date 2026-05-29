@@ -390,8 +390,10 @@ export default {
         // ... existing load event code ...
         
         // Trigger initial choropleth update
-        // updateChoropleth()
-        await store.dispatch('updateAvailableDays')
+        // // updateChoropleth()
+        // await store.dispatch('updateAvailableDays')
+        // await updateChoropleth()
+        await store.dispatch('updateAvailableDays', { updateDay: true })
         await updateChoropleth()
 
         // Add a new layer for selected counties
@@ -498,7 +500,8 @@ export default {
           sources: {
             'osm': {
               type: 'raster',
-              tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+              // tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+              tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
               tileSize: 256,
               attribution: '© OpenStreetMap contributors'
             }
@@ -513,7 +516,7 @@ export default {
             }
           ]
         },
-        center: [-92, 43], 
+        center: [-92, 42], 
         zoom: 4.8
       })
 

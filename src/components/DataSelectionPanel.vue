@@ -130,7 +130,7 @@ export default {
 
     const sortedDays = computed(() => {
       return Object.entries(dayMapping)
-        .filter(([day]) => store.state.availableDays.includes(day))
+        // .filter(([day]) => store.state.availableDays.includes(day))
         .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
         .map(([day, date]) => ({ day, date }))
     })
@@ -142,13 +142,21 @@ export default {
       return Array.from({ length: endYear - startYear + 1 }, (_, i) => (startYear + i).toString())
     })
 
+
     watch(
       [localCrop, localYear],
       async () => {
-        await store.dispatch('updateAvailableDays')
-        localSelections.value.day = store.state.currentDay  // 同步到最新可用DOY
+        const crop = localSelections.value.crop
+        const year = localSelections.value.year
+        const days = await getAvailableFiles(crop, year)
+
+        const currentDayStr = parseInt(localSelections.value.day).toString()
+        if (days.length > 0 && !days.includes(currentDayStr)) {
+          // 只改本地草稿，store 不动，地图不动
+          localSelections.value.day = days[days.length - 1]
+        }
       },
-      { immediate: true }
+      { immediate: false }  // 初始化交给 initializeMapState，这里不触发
     )
 
     async function applyChanges() {

@@ -59,6 +59,7 @@ export default createStore({
         mapBackgroundColor: '#FFFFFF',
         countyData: {},
         availableStates: [],
+        selectedBasemap: 'satellite',
         choroplethSettings: {
           minValue: 0,
           maxValue: 300,
@@ -70,7 +71,8 @@ export default createStore({
           },
           choroplethOpacity: 0.7,
           basemapOpacity: 1.0,
-          selectedBasemap: 'osm',
+          // selectedBasemap: 'osm',
+          selectedBasemap: 'satellite',
 
       },
       markers: [],
@@ -557,27 +559,24 @@ export default createStore({
       await dispatch('loadCountyInfo');
       await dispatch('fetchAllPredictions');
     },
+
+
     async initializeMapState({ dispatch, commit, state }) {
       await dispatch('initializeData')
       commit('setProperty', 'pred')
-      commit('setYear', state.currentCrop === 'soybean' ? 2025 : state.currentYear)
-      await dispatch('updateAvailableDays')
+      await dispatch('updateAvailableDays', { updateDay: true })  // 初始化才自动设day
+      await dispatch('fetchPredictionData')  // 确保地图加载数据
     },
-    async updateAvailableDays({ commit, state }) {
+
+    async updateAvailableDays({ commit, state }, { updateDay = false } = {}) {
       const days = await getAvailableFiles(state.currentCrop, state.currentYear)
       commit('setAvailableDays', days)
-
-      // newest available DOY
-      if (days.length > 0) {
-        const currentDayStr = parseInt(state.currentDay).toString()
-        const latestDay = days[days.length - 1]  //
-        if (!days.includes(currentDayStr)) {
-          commit('setPredictionDay', latestDay)
-        }
-      } else {
-        commit('setCurrentPredictionData', [])
+      if (updateDay && days.length > 0) {
+        commit('setPredictionDay', days[days.length - 1])
       }
+      return days
     },
+
     },
     getters: {
         getMap: (state) => state.map,

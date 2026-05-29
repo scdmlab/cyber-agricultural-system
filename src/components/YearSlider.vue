@@ -1,7 +1,7 @@
 <template>
   <div 
     v-if="isVisible" 
-    class="absolute z-50 bg-white bg-opacity-80 p-4 rounded shadow-md flex flex-col items-center"
+    class="absolute z-50 bg-white bg-opacity-80 p-2 rounded shadow-md flex flex-col items-center"
     :class="[isCompact ? 'w-64' : 'w-3/8 max-w-4xl']"
     :style="{ left: position.x + 'px', top: position.y + 'px', transform: 'none' }"
     ref="sliderContainer"
@@ -31,7 +31,7 @@
     </div>
 
     <!-- Modified content layout -->
-    <div class="flex flex-col w-full h-fit mt-6" :class="{ 'space-y-2': isCompact }">
+    <div class="flex flex-col w-full h-fit mt-5" :class="{ 'space-y-2': isCompact }">
       <!-- Controls with conditional layout -->
       <div :class="[
         'flex gap-2',
@@ -113,7 +113,7 @@
       </div>
 
       <!-- Time slider -->
-      <div class="w-full mt-3 flex items-center gap-2">
+      <div class="w-full mt-1 flex items-center gap-2">
         <input
           type="range"
           :min="sliderMin"
@@ -125,7 +125,7 @@
       </div>
 
       <!-- Status display -->
-      <div class="text-xs font-bold mt-2 mb-1" :class="{ 'text-center': isCompact }">
+      <div class="text-xs font-bold mt-1 mb-0" :class="{ 'text-center': isCompact }">
         Year: {{ currentYear }} | 
         {{ dayMapping[selectedDay] }} |
         Property: {{ propertyLabels[selectedProperty] }}
@@ -234,24 +234,30 @@ export default {
       }
     })
 
-    // // Update predictions whenever any selection changes
-    // watch(
-    //   [selectedCrop, selectedProperty, currentYear, selectedDay],
-    //   async () => {
-    //     await updatePredictions()
-    //   }
-    // )
 
-    // 替换现有的watch（Update predictions whenever any selection changes）
+    const isReady = ref(false)
+
     watch(
       [selectedCrop, selectedProperty, currentYear, selectedDay],
       async ([newCrop, , newYear], [oldCrop, , oldYear]) => {
+        if (!isReady.value) return
         if (newCrop !== oldCrop || newYear !== oldYear) {
           await store.dispatch('updateAvailableDays')
         }
         await updatePredictions()
       },
-      { immediate: true }  // ← 加这个
+      { immediate: false }
+    )
+
+    // 等 map 初始化完成（currentPredictionData 从 null 变为数组时）再激活
+    const unwatchReady = watch(
+      () => store.state.currentPredictionData,
+      (data) => {
+        if (data !== null) {
+          isReady.value = true
+          unwatchReady()
+        }
+      }
     )
 
 
@@ -363,7 +369,7 @@ export default {
       const windowHeight = window.innerHeight
       position.value = {
         x: (windowWidth / 2) - 400, // Assuming width is roughly 800px
-        y: windowHeight - 200
+        y: windowHeight - 170
       }
     })
 
@@ -443,6 +449,7 @@ export default {
       sliderContainer,
       isCompact,
       toggleCompact,
+      isReady,
     }
   }
 }
