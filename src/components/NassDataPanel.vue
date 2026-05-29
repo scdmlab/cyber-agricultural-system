@@ -35,7 +35,7 @@
           type="number"
           v-model="selectedYear"
           :min="1950"
-          :max="2023"
+          :max="new Date().getFullYear()"
           class="w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-green-200 focus:ring-opacity-50"
         />
       </div>
@@ -123,15 +123,13 @@ export default {
     const currentYear = new Date().getFullYear()
 
     const buildApiUrl = () => {
-      const baseUrl = 'https://nass-crop-proxy.replit.app/api/nass'
+      const baseUrl = 'https://holy-paper-f2ab.syang685.workers.dev'
       const params = new URLSearchParams({
-        // key: API_KEY,
         commodity_desc: selectedCrop.value,
         year: selectedYear.value,
         agg_level_desc: 'COUNTY',
         statisticcat_desc: statisticCategory.value
       })
-    //   console.log(`${baseUrl}?${params.toString()}`)
       return `${baseUrl}?${params.toString()}`
     }
 
