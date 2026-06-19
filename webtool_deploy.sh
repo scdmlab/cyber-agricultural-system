@@ -74,6 +74,8 @@ done
 # ─── Step 3: Build + Deploy到GitHub Pages ────────────────────────────────────
 echo "[deploy] npm run deploy..."
 
+export HOME=/home/bpeng
+
 cd "$REPO_DIR"
 npm run deploy
 

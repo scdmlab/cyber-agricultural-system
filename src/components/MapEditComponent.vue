@@ -28,9 +28,12 @@
         </div>
         <div class="map-description" :style="{ fontFamily: mapFont }">{{ mapDescription }}</div>
         <div class="simple-legend" v-if="currentProperty">
-          <span class="legend-min" :style="{ fontFamily: mapFont }">{{ currentMinValue.toFixed(2) }}</span>
-          <div class="gradient-bar" :style="{ background: colorGradient }"></div>
-          <span class="legend-max" :style="{ fontFamily: mapFont }">{{ currentMaxValue.toFixed(2) }}</span>
+          <span class="legend-title" :style="{ fontFamily: mapFont }">{{ mappedPropertyTitle }}</span>
+          <div class="legend-scale">
+            <span class="legend-min" :style="{ fontFamily: mapFont }">{{ currentMinValue.toFixed(2) }}</span>
+            <div class="gradient-bar" :style="{ background: colorGradient }"></div>
+            <span class="legend-max" :style="{ fontFamily: mapFont }">{{ currentMaxValue.toFixed(2) }}</span>
+          </div>
         </div>
       </div>
       <div id="map-editor" ref="mapContainer" class="map-container"></div>
@@ -55,9 +58,9 @@ import maplibregl from 'maplibre-gl';
 
 // Define propertyTitleMap directly in this component
 const propertyTitleMap = {
-  pred: 'Prediction',
-  yield: 'Crop Yield',
-  error: 'Error',
+  pred: 'Prediction (bu/acre)',
+  yield: 'Crop Yield (bu/acre)',
+  error: 'Error (bu/acre)',
   uncertainty: 'Uncertainty'
 };
 
@@ -177,7 +180,7 @@ export default {
           // Adjust spacing
           const padding = 20; // Reduced from 40
           const titleHeight = mapTitle.value ? 40 : 0; // Reduced from 60
-          const metadataHeight = 30; // Height for description, north arrow, and legend
+          const metadataHeight = 44; // Height for description, north arrow, and legend
           const totalHeaderHeight = titleHeight + metadataHeight + (padding * 2);
 
           finalCanvas.width = mapCanvas.width;
@@ -231,23 +234,30 @@ export default {
           if (currentProperty.value) {
             const legendWidth = 200;
             const legendX = finalCanvas.width - legendWidth - padding;
+
+            // Legend title (above the gradient bar)
+            ctx.font = '600 12px Arial';
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'center';
+            ctx.fillText(mappedPropertyTitle.value, legendX + legendWidth / 2, metadataY - 8);
+            
             
             // Draw gradient
-            const gradient = ctx.createLinearGradient(legendX + 30, 0, legendX + legendWidth - 30, 0);
+            const gradient = ctx.createLinearGradient(legendX + 30, metadataY + 4, legendX + legendWidth - 30, metadataY + 4);
             const colors = choroplethSettings.value.colorSchemes[currentProperty.value];
             gradient.addColorStop(0, colors[0]);
             gradient.addColorStop(1, colors[1]);
             
             ctx.fillStyle = gradient;
-            ctx.fillRect(legendX + 30, metadataY - 6, legendWidth - 60, 12);
+            ctx.fillRect(legendX + 30, metadataY + 4, legendWidth - 60, 12);
 
             // Legend labels
             ctx.font = '12px Arial';
             ctx.fillStyle = '#666';
             ctx.textAlign = 'right';
-            ctx.fillText(currentMinValue.value.toFixed(2), legendX + 25, metadataY + 4);
+            ctx.fillText(currentMinValue.value.toFixed(2), legendX + 25, metadataY + 14);
             ctx.textAlign = 'left';
-            ctx.fillText(currentMaxValue.value.toFixed(2), legendX + legendWidth - 25, metadataY + 4);
+            ctx.fillText(currentMaxValue.value.toFixed(2), legendX + legendWidth - 25, metadataY + 14);
           }
 
           // Draw map
@@ -334,12 +344,28 @@ export default {
 .simple-legend {
   flex: 0 0 auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   background-color: rgba(255, 255, 255, 0.8);
   padding: 6px 12px;
   border-radius: 4px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.legend-title {
+  order: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+}
+
+.legend-scale {
+  order: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .gradient-bar {
