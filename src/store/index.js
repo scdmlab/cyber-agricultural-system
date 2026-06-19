@@ -93,12 +93,6 @@ export default createStore({
       },
         setCrop(state, crop) {
             state.currentCrop = crop
-            // if (crop === 'soybean') {
-            //     state.currentYear = '2025'
-            //     if (state.currentProperty === 'error') {
-            //         state.currentProperty = 'pred'
-            //     }
-            // }
             this.commit('updateMapTitle')
         },
         setYear(state, year) {
