@@ -123,7 +123,7 @@ export default {
     const currentYear = new Date().getFullYear()
 
     const buildApiUrl = () => {
-      const baseUrl = 'https://holy-paper-f2ab.syang685.workers.dev'
+      const baseUrl = 'xxx'
       const params = new URLSearchParams({
         commodity_desc: selectedCrop.value,
         year: selectedYear.value,
